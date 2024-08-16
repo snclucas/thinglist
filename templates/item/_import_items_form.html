@@ -1,0 +1,16 @@
+<h5>Load CSV...</h5>
+<div class="card card-body">
+    <form method="POST" action="{{ url_for("items.items_load") }}" id="load-items-form"
+          enctype="multipart/form-data">
+        <input class="form-control" type="file" name="file" accept=".json">
+        <input type="hidden" name="inventory_slug" value="{{ inventory_slug}}">
+        <input type="hidden" name="inventory_id" value="{{ inventory.id }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <hr>
+        <button type="submit" class="btn btn-primary" id="load-items-btn">
+            <span id="load-items-span" class="spinner-border spinner-border-sm"
+                  role="status" aria-hidden="true" style="display: none"></span>
+            Load</button>
+        <button type="submit" class="btn btn-primary" id="import-cancel-btn">Cancel</button>
+    </form>
+</div>

@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <link href="{{ url_for('static', filename='css/autoComplete01.css') }}" rel="stylesheet">
+
+    <div class="content">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <form method="GET" action="{{ url_for("search.search") }}">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <label class="form-label" for="q">Search:</label>
+                                        <input type="text" class="form-control" name="q" id="q" value="{{ q }}">
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-md-12 text-center">
+                                        <button type="submit" class="btn btn-light">Search</button>
+                                    </div>
+                                </div>
+                            </form>
+                            <div class="row">
+                                <div class="col-md-12">
+
+
+                                {% if items | length > 0 %}
+
+                                    <table class="table collapse show dataTable" id="items-table">
+                                        <thead>
+                                        <th>Item</th>
+                                        </thead>
+                                        <tbody>
+                                        {% for item in items %}
+                                            <tr>
+                                                <td>
+                                                     <a href="{{ url_for('item.item_with_username_and_inventory', username=username,
+                                inventory_slug=item.inventories[0].slug, item_slug=item.slug) | replace('%40', '@') }}">{{ item.name }}</a>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+
+                                    {% else %}
+
+                                    <p>Example searches:</p> <br>
+
+                                    <p>free text - searches the item names and descriptions</p>
+                                    <p>tags:XXX - searches tags</p>
+                                    <p>location:XXX - searches locations</p>
+
+
+                                {% endif %}
+
+
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+
+{% block footer %}
+    {{ super() }}
+    <script src="{{ url_for('static', filename='js/autoComplete.js') }}"></script>
+
+    <script>
+        const autoCompleteJS = new autoComplete({
+            selector: "#q",
+            placeHolder: "Search ... ",
+            data: {
+                src: async (query) => {
+                    try {
+                        // Fetch Data from external Source
+                        const source = await fetch(`{{ url_for('api.locations')}}?query=${query}`);
+                        // Data should be an array of `Objects` or `Strings`
+                        const data = await source.json();
+                        return data;
+                    } catch (error) {
+                        return error;
+                    }
+                },
+                // Data source 'Object' key to be searched
+                //keys: ["food"]
+            },
+            threshold: 0,
+            autoFill: true,
+            resultsList: {
+                element: (list, data) => {
+                    if (!data.results.length) {
+                        // Create "No Results" message element
+                        const message = document.createElement("div");
+                        // Add class to the created element
+                        message.setAttribute("class", "no_result");
+
+                        // Append message element to the results list
+                        list.prepend(message);
+                    }
+                },
+                noResults: true,
+                maxResults: undefined,
+            },
+            resultItem: {
+                highlight: true,
+            },
+            events: {
+                input: {
+                    selection: (event) => {
+                        const selection = event.detail.selection.value;
+                        autoCompleteJS.input.value = selection;
+                    }
+                }
+            }
+        });
+    </script>
+
+
+{% endblock %}

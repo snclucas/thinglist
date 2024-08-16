@@ -1,0 +1,53 @@
+Name,Description
+Not set,Not set
+Computer,Computer
+Optical drive,Optical drive
+CD-ROM drive,CD-ROM drive
+CD-RW drive,CD-RW drive
+CD-RAM drive,CD-RAM drive
+"Tape drive, internal","Tape drive, internal"
+"Tape drive, external","Tape drive, external"
+Mouse,Mouse
+Joystick,Joystick
+"Power supply, modular","Power supply, modular"
+"Monitor, CRT","Monitor, CRT"
+"Monitor, LED","Monitor, LED"
+Game console,Game console
+"TV, CRT","TV, CRT"
+"TV, LCD","TV, LCD"
+"Floppy drive, 5.25 inch","Floppy drive, 5.25 inch"
+"Floppy drive, 3.5 inch","Floppy drive, 3.5 inch"
+"Floppy drive, 8 inch","Floppy drive, 8 inch"
+"IC, RAM","IC, RAM"
+"IC, ROM","IC, ROM"
+"IC, EEPROM","IC, EEPROM"
+"Passive component, capacitor","Passive component, capacitor"
+Sound card,Sound card
+Graphics card (2d),Graphics card (2d)
+Mini-computer,Mini-computer
+Graphics card (3d),Graphics card (3d)
+Graphics card (2d/3d),Graphics card (2d/3d)
+"Network card, ethernet","Network card, ethernet"
+"Network card, wifi","Network card, wifi"
+"Network card, token-ring","Network card, token-ring"
+SCSI card,SCSI card
+Keyboard,Keyboard
+Plotter,Plotter
+Printer (laser),Printer (laser)
+Printer (dot matrix),Printer (dot matrix)
+Printer (ink jet),Printer (ink jet)
+Firewire card,Firewire card
+"Cable, FireWire 800, 9 Pin to 9 Pin","Cable, FireWire 800, 9 Pin to 9 Pin"
+"Cable, USB 2.0 A to Mini B","Cable, USB 2.0 A to Mini B"
+"Cable, USB 2.0 A to Micro B","Cable, USB 2.0 A to Micro B"
+"Cable, USB 2.0 A to B","Cable, USB 2.0 A to B"
+"Cable, USB 2.0 A to A Female","Cable, USB 2.0 A to A Female"
+"Cable, USB 3.0 A to MicroB","Cable, USB 3.0 A to MicroB"
+"Cable, USB 3.0 A to B","Cable, USB 3.0 A to B"
+"Cable, Ultra Slim, USB 3.0 A to Micro B","Cable, Ultra Slim, USB 3.0 A to Micro B"
+"Cable, USB 3.0 A to A Female","Cable, USB 3.0 A to A Female"
+"Cable, FireWire 400, 9 Pin to 6 Pin","Cable, FireWire 400, 9 Pin to 6 Pin"
+"Cable, FireWire 400, 6 Pin to 6 Pin","Cable, FireWire 400, 6 Pin to 6 Pin"
+"Cable, DB9 Female to Female Straight-Thru","Cable, DB9 Female to Female Straight-Thru"
+"Cable, DB9 Male to Female Straight-Thru","Cable, DB9 Male to Female Straight-Thru"
+"Cable, DB9 Male to Male Straight-Thru","Cable, DB9 Male to Male Straight-Thru"

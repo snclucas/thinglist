@@ -1,0 +1,116 @@
+{% if data_dict | length > 0 %}
+    <hr>
+    <div>
+        <table class="table collapse show dataTable" id="items-table">
+            <thead>
+            <tr>
+                <th data-priority="1">Name</th>
+                <th data-priority="1">Description</th>
+                <th>Type</th>
+                {% if user_is_authenticated %}
+                    <th>Location</th>
+                    {% if inventory_slug == "all" %}
+                        <th>Inventory</th>
+                    {% endif %}
+                {% endif %}
+                <th>Tags</th>
+                {% if user_is_authenticated %}
+                    {% if is_inventory_owner or inventory_access_level == 1 %}
+                    <th><input class="form-check-input" type="checkbox" value="" id="all-selected-items"></th>
+                        {% endif %}
+                {% endif %}
+            </tr>
+            </thead>
+            <tbody>
+            {% for item_data in data_dict %}
+                {% set item = item_data["item"] %}
+                {% set item_type = item_data["types"] %}
+                {% set item_slug = item.slug %}
+                {% set item_location = item_data["location"] %}
+                {% set item_visibility = item_data["item_access_level"] %}
+                {% set quantity = item.quantity %}
+                {% if quantity > 1 %}
+                    {% set quantity_string = " (" +  quantity|string  +')' %}
+                {% else %}
+                    {% set quantity_string = "" %}
+                    {% endif %}
+
+                <tr>
+                    <td>
+                        {% if inventory_slug == "default" %}
+                            <a href="{{ url_for('item.item_with_username_and_inventory', username=username,
+                                inventory_slug="d", item_slug=item_slug) | replace('%40', '@') }}">{{ item.name }} {{ quantity_string }}</a>
+                        {% elif inventory_slug == "all" %}
+
+                            {% if item.inventories | length > 0 %}
+                                <a href="{{ url_for('item.item_with_username_and_inventory', username=username,
+                                inventory_slug=item.inventories[0].slug, item_slug=item_slug) | replace('%40', '@') }}">{{ item.name }} {{ quantity_string }}</a>
+                            {% else %}
+                                {{ item.name }} {{ quantity_string }}
+                            {% endif %}
+                        {% else %}
+                            <a href="{{ url_for('item.item_with_username_and_inventory', username=username,
+                                inventory_slug=inventory.slug, item_slug=item_slug) | replace('%40', '@') }}">{{ item.name }} {{ quantity_string }}</a>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.description }}</td>
+                    <td id="table_item_desc_{{ item['id'] }}">
+                        <a href="{{ url_for('items.items_with_username_and_inventory', username=username, inventory_slug=inventory_slug) | replace('%40', '@') }}?type={{ item_type }}">{{ item_type }}</a>
+                    </td>
+                    {% if user_is_authenticated %}
+                        <td id="table_item_tags_{{ item['id'] }}">
+                            {% if item_location != "None" %}
+                                {{ item_location }}
+                                {% if item.specific_location != "None" %}
+                                    <br> {{ item.specific_location }}
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                        {% if inventory_slug == "all" %}
+                            <td>
+                                {% for inv in item.inventories %}
+                                    {% if "__default__" not in  inv.name %}
+                                        <a href="{{ url_for('items.items_with_username_and_inventory', username=username, inventory_slug=inv.slug) | replace('%40', '@') }}">{{ inv.name }}</a>
+                                        <br>
+                                    {% else %}
+                                        None
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                        {% endif %}
+                    {% endif %}
+                    <td>
+                        {% for tag in item.tags %}
+                            <a href="{{ url_for('items.items_with_username_and_inventory', username=username, inventory_slug=inventory_slug) | replace('%40', '@') }}?tags={{ tag.tag | replace('@#$', ' ') }}">
+                                <span class="tag_list">{{ tag.tag | replace('@#$', ' ') }}</span>
+                            </a>
+                        {% endfor %}
+                    </td>
+                    {% if user_is_authenticated %}
+                        {% if is_inventory_owner or inventory_access_level == 1 %}
+
+                        <td>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="" data-item-id="{{ item.id }}" id="selected-item-{{ item.id }}">
+                            </div>
+                        </td>
+
+                        {% endif %}
+                    {% endif %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <hr>
+    <div class="row">
+        <div class="col-md-12">
+            <div class=" text-center">
+                <p>You can add a new item by clicking the <i class="fas fa-plus"></i> icon at the top.</p>
+                <p>You can import items (CSV) by clicking the <i class="fas fa-ellipsis-v"></i>
+                    to open the button panel and then clicking the <i class="fas fa-file-import"></i> icon.</p>
+            </div>
+        </div>
+    </div>
+{% endif %}

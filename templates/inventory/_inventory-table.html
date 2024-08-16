@@ -1,0 +1,92 @@
+{% if number_inventories > 0 %}
+    <table class="table  dataTable" id="inventories-table">
+        <thead class="success">
+        <tr>
+            <th></th>
+            <th data-priority="1"></th>
+            <th></th>
+            {% if user_is_authenticated %}
+                <th></th>
+
+            {% endif %}
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for inventory_data in inventories %}
+            {% if "__default__" not in  inventory_data['inventory_name'] %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('items.items_with_username_and_inventory', username=inventory_data['inventory_owner'], inventory_slug=inventory_data['inventory_slug']) | replace('%40', '@') }}">
+                            {{ inventory_data['inventory_name'] }}</a>
+                    </td>
+                    <td>{{ inventory_data['inventory_description'] }}</td>
+                    <td>
+                        {{ inventory_data['inventory_item_count'] }} item(s) | @{{ inventory_data['inventory_owner'] }}
+                        |
+                        {% if  inventory_data['inventory_access_level'] == 1 %}
+                            <span class="fas fa-unlock" style="color:red;"
+                                  data-toggle="tooltip" data-placement="top" title="This inventory is public"
+                            ></span>
+                        {% else %}
+                            <span class="fas fa-lock"
+                                  data-toggle="tooltip" data-placement="top" title="This inventory is not public"
+                            ></span>
+                        {% endif %}
+                        {% if inventory_data['userinventory_access_level'] == 1 %}
+                            | Collaborator
+                        {% elif inventory_data['userinventory_access_level'] == 2 %}
+                            | Viewer
+                        {% endif %}
+                    </td>
+
+                    {% if user_is_authenticated %}
+
+                        {% if inventory_data['userinventory_access_level'] == 0 %}
+
+                            <td>
+                            <span class="fas fa-edit fa-2x" data-bs-toggle="collapse"
+                                  id="inventoryEdit-{{ inventory_data['inventory_id'] }}"
+                                  href="#collapseInventoryEdit"
+                                  data-inventory-id="{{ inventory_data['inventory_id'] }}"
+                                  data-inventory-name="{{ inventory_data['inventory_name'] }}"
+                                  data-inventory-description="{{ inventory_data['inventory_description'] }}"
+                                  data-inventory-slug="{{ inventory_data['inventory_slug'] }}"
+                                  data-inventory-public="{{ inventory_data['inventory_access_level'] }}"
+
+
+                                  data-toggle="tooltip" data-placement="top" title="Edit inventory"
+                                  style="display: inline-block; margin-right: 20px;"></span>
+
+                            </td>
+
+
+                        {% else %}
+                            <td>Remove</td>
+                        {% endif %}
+
+                        <td>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value=""
+                                       data-inventory-id="{{  inventory_data['inventory_id'] }}"
+                                       id="selected-item-{{  inventory_data['inventory_id'] }}">
+                            </div>
+                        </td>
+
+                    {% endif %}
+                </tr>
+            {% endif %}
+        {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class=" text-center">
+                <h5>Oh no, no inventories :(</h5>
+
+                <p>You can add a new inventory by clicking the <i class="fas fa-plus"></i> icon at the top.</p>
+            </div>
+        </div>
+    </div>
+{% endif %}

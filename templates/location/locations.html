@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    <div class="content">
+        <div class="container">
+
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-body">
+
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h4>Locations <small>| {{ locations | length }}</small></h4>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <div class="text-end">
+
+                                        <a id="add-location-btn" data-bs-toggle="collapse" href="#addLocationCollapse"
+                                           role="button" aria-expanded="false" aria-controls="addLocationCollapse">
+                                            <span id="delete-items-span" class="fas fa-plus fa-2x"
+                                                  style=" display: inline-block; margin-right: 20px;"></span>
+                                        </a>
+
+                                        <a id="delete-locations-btn-collapse" data-bs-toggle="collapse"
+                                           href="#collapseDeleteLocations"
+                                           role="button" aria-expanded="false"
+                                           data-toggle="tooltip" data-placement="top" title="Delete location"
+                                           aria-controls="confirmLocationDelete">
+                                                <span id="delete-locations-span" class="fas fa-minus fa-2x"
+                                                      style="color:lightgray; display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+                                        </a>
+
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr>
+
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="collapse" id="addLocationCollapse" aria-expanded="false">
+                                        <div class="card card-body">
+                                            {% include 'location/add_location_form.html' %}
+                                        </div>
+                                    </div>
+
+                                    <div class="collapse" id="collapseDeleteLocations" aria-expanded="false">
+                                        <div class="text-center">
+                                            <p>Do you really want to delete? This process cannot be
+                                                undone.</p>
+                                            <button id="confirm-delete-locations-btn" type="button"
+                                                    class="btn btn-primary btn-sm">Delete
+                                            </button>
+                                            <button id="cancel-delete-locations-btn" type="button"
+                                                    class="btn btn-primary btn-sm">Cancel
+                                            </button>
+                                            <hr>
+                                        </div>
+                                    </div>
+
+                                    {% include 'location/locations-table.html' %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block footer %}
+    {{ super() }}
+
+    <script src="{{ url_for('static', filename='js/thinglist.js') }}"></script>
+
+    <script>
+
+
+        $(document).ready(function () {
+            check_checkboxes()
+
+            $('#my-inventories-table').DataTable({
+                "searching": true,
+                paging: false,
+                ordering: true,
+                info: true
+            });
+
+
+
+        });
+
+        $("#cancel_add_location_btn").on("click", function (e) {
+            e.preventDefault();
+            $("#addLocationCollapse").collapse("toggle");
+        });
+
+        $('[id^="confirmLocationDelete-"]').on("click", function (e) {
+            e.preventDefault();
+            let $this = $(this);
+            let location_id = $this.attr('data-location-id')
+
+            $.ajax({
+                type: "POST",
+                url: "{{ url_for('location.del_location')}}",
+                contentType: 'application/json;charset=UTF-8',
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token() }}",
+                },
+                data: JSON.stringify(
+                    {
+                        'location_id': location_id
+                    }
+                ),
+                success: function (e) {
+                    location.reload();
+                },
+                error: function (e) {
+                    location.reload();
+                }
+            });
+        });
+
+        $("#cancel-delete-locations-btn").on("click", function (e) {
+            deselect_all_checkboxes("selected-item-")
+            $("#collapseDeleteLocations").collapse("hide");
+        });
+
+        $("#confirm-delete-locations-btn").on("click", function (e) {
+            e.preventDefault();
+
+            let selected_list = get_selected_checkbox_ids("selected-item-", "data-location-id")
+
+            $.ajax({
+                type: "POST",
+                url: "{{ url_for('location.del_location')}}",
+                contentType: 'application/json;charset=UTF-8',
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token() }}",
+                },
+                data: JSON.stringify(
+                    {
+                        'location_ids': selected_list,
+                        'username': "{{ username }}",
+                    }
+                ),
+                success: function () {
+                    location.reload();
+                },
+                error: function () {
+                    location.reload();
+                }
+            });
+        });
+
+        $('input:checkbox[id^="selected-item-"]').on("click", function (e) {
+            check_checkboxes();
+        });
+
+        function check_checkboxes() {
+            let number_selected = checkbox_count("selected-item-")
+
+            let delete_collapse_btn_selector = $('#delete-locations-btn-collapse');
+            let delete_btn_selector = $('#delete-locations-btn');
+            let delete_span_selector = $('#delete-locations-span');
+
+            if (number_selected > 0) {
+                delete_collapse_btn_selector.attr('href', '#collapseDeleteLocations');
+                delete_btn_selector.css("pointer-events", "auto");
+                delete_span_selector.css('color', 'red');
+                delete_btn_selector.prop('disabled', false);
+                delete_collapse_btn_selector.prop('disabled', false);
+                delete_btn_selector.attr('disabled', 'disabled');
+            } else {
+                $("#collapseDeleteLocations").collapse("hide");
+                delete_collapse_btn_selector.removeAttr('href');
+                delete_btn_selector.css("pointer-events", "none");
+                delete_span_selector.css('color', 'lightgray');
+                delete_btn_selector.prop('disabled', true);
+                delete_collapse_btn_selector.prop('disabled', true);
+                delete_btn_selector.removeAttr('disabled');
+            }
+        }
+
+
+    </script>
+
+{% endblock %}

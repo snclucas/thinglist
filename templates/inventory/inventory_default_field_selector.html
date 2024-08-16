@@ -1,0 +1,62 @@
+<div class="overflow-auto" style="max-width: 100pc; max-height: 300px;">
+
+    <p>These fields will be displayed when adding new items to this inventory.</p>
+
+<div class="row">
+    <div class="col-md-11">
+
+
+
+    <table class="table table-striped dataTable" id="item-field-table">
+        <thead class="success">
+
+        <tr>
+            <th>Inventory default field</th>
+            <th>Show</th>
+        </tr>
+
+        </thead>
+        <tbody>
+
+        {% for item_field_name, field in all_fields.items() %}
+
+            <tr>
+                <td>{{ item_field_name }}</td>
+                <td>
+                    <input type='hidden' name='selected_fields[{{ item_field_name }}]' value='good'/>
+
+                    {% if field.id in inventory_default_fields %}
+                        <input class="form-check-input" type="checkbox" value="{{ item_field_name }}"
+                               id="selected-field-{{ field.id }}"
+                               data-itemfield-id="{{ field.id }}"
+                               checked>
+                    {% else %}
+                        <input class="form-check-input" type="checkbox" value="{{ item_field_name }}"
+                               id="selected-field-{{ field.id }}"
+                               data-itemfield-id="{{ field.id }}">
+
+                    {% endif %}
+
+                </td>
+            </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+        </div>
+</div>
+
+</div>
+
+<hr>
+
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="row">
+    <div class="col-6">
+        <button id="save-fields-btn" type="submit" class="btn btn-primary">Save</button>
+        <button class="btn btn-primary">Cancel</button>
+    </div>
+</div>

@@ -1,0 +1,11 @@
+Dear {{ user.username }},
+
+To activate your ThingList click on the following link:
+
+{{ url_for('auth_flask_login.activate_user', token=token, _external=True) }}
+
+If you have not requested a password reset simply ignore this message.
+
+Sincerely,
+
+Thing Master

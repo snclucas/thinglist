@@ -1,0 +1,10 @@
+<h5>Load CSV...</h5>
+<div class="card card-body">
+    <form method="POST" action="{{ url_for("types.itemtypes_load") }}"
+          enctype="multipart/form-data">
+        <input class="form-control" type="file" name="file">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <hr>
+        <button type="submit" class="btn btn-primary">Load</button>
+    </form>
+</div>

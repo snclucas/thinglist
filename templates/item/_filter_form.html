@@ -1,0 +1,70 @@
+<div class="card">
+    <div class="content">
+        <div class="head">
+            <h5 class="mb-0">Filters:</h5>
+        </div>
+        <hr>
+
+
+        <form class="row g-3" method="post" action="">
+            <div class="row">
+                <div class="col-6">
+                    <label class="form-label" for="types_autocomplete">Type:</label>
+                    <input id="types_autocomplete" name="item_type" type="text" class="form-control"
+                           value="{{ selected_item_type }}">
+                </div>
+                <div class="col-6">
+                    <label class="form-label" for="plassering">Tags:</label>
+                    <input type="text" class="form-control" name="item_tags" id="form_item_tags" value="{{ tags }}">
+                </div>
+            </div>
+
+            <hr>
+
+            {% if user_is_authenticated %}
+                <div class="row">
+                    <div class="col-6">
+                        <label class="form-label" for="item_location_filter">Location:</label>
+                        <select class="form-select" id="item_location_filter" name="item_location_filter">
+
+                            {% if selected_item_location_id is none %}
+                                <option value="0">Any</option>
+                            {% else %}
+                                <option value="0" selected>Any</option>
+                            {% endif %}
+
+                            {% for option in user_locations %}
+                                {% if selected_item_location_id == option.id %}
+                                    <option value="{{ option.id }}" selected>{{ option.name }}</option>
+                                {% else %}
+                                    <option value="{{ option.id }}">{{ option.name }}</option>
+                                {% endif %}
+                            {% endfor %}
+
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label" for="plassering">Specific location:</label>
+                        <input type="text" class="form-control" name="item_specific_location"
+                               id="form_item_specific_location"
+                               value="{{ item_specific_location }}">
+                    </div>
+                </div>
+
+                <hr>
+
+            {% endif %}
+
+            <hr>
+
+            <input type="hidden" class="form-control" name="item_id" id="form_item_id" value="-1">
+
+            <div class="col-12">
+                <button id="btn-apply-filter" type="submit" class="btn btn-primary">Apply</button>
+                <button id="btn-clear-filters" class="btn btn-primary">Clear filters</button>
+            </div>
+        </form>
+
+
+    </div>
+</div>

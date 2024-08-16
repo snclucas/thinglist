@@ -1,0 +1,223 @@
+Name,Description,Type
+A/D converter,A/D converter,input
+Additional information,Additional information,textarea
+Album length,Album length,input
+Alias,Alias,input
+Analogue outputs,Analogue outputs,input
+ASIN,ASIN,input
+Assembly date,Assembly date,input
+Author,Author,input
+Back design,Back design,input
+Backlight Source,Backlight Source,input
+Bandwidth,Bandwidth,input
+"Bandwidth, download","Bandwidth, download",input
+"Bandwith, upload","Bandwith, upload",input
+Battery life,Battery life,input
+Baud rate,Baud rate,input
+Board number,Board number,input
+Breed,Breed,input
+Buyer,Buyer,input
+Capacitance,Capacitance,input
+Capacity,Capacity,input
+CAS latency,CAS latency,input
+Channel separation,Channel separation,input
+Chemical formula,Chemical formula,input
+Chipset,Chipset,input
+Colour,Colour,input
+Condition,Condition,input
+Configuration,Configuration,input
+Connector type,Connector type,input
+Connector type A,Connector type A,input
+Connector type B,Connector type B,input
+Contents,Contents,input
+Core,Core,input
+Core material,Core material,input
+Cord length,Cord length,input
+Cost,Cost,input
+Cost/Unit,Cost/Unit,input
+Country,Country,input
+CPU,CPU,input
+Creator,Creator,input
+Crossover frequency,Crossover frequency,input
+D/A converter,D/A converter,input
+DAC,DAC,input
+Damping factor,Damping factor,input
+Data retention,Data retention,input
+DC supply voltage (VDD),DC supply voltage (VDD),input
+Denomination,Denomination,input
+Department,Department,input
+Depth,Depth,input
+Diameter,Diameter,input
+Digital outputs,Digital outputs,input
+Dimensions,Dimensions,input
+Director,Director,input
+Disaplacement,Disaplacement,input
+Disk number,Disk number,input
+Display Bit Depth,Display Bit Depth,input
+Drive units,Drive units,input
+Dynamic range,Dynamic range,input
+Edition,Edition,input
+End production date,End production date,input
+Energy Class,Energy Class,input
+Failure rate,Failure rate,input
+Family,Family,input
+Floppy drive,Floppy drive,input
+Form factor,Form factor,input
+Format,Format,input
+Frame Rate Control,Frame Rate Control,input
+Frequency,Frequency,input
+Frequency response,Frequency response,input
+Front design,Front design,input
+Function,Function,input
+Gain,Gain,input
+Gauge,Gauge,input
+Genre,Genre,input
+Headroom extension,Headroom extension,input
+Heads,Heads,input
+Height,Height,input
+Impedance,Impedance,input
+Inductance,Inductance,input
+Input sensitivity,Input sensitivity,input
+Input voltage,Input voltage,input
+Interface type,Interface type,input
+ISBN,ISBN,input
+ISBN-10,ISBN-10,input
+ISBN-13,ISBN-13,input
+Issue date,Issue date,input
+Language,Language,input
+Length,Length,input
+Manufacture date,Manufacture date,input
+Manufacturer,Manufacturer,input
+Material,Material,input
+Max Number of Colors,Max Number of Colors,input
+Maximum DC Current,Maximum DC Current,input
+Media type,Media type,input
+Model,Model,input
+Mounting style,Mounting style,input
+Noise reduction,Noise reduction,input
+Number of pages,Number of pages,input
+Number of pins,Number of pins,input
+Number of tracks,Number of tracks,input
+Operating pressure,Operating pressure,input
+Operating System,Operating System,input
+Operating temperature (max),Operating temperature (max),input
+Operating temperature (min),Operating temperature (min),input
+Operating temperature (range),Operating temperature (range),input
+Origin,Origin,input
+Output voltage,Output voltage,input
+Package,Package,input
+Pages,Pages,input
+Panel,Panel,input
+Part number,Part number,input
+Platform,Platform,input
+Play time,Play time,input
+POST string,POST string,input
+Power,Power,input
+Power output,Power output,input
+Power rating,Power rating,input
+Processor,Processor,input
+Producer,Producer,input
+Published date,Published date,input
+Publisher,Publisher,input
+Purchase date,Purchase date,input
+Qualification,Qualification,input
+Quality,Quality,input
+Quantity,Quantity,input
+Radius,Radius,input
+RAM,RAM,input
+RAM,RAM,input
+Rating,Rating,input
+Recording time,Recording time,input
+Refresh rate,Refresh rate,input
+Reliability,Reliability,input
+Resistance,Resistance,input
+S/N improvement,S/N improvement,input
+Safety,Safety,input
+Sampling frequency,Sampling frequency,input
+Screen aspect ratio,Screen aspect ratio,input
+Screen Horizontal Viewing Angle,Screen Horizontal Viewing Angle,input
+Screen Pixel Density,Screen Pixel Density,input
+Screen Pixel Pitch,Screen Pixel Pitch,input
+Screen resolution,Screen resolution,input
+Screen Vertical Viewing Angle,Screen Vertical Viewing Angle,input
+Screen-to-Body Ratio,Screen-to-Body Ratio,input
+Seller,Seller,input
+Sensitivity,Sensitivity,input
+Serial number,Serial number,input
+Series,Series,input
+Series,Series,input
+Signal word,Signal word,input
+Signal-to-noise,Signal-to-noise,input
+Size,Size,input
+SKU,SKU,input
+Socket,Socket,input
+Source ,Source ,input
+SPARS code,SPARS code,input
+Speaker load impedance,Speaker load impedance,input
+Species,Species,input
+Status,Status,input
+Strength,Strength,input
+Studio,Studio,input
+Supplier,Supplier,input
+Supply voltage (max),Supply voltage (max),input
+Supply voltage (min),Supply voltage (min),input
+Supply voltage (range),Supply voltage (range),input
+System,System,input
+System number,System number,input
+Tape speed,Tape speed,input
+Taper,Taper,input
+TDP,TDP,input
+Termination style,Termination style,input
+Temperature coefficient,Temperature coefficient,input
+Top speed,Top speed,input
+Tolerance,Tolerance,input
+Total harmonic distortion,Total harmonic distortion,input
+Track system,Track system,input
+Transmission,Transmission,input
+URL,URL,URL
+Video chip,Video chip,input
+Video output ,Video output ,input
+Video outputs,Video outputs,input
+Vintage,Vintage,input
+Voltage,Voltage,input
+Voltage Rating DC,Voltage Rating DC,input
+Voltage Rating AC,Voltage Rating AC,input
+Volume,Volume,input
+Wavelength,Wavelength,input
+Weight,Weight,input
+Wow and flutter,Wow and flutter,input
+Asset tag,Asset tag,input
+Service tag,Service tag,input
+Product key,Product key,input
+Texture,Texture,input
+Pull resistance,Pull resistance,input
+System requirements,System requirements,textarea
+Class,Class,input
+Hull material,Hull material,input
+Engine type,Engine type,input
+Engine make,Engine make,input
+Engine model,Engine model,input
+Engine usage,Engine usage,input
+Fuel tanks,Fuel tanks,input
+Fresh water tanks,Fresh water tanks,input
+Holding tanks,Holding tanks,input
+LOA,LOA,input
+Beam,Beam,input
+Keel type,Keel type,input
+Hull type,Hull type,input
+Dry weight,Dry weight,input
+Berths,Berths,input
+Vessel type,Vessel type,input
+Airframe hours,Airframe hours,input
+Prop hours,Prop hours,input
+Prop make,Prop make,input
+Reg number,Reg number,input
+Wingspan,Wingspan,input
+Range,Range,input
+Stall speed,Stall speed,input
+Cruise speed,Cruise speed,input
+Service ceiling,Service ceiling,input
+Rate of climb,Rate of climb,input
+Maximum speed,Maximum speed,input
+Wing area,Wing area,input
+Airfoil,Airfoil,input

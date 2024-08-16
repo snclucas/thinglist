@@ -1,0 +1,18 @@
+<h5>Add images...</h5>
+<div class="card card-body">
+    <form method="POST" enctype="multipart/form-data"
+          action="/item/images/upload">
+        <input class="form-control" type="file" name="file[]" multiple="">
+        <input type="hidden" class="form-control" name="username"
+               id="form_username" value="{{ username }}">
+        <input type="hidden" class="form-control" name="item_slug"
+               id="form_item_slug" value="{{ item.slug }}">
+        <input type="hidden" class="form-control" name="inventory_slug"
+               id="form_inventory_slug" value="{{ inventory_slug }}">
+        <input type="hidden" class="form-control" name="item_id"
+               id="form_item_id" value="{{ item.id }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <hr>
+        <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+</div>

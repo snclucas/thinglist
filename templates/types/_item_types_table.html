@@ -1,0 +1,41 @@
+{% if user_item_types | length > 1 %}
+
+    <table class="table table-striped dataTable" id="my-itemtypes-table">
+        <thead class="success">
+
+        <tr>
+            <th></th>
+            <th></th>
+        </tr>
+
+        </thead>
+        <tbody>
+        {% for user_item_type in user_item_types %}
+            {% if user_item_type.name != "None" %}
+
+                <tr>
+                    <td>
+                        <a href="{{ url_for('items.items_with_username_and_inventory', username=username, inventory_slug="all") | replace('%40', '@') }}?type={{ user_item_type.name }}">{{ user_item_type.name }}</a>
+                    </td>
+
+                     <td>
+
+                <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" data-itemtype-id="{{ user_item_type.id }}"
+                               id="selected-item-{{ user_item_type.id }}">
+                    </div>
+            </td>
+
+
+                </tr>
+            {% endif %}
+
+        {% endfor %}
+        </tbody>
+    </table>
+
+{% else %}
+
+    <h5>:) No item types</h5>
+
+{% endif %}

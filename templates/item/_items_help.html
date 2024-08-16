@@ -1,0 +1,28 @@
+
+
+<p>This is the list of your magnificent items.</p>
+
+{% if is_inventory_owner or inventory_access_level == 1 %}
+
+    <p><i class="fas fa-list fa-2x"></i> &nbsp; sets the default fields used for new items added to a particular inventory.</p>
+
+    <p><i class="fas fa-plus fa-2x"></i> &nbsp; adds a new item.
+
+    <p><i class="fas fa-minus fa-2x"></i> &nbsp; delete one or more selected items (via the checkboxes).</p>
+
+    <p><i class="fas fa-filter fa-2x"></i> &nbsp; allows you apply a filter on the item list.</p>
+
+    <p><i class="fas fa-ellipsis-v fa-2x"></i> &nbsp; open up the <strong>button bar</strong> with more things to do.</p>
+
+    <hr>
+    <p><strong>Within the button bar</strong></p>
+
+    <p><i class="fas fa-file-import fa-2x"></i> &nbsp; imports items from a CSV file.</p>
+
+    <p><i class="fas fa-file-export fa-2x"></i> &nbsp; exports your item list.</p>
+
+    <p><i class="fas fa-exchange-alt fa-2x"></i> &nbsp; allows you to move items between inventories.</p>
+
+    <p><i class="fas fa-edit fa-2x"></i> &nbsp; allows you to bulk edit your items.</p>
+
+{% endif %}

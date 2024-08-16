@@ -1,0 +1,95 @@
+<div class="text-center2">
+    <p>Add user to this inventory:</p>
+
+    <form id="form-add-user" method="POST"
+          action="{{ url_for("inv.add_user_to_inv") }}">
+        <label class="form-label" for="user_to_add">Username:</label>
+        <input type="text" class="form-control" name="user_to_add"
+               id="user_to_add" value="">
+
+        <label class="form-label" for="access_level">Access level:</label>
+        <select class="form-select" id="access_level" name="access_level">
+            <option value="2" selected>Read only</option>
+            <option value="1">Collaborator</option>
+        </select>
+        <hr>
+        <button id="btn_submit_move" type="submit" class="btn btn-primary">
+            Save user
+        </button>
+        <button id="inv-users-cancel-btn" type="submit" class="btn btn-primary">
+            Cancel
+        </button>
+        <input type="hidden" class="form-control" name="inventory_id"
+               id="inventory_id"
+               value="{{ inventory.id }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    </form>
+
+    <hr>
+
+    <h4>Inventory users:</h4>
+
+    {% if users_in_this_inventory | length > 0 %}
+
+        <div>
+            <table class="table collapse show dataTable" id="inventory-users-table">
+                <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for user, access_level in users_in_this_inventory.items() %}
+
+                    {% if current_username != user.username %}
+
+                    <tr>
+                        <td>@{{ user.username }}</td>
+                        <td>
+
+                            {% if access_level == 1 %}
+                                Collaborator
+                            {% elif access_level == 2 %}
+                                Viewer
+                            {% else %}
+                            {% endif %}
+
+                        </td>
+                        <td>
+
+                            <span id="delete-user-btn-{{ user.id }}" data-bs-toggle="collapse"
+                                  href="#confirmUserDelete-{{ user.id }}"
+                                  class="fas fa-times fa-2x "
+                                  style="color:red; display: inline-block; margin-right: 20px;"></span>
+
+                            <div class="collapse" id="confirmUserDelete-{{ user.id }}"
+                                 aria-expanded="false">
+                                <button type="button" class="btn btn-primary btn-sm"
+                                        id="confirmUserDeleteBtn-{{ user.id }}"
+                                        data-user-id="{{ user.id }}">Confirm delete
+                                </button>
+                            </div>
+
+                        </td>
+                    </tr>
+                    {% endif %}
+
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+    {% else %}
+        <div class="row">
+            <div class="col-md-12">
+                <div class=" text-center">
+                    <p>No additional users</p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+
+</div>

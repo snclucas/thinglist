@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    {% block head %}
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title>
+            {% block title %}
+                ThingList
+            {% endblock %}
+        </title>
+
+        {% block metadata %}
+            <meta property="og:title" content="ThingList | A list of all your things"/>
+            <meta property="og:type" content="website"/>
+            <meta property="og:image" content="{{ url_for('static', filename='img/thinglist-logo-50pc.png') }}"/>
+            <meta property="og:url"
+                  content="https://thinglist.org"/>
+        {% endblock %}
+
+        <link rel="icon" type="image/png" href="/img/favicons/favicon-16x16.png" sizes="16x16">
+        <link rel="icon" type="image/png" href="/img/favicons/favicon-32x32.png" sizes="32x32">
+
+
+        <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+        <link href="{{ url_for('static', filename='vendor/fontawesome/css/fontawesome.min.css') }}" rel="stylesheet">
+        <link href="{{ url_for('static', filename='vendor/fontawesome/css/solid.min.css') }}" rel="stylesheet">
+        <link href="{{ url_for('static', filename='vendor/fontawesome/css/brands.min.css') }}" rel="stylesheet">
+        <link href="{{ url_for('static', filename='css/master.css') }}" rel="stylesheet">
+        <link href="{{ url_for('static', filename='DataTables/datatables.min.css') }}" rel="stylesheet"/>
+        <link href="{{ url_for('static', filename='css/gallery.css') }}" rel="stylesheet">
+
+        <link href="{{ url_for('static', filename='assets/css/ct-ultimate-gdpr.css') }}" rel="stylesheet" type='text/css'>
+
+        <link href='http://fonts.googleapis.com/css?family=Roboto:400,300,700' rel='stylesheet' type='text/css'>
+
+    {% endblock %}
+</head>
+
+<body>
+
+<div class="wrapper">
+    <div id="body" class="active">
+        {% include '_topbar.html' %}
+        {% block content %}
+        {% endblock %}
+    </div>
+</div>
+
+</body>
+
+{% block footer %}
+    <script src="{{ url_for('static', filename='vendor/jquery/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='DataTables/datatables.min.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='assets/js/ct-ultimate-gdpr.js') }}"></script>
+    <script src="{{ url_for('static', filename='assets/js/init.js') }}"></script>
+
+
+    <div id="footer">
+
+        <div class="container text-center">
+           <p> © 2023 ThingList.org | <a href="{{ url_for("main.about") }}">About</a></p>
+        </div>
+    </div>
+
+{% endblock %}
+
+</html>

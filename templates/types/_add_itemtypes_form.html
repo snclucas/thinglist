@@ -1,0 +1,11 @@
+
+<form class="row g-3" method="post" action="{{ url_for('types.add_item_type') }}">
+    <div class="col-12">
+        <input type="text" class="form-control" name="item_type_name" id="item_type_name" placeholder="" required>
+    </div>
+    <div class="col-12">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button class="btn btn-primary">Cancel</button>
+    </div>
+</form>

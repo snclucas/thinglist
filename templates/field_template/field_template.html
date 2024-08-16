@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    <div class="content">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-body">
+
+
+                            <div class="col-12">
+                                <label for="form_template_name" class="form-label">Template name:</label>
+                                <input type="text" class="form-control" name="template_name" id="form_template_name"
+                                       placeholder="" value="{{ field_template_name }}" required>
+                            </div>
+
+                            <hr>
+
+                            {% include 'field_template/edit_field_selector.html' %}
+
+                            <hr>
+
+                            <input type="hidden" class="form-control" name="template_id" id="form_template_id"
+                                   value="-1">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="row">
+                                <div class="col-4">
+                                    <button id="save-template-fields-btn" type="submit" class="btn btn-primary">Save
+                                    </button>
+                                    <button class="btn btn-primary">Cancel</button>
+                                </div>
+                                <div class="col-8">
+                                    <div class="alert alert-danger alert-dismissible fade hide" role="alert" id="alert">
+                                        <strong>Problem</strong> You need at least 1 field in your template.
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                                aria-label="Close"></button>
+                                    </div>
+
+                                </div>
+                            </div>
+
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block footer %}
+    {{ super() }}
+
+    <script>
+
+        $(document).ready(function () {
+            $('#item-field-table').DataTable({
+                "searching": true,
+                paging: false,
+                ordering: true,
+                info: true
+            });
+        });
+
+        $("#save-template-fields-btn").on("click", function (e) {
+            e.preventDefault();
+            // clear the search table to make sure the table is complete
+            let table = $('#item-field-table').DataTable();
+            table.search('').draw();
+
+            let template_name = $('#form_template_name').val();
+
+            let csrf_token = "{{ csrf_token() }}";
+            let all_checkboxes = $('input:checkbox[id^="selected-field-"]')
+            let number_selected = [];
+            $.each(all_checkboxes, function () {
+                let $this = $(this);
+                if ($this.is(":checked")) {
+                    number_selected.push(parseInt($this.attr('data-itemfield-id')));
+                }
+            });
+
+            if (number_selected.length === 0) {
+                $('#alert').toggleClass("show");
+                return
+            }
+
+            $.ajax({
+                type: "POST",
+                url: "{{ url_for('field_template.set_template_fields')}}",
+                contentType: 'application/json;charset=UTF-8',
+                headers: {
+                    "X-CSRFToken": csrf_token,
+                },
+                data: JSON.stringify(
+                    {
+                        'field_ids': number_selected,
+                        'template_name': template_name,
+                        'username': "{{ username }}",
+                    }
+                ),
+                success: function () {
+                    window.location.href = window.location.origin + "/{{ url_for('field_template.templates_with_username', username=username) }}";
+                },
+                error: function (e) {
+                    location.reload();
+                }
+            });
+
+        });
+    </script>
+
+{% endblock %}

@@ -1,0 +1,15 @@
+<p>Dear {{ user.username }},</p>
+<p>
+    You have been invited to the {{ inventory_owner }}'s inventory:<br>
+    {{ inventory_name }}
+
+    If you want access to this inventory, click the link below:
+    <a href="{{ url_for('inv.confirm_inventory_invite_endpoint', token=token, _external=True) }}">
+        click here
+    </a>.
+</p>
+<p>Alternatively, you can paste the following link in your browser's address bar:</p>
+<p>{{ url_for('inv.confirm_inventory_invite_endpoint', token=token, _external=True) }}</p>
+
+<p>Sincerely,</p>
+<p>Thing Master</p>

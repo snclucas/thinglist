@@ -1,0 +1,57 @@
+
+{% if user_notifications | length > 0 %}
+    <h5>Notifications</h5>
+    <hr>
+    <div>
+
+        <table class="table collapse show dataTable" id="user-notifications-table">
+            <thead>
+            <tr>
+                <th></th>
+                <th></th>
+                <th></th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for notification in user_notifications %}
+
+                <tr>
+                    <td>@{{ notification.from_user.username}}</td>
+                    <td>{{ notification.text }}</td>
+                    <td>{{ notification.date }}</td>
+                    <td>
+                        <span id="delete-notification-btn-{{ notification.id }}" data-bs-toggle="collapse"
+                                  href="#confirmNotificationDelete-{{ notification.id }}"
+                                  class="fas fa-times fa-2x "
+                                  style="color:red; display: inline-block; margin-right: 20px;"></span>
+
+                        <div class="collapse" id="confirmNotificationDelete-{{ notification.id }}"
+                                 aria-expanded="false">
+                                <button type="button" class="btn btn-primary btn-sm"
+                                        id="confirmNotificationDeleteBtn-{{  notification.id }}"
+                                        data-notification-id="{{  notification.id }}">Confirm delete
+                                </button>
+                            </div>
+
+                    </td>
+                </tr>
+
+            {% endfor %}
+            </tbody>
+
+        </table>
+
+    </div>
+
+{% else %}
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class=" text-center">
+                <p>You have no notifications</p>
+            </div>
+        </div>
+    </div>
+
+{% endif %}

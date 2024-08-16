@@ -1,0 +1,31 @@
+{% if locations | length > 0 %}
+    <table class="table table-striped dataTable" id="my-locations-table">
+        <thead class="success">
+        <tr>
+            <th></th>
+            <th></th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for location in locations %}
+            <tr>
+                <td>
+                    <a href="{{ url_for('items.items_with_username_and_inventory', username=username, inventory_slug="all") | replace('%40', '@') }}?location={{ location['name']  | replace('@#$', ' ') | replace(' ', '+') }}">
+                        {{ location['name'] }}  </a>
+                </td>
+                <td>{{ location['description'] }}</td>
+
+                <td>
+                    {% if  location['name'] != "None" %}
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" data-location-id="{{ location['id'] }}"
+                               id="selected-item-{{ location['id'] }}">
+                    </div>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endif %}

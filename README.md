@@ -1,2 +1,1 @@
-# thinglist
-Thing List
+# thing-list

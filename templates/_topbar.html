@@ -1,0 +1,43 @@
+<div id="body" class="active">
+
+    <ul class="nav navbar-white bg-white nav-pills justify-content-center">
+
+        <li class="nav-item text-center"><a class="nav-link" href="{{ url_for('items.items') }}">
+            <i class="grey mb-2 fas fa-th-list"></i>
+            <p class="text-muted show-big">Items</p></a>
+        </li>
+
+        <li class="nav-item text-center"><a class="nav-link" href="{{ url_for('search.search') }}">
+            <i class="grey mb-2 fas fa-search"></i>
+            <p class="text-muted show-big">Search</p></a>
+        </li>
+
+        <a class="navbar-brand" href="#">
+            <img src="{{ url_for('static', filename='img/thinglist-logo-50pc.png') }}" alt="" height="75">
+        </a>
+
+        {% if current_user.is_authenticated %}
+
+            <li class="nav-item text-center"><a class="nav-link"
+                                                href="{{ url_for('main.profile', username=current_user.username) | replace('%40', '@') }}">
+                <i class="grey mb-2 fas fa-at"></i>
+                <p class="text-muted show-big">@{{ current_user.username }}</p></a>
+            </li>
+
+            <li class="nav-item text-center"><a class="nav-link" href="{{ url_for('auth_flask_login.logout') }}">
+                <i class="grey mb-2 fas fa-sign-out-alt"></i>
+                <p class="text-muted show-big">logout</p></a>
+            </li>
+
+        {% else %}
+
+            <li class="nav-item text-center"><a class="nav-link" href="{{ url_for('auth_flask_login.login') }}">
+                <i class="grey mb-2 fas fa-sign-in-alt"></i>
+                <p class="text-muted show-big">login</p></a>
+            </li>
+
+        {% endif %}
+
+    </ul>
+
+</div>

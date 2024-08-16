@@ -1,0 +1,13 @@
+Dear {{ user.username }},
+
+You have been invited to the {{ inventory_owner }}'s inventory: {{ inventory_name }}
+
+To activate your ThingList click on the following link:
+
+{{ url_for('inv.confirm_inventory_invite_endpoint', token=token, _external=True) }}
+
+If you have not requested a password reset simply ignore this message.
+
+Sincerely,
+
+Thing Master

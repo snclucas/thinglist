@@ -1,0 +1,12 @@
+<form class="row g-3" method="post" action="{{ url_for('item.relate_items') }}">
+    <div class="mb-3">
+        <input id="relateditem" name="relateditem" type="text" class="form-control" value="">
+    </div>
+    <div class="mb-3">
+        <button type="submit" class="btn btn-primary">Add</button>
+    </div>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="item_id" value="{{ item.id }}">
+    <input type="hidden" name="inventory_slug" value="{{ inventory_slug }}">
+    <input type="hidden" name="item_slug" value="{{ item.slug }}">
+</form>

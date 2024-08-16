@@ -1,0 +1,60 @@
+{% if inventory_items['items'] | length > 0 %}
+    <div>
+        <table class="table collapse show dataTable" id="invtable">
+            <thead>
+            <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Location</th>
+                <th>
+                    <input class="form-check-input" type="checkbox" value="" id="all-selected-items">
+                </th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for item in inventory_items['items'] %}
+                {% set item_tags = item[0].tags %}
+                {% set item_tags = item_tag_to_string(item[0].tags) %}
+                {% set item_slug = item[0].slug %}
+                <tr>
+                    <td>
+                    <a href="{{ url_for('item.item', username=username, item_slug=item_slug) | replace('%40', '@') }}">{{ item[0].name }}</a>
+
+                        <br>
+                        {% for tag in item[0].tags %}
+                            <a href="{{ url_for('item.items') }}?tags={{ tag.tag }}">
+                            <mark>{{ tag.tag }}</mark>
+                            </a>
+                        {% endfor %}
+                        <br>
+
+                    </td>
+
+                    <td id="table_item_type_{{ item[0]['id'] }}">{{ item[2].name }}</td>
+
+                    <td id="table_item_specific_location_{{ item[0]['id'] }}">
+                        {{ item[3].name }} <br>
+                        {{ item[0].specific_location }}
+                    </td>
+
+                    <td>
+                        {% if user_is_authenticated %}
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="" data-item-id="{{ item[0]['id'] }}"
+                                       id="selected-item-{{ item[0]['id'] }}">
+                            </div>
+
+                        {% endif %}
+                    </td>
+                </tr>
+
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+{% else %}
+    <h4>No space inventory items defined</h4>
+    <hr>
+
+{% endif %}

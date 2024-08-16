@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    <div class="content">
+        <div class="container">
+
+        <div class="row">
+            <div class="col-12">
+                {% with messages = get_flashed_messages() %}
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-primary alert-dismissible fade show" role="alert">
+                                    <strong>{{ message }}</strong>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                            aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+            </div>
+        </div>
+
+            <div class="row">
+
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <h4 class="mb-0">Inventories <small>| {{ number_inventories }} </small></h4>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-end">
+                                        {% if user_is_authenticated %}
+                                            <span class="fas fa-plus fa-2x"
+                                                  data-toggle="tooltip" data-placement="top" title="Add a new inventory"
+                                                  data-bs-toggle="collapse"
+                                                  href="#collapseInventoryAdd"
+                                                  style="display: inline-block; margin-right: 20px;"></span>
+                                            <span class="fas fa-info fa-2x"
+                                                  data-toggle="tooltip" data-placement="top" title="Basic help"
+                                                  data-bs-toggle="collapse"
+                                                  href="#collapseInventoryHelp"
+                                                  style="display: inline-block; margin-right: 20px;"></span>
+
+
+
+                                            <a id="delete-inventories-btn-collapse" data-bs-toggle="collapse"
+                                           href="#collapseDeleteInventories"
+                                           role="button" aria-expanded="false"
+                                           data-toggle="tooltip" data-placement="top" title="Delete inventory"
+                                           aria-controls="confirmInventoryDelete">
+                                                <span id="delete-inventories-span" class="fas fa-minus fa-2x"
+                                                      style="color:lightgray; display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+                                        </a>
+
+
+
+
+
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    {% if user_is_authenticated %}
+                                        <div class="collapse" id="collapseInventoryAdd" aria-expanded="false">
+                                            <div class="card card-body">
+                                                <h5>Add new inventory:</h5>
+                                                {% include 'inventory/_add_inventory_form.html' %}
+                                            </div>
+                                        </div>
+
+                                        <div class="collapse" id="collapseInventoryEdit" aria-expanded="false">
+                                            <div class="card card-body">
+                                                <h5>Edit inventory:</h5>
+                                                {% include 'inventory/_edit_inventory_form.html' %}
+                                            </div>
+                                        </div>
+
+                                    {% endif %}
+
+                                    <div class="collapse" id="collapseInventoryHelp" aria-expanded="false">
+                                        {% include 'inventory/_inventory_help.html' %}
+                                        <hr>
+                                    </div>
+
+
+
+                                <div class="collapse" id="collapseDeleteInventories" aria-expanded="false">
+                                        <div class="text-center">
+                                            <p>Do you really want to delete? This process cannot be
+                                                undone.</p>
+                                            <button id="confirm-delete-inventories-btn" type="button"
+                                                    class="btn btn-primary btn-sm">Delete
+                                            </button>
+                                            <button id="cancel-delete-inventories-btn" type="button"
+                                                    class="btn btn-primary btn-sm">Cancel
+                                            </button>
+                                            <hr>
+                                        </div>
+                                    </div>
+
+
+
+
+                                    {% include 'inventory/_inventory-table.html' %}
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+{% endblock %}
+
+{% block footer %}
+    {{ super() }}
+    <script src="{{ url_for('static', filename='js/thinglist.js') }}"></script>
+
+    <script>
+
+        $(document).ready(function () {
+            check_checkboxes()
+
+            $('#inventories-table').DataTable({
+                "searching": true,
+                paging: false,
+                ordering: true,
+                info: true,
+                responsive: {
+                    details: false
+                }
+            });
+
+            $(function () {
+                $('[data-toggle="tooltip"]').tooltip()
+            })
+
+        });
+
+         $("#cancel-delete-inventories-btn").on("click", function (e) {
+            deselect_all_checkboxes("selected-item-")
+            $("#collapseDeleteInventories").collapse("hide");
+        });
+
+        $('input:checkbox[id^="selected-item-"]').on("click", function (e) {
+            check_checkboxes();
+        });
+
+         function check_checkboxes() {
+            let number_selected = checkbox_count("selected-item-")
+
+            let delete_collapse_btn_selector = $('#delete-inventories-btn-collapse');
+            let delete_btn_selector = $('#delete-inventories-btn');
+            let delete_span_selector = $('#delete-inventories-span');
+
+            if (number_selected > 0) {
+                delete_collapse_btn_selector.attr('href', '#collapseDeleteInventories');
+                delete_btn_selector.css("pointer-events", "auto");
+                delete_span_selector.css('color', 'red');
+                delete_btn_selector.prop('disabled', false);
+                delete_collapse_btn_selector.prop('disabled', false);
+                delete_btn_selector.attr('disabled', 'disabled');
+            } else {
+                $("#collapseDeleteInventories").collapse("hide");
+                delete_collapse_btn_selector.removeAttr('href');
+                delete_btn_selector.css("pointer-events", "none");
+                delete_span_selector.css('color', 'lightgray');
+                delete_btn_selector.prop('disabled', true);
+                delete_collapse_btn_selector.prop('disabled', true);
+                delete_btn_selector.removeAttr('disabled');
+            }
+        }
+
+
+        $('[id^=inventoryEdit]').click(function () {
+            let inventory_id = $(this).attr('data-inventory-id');
+            let inventory_name = $(this).attr('data-inventory-name');
+            let inventory_desc = $(this).attr('data-inventory-description');
+            let inventory_public = $(this).attr('data-inventory-public');
+
+            $('#edit_form_inventory_id').val(inventory_id)
+            $('#edit_form_inventory_name').val(inventory_name)
+            $('#edit_form_inventory_description').val(inventory_desc)
+
+
+            let inventory_public_is_checked = (inventory_public === "1")
+
+            $('#edit_form_inventory_public').prop('checked', inventory_public_is_checked);
+
+        });
+
+         $("#confirm-delete-inventories-btn").on("click", function (e) {
+            e.preventDefault();
+
+            let selected_list = get_selected_checkbox_ids("selected-item-", "data-inventory-id")
+
+            $.ajax({
+                type: "POST",
+                url: "{{ url_for('inv.del_inventory')}}",
+                contentType: 'application/json;charset=UTF-8',
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token() }}",
+                },
+                data: JSON.stringify(
+                    {
+                        'inventory_ids': selected_list,
+                        'username': "{{ username }}",
+                    }
+                ),
+                success: function () {
+                    location.reload();
+                },
+                error: function () {
+                    location.reload();
+                }
+            });
+        });
+
+    </script>
+
+{% endblock %}

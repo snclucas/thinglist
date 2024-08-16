@@ -1,0 +1,6 @@
+<form id="form-export-items" method="POST" style="display: none;" action="{{ url_for("items.items_save") }}">
+    <input type="hidden" class="form-control" name="username" id="form_username" value="{{ username }}">
+    <input type="hidden" class="form-control" name="inventory_slug" id="form_inventory" value="{{ inventory_slug }}">
+    <button type="submit" class="btn btn-primary">Export</button>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>

@@ -1,0 +1,56 @@
+{% if user_is_authenticated %}
+
+    {% if is_inventory_owner or inventory_access_level == 1 %}
+
+        {% if inventory_slug != "all" and inventory_slug != "default" %}
+            <span class="fas fa-list fa-2x" data-bs-toggle="collapse"
+                  href="#collapseItemFields"
+                  style="display: inline-block; margin-right: 20px;"></span>
+        {% endif %}
+
+        <span class="fas fa-users fa-2x" data-bs-toggle="collapse"
+              href="#collapseManageUserAccess"
+              style="display: inline-block; margin-right: 20px;"></span>
+
+    {% endif %}
+
+
+    {% if is_inventory_owner or inventory_access_level == 1 %}
+        <span class="fas fa-file-import fa-2x" data-bs-toggle="collapse"
+              href="#collapseImportItems"
+              style="display: inline-block; margin-right: 20px;"></span>
+
+
+
+        <span id="export-items-btn" class="fas fa-file-export fa-2x"
+              style="display: inline-block; margin-right: 20px;"></span>
+
+        <span id="btn_export_pdf" class="fas fa-file-pdf fa-2x"
+              style="display: inline-block; margin-right: 20px;"></span>
+
+        <a id="move-items-btn" data-bs-toggle="collapse" href="#moveInventory"
+           role="button" aria-expanded="false" aria-controls="moveInventory">
+                                                <span id="move-items-span" class="fas fa-exchange-alt fa-2x"
+                                                      style="color:lightgray; display: inline-block; margin-right: 20px;"></span>
+        </a>
+
+
+        <a id="bulk-edit-items-btn" data-bs-toggle="collapse" href="#bulkEditItems"
+           role="button" aria-expanded="false" aria-controls="bulkEditItems">
+                                                <span id="bulk-edit-items-span" class="fas fa-edit fa-2x"
+                                                      style="display: inline-block; margin-right: 20px;"></span>
+        </a>
+
+        <a id="share-btn" data-bs-toggle="collapse" href="#shareItems"
+           role="button" aria-expanded="false" aria-controls="shareItems">
+                                                <span id="share-span" class="fas fa-share fa-2x"
+                                                      style="display: inline-block; margin-right: 20px;"></span>
+        </a>
+
+
+    {% endif %}
+
+
+
+
+{% endif %}

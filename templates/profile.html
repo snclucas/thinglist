@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+    ThingList
+{% endblock %}
+
+{% block content %}
+
+    <div class="content">
+        <div class="container">
+
+            <div class="row">
+
+                <div class="col-md-3"></div>
+
+                <div class="col-md-3">
+                    <div class="card">
+                        <a class="nav-link" href="{{ url_for('items.items_with_username', username=username) }}">
+                            <div class="content">
+                                <div class="row">
+                                    <div class="dfd text-center">
+                                        <i class="grey large-icon mb-2 fas fa-th-list"></i>
+                                        <h4 class="mb-0">{{ num_items }}</h4>
+                                        <p class="text-muted">THINGS</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="card">
+                        <a class="nav-link" href="{{ url_for('inv.inventories_for_username', username=username) }}">
+                            <div class="content">
+                                <div class="row">
+                                    <div class="dfd text-center">
+                                        <i class="grey large-icon mb-2 fas fa-table"></i>
+                                        <h4 class="mb-0">{{ num_inventories }}</h4>
+                                        <p class="text-muted">INVENTORIES</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+
+                </div>
+
+                <div class="col-md-3">
+
+                </div>
+
+            </div>
+
+            <div class="row">
+
+                <div class="col-md-4">
+                    <div class="card">
+                        <a class="nav-link" href="{{ url_for('types.item_types') }}">
+                            <div class="content">
+                                <div class="row">
+                                    <div class="dfd text-center">
+                                        <i class="grey large-icon mb-2 fas fa-stream"></i>
+                                        <h4 class="mb-0">{{ num_item_types }}</h4>
+                                        <p class="text-muted">ITEM TYPES</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card">
+                        <a class="nav-link" href="{{ url_for('field_template.templates') }}">
+                            <div class="content">
+                                <div class="row">
+                                    <div class="dfd text-center">
+                                        <i class="grey large-icon mb-2 fas fa-columns"></i>
+                                        <h4 class="mb-0">{{ num_field_templates }}</h4>
+                                        <p class="text-muted">FIELD TEMPLATES</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card">
+                        <a class="nav-link" href="{{ url_for('location.locations') }}">
+                            <div class="content">
+                                <div class="row">
+                                    <div class="dfd text-center">
+                                        <i class="grey large-icon mb-2 fas fa-location-arrow"></i>
+                                        <h4 class="mb-0">{{ num_user_locations }}</h4>
+                                        <p class="text-muted">LOCATIONS</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <hr>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="content text-center">
+
+                            <a id="move-items-btn" data-bs-toggle="collapse" href="#collapseUserSettings"
+                               role="button" aria-expanded="false" aria-controls="moveInventory">
+                                <i class="fas fa-user-cog fa-2x"></i>
+                            </a>
+
+
+                            <div class="collapse" id="collapseUserSettings" aria-expanded="false">
+
+                                <hr>
+                                <form action="/login" method="POST">
+                                    <div class="mb-3 text-start">
+                                        <label for="email" class="form-label">Username:</label>
+                                        <input type="text" name="username" class="form-control"
+                                               placeholder="Enter username"
+                                               required="">
+                                    </div>
+                                    <div class="mb-3 text-start">
+                                        <label for="password" class="form-label">Password:</label>
+                                        <input type="password" name="password" class="form-control"
+                                               placeholder="Password"
+                                               required="">
+                                    </div>
+
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button class="btn btn-primary shadow-2 mb-4">Login</button>
+                                </form>
+
+                            </div>
+
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <hr>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="content">
+                            {% include '_notifications_table.html' %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+{% endblock %}
+
+{% block footer %}
+    {{ super() }}
+
+    <script>
+        $(document).ready(function () {
+
+            $('#user-notifications-table').DataTable({
+                "searching": true,
+                paging: true,
+                ordering: true,
+                info: true
+            });
+
+        });
+
+
+        $('[id^=confirmNotificationDeleteBtn]').on("click", function (e) {
+            e.preventDefault();
+
+            let notification_id = $(this).attr('data-notification-id');
+
+            $.ajax({
+                type: "POST",
+                url: "{{ url_for('main.del_notification')}}",
+                contentType: 'application/json;charset=UTF-8',
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token() }}",
+                },
+                data: JSON.stringify(
+                    {
+                        'notification_id': notification_id,
+                        'username': "{{ username }}",
+                    }
+                ),
+                success: function () {
+                    location.reload();
+                },
+                error: function () {
+                    location.reload();
+                }
+            });
+
+        });
+
+
+    </script>
+
+{% endblock %}

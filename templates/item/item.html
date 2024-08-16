@@ -1,0 +1,571 @@
+{% extends "base.html" %}
+
+{% block title %} ThingList | @{{ username }} | {{ item.name }}{% endblock %}
+
+{% block head %}
+    {{ super() }}
+
+    {% block metadata %}
+        <meta property="og:description" content="{{ item.description }}"/>
+        <meta property="og:title" content="ThingList | @{{ username }} | {{ item.name }}"/>
+        <meta property="og:type" content="website"/>
+        {% if item.main_image is not none %}
+            <meta property="og:image" content="{{ url_for('static', filename='uploads/' + item.main_image) }}"/>
+        {% endif %}
+    {% endblock %}
+
+    <link href="{{ url_for('static', filename='css/autoComplete.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+
+    <div class="content">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-11">
+                                    <h5>{{ item.name }} </h5>
+                                </div>
+                                <div class="col-md-1">
+                                    {% if item_access_level == 0 %}
+                                        <div class="text-end">
+                                            <span class="fas fa-ellipsis-v fa-2x" data-bs-toggle="collapse"
+                                                  href="#collapseButtonBar"
+                                                  style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <hr>
+                            {% if item_access_level == 0 %}
+                                <div class="collapse" id="collapseButtonBar" aria-expanded="false">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            {% include 'item/_item_button_bar.html' %}
+                                            <hr>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="card-body">
+
+                            {% if item_access_level == 0 %}
+                                <div class="row">
+
+                                    <div class="col-md-12">
+
+                                        <div class="collapse" id="collapseExample" aria-expanded="false">
+                                            <div class="card card-body">
+                                                {% include 'item/_edit_item_form.html' %}
+                                            </div>
+                                        </div>
+
+                                        <div class="collapse" id="collapseImagesEdit" aria-expanded="false">
+                                            {% include 'item/_item_images_upload.html' %}
+                                        </div>
+
+                                    </div>
+
+                                </div>
+                            {% endif %}
+
+                            <div class="row">
+
+                                <div class="col-md-8 order-sm-first order-last">
+                                    <p class="card-text">{{ item.description }}</p>
+                                    <h6><strong>Type:</strong> {{ item_type }}</h6>
+
+                                    {% if item_access_level == 0 %}
+                                        <h6><strong>Location:</strong> {{ item_location['name'] }}</h6>
+
+                                        {% if item.specific_location is not none %}
+                                            <h6><strong>Specific location #:</strong> {{ item.specific_location }}</h6>
+                                        {% else %}
+                                            <h6><strong>Specific location #:</strong> Not set</h6>
+                                        {% endif %}
+                                    {% endif %}
+
+                                <h6><strong>Quantity:</strong> {{ item.quantity }}</h6>
+
+                                </div>
+
+
+
+                                <div class="col-md-4">
+                                    {% if item.main_image is not none %}
+                                        {% set image_url = url_for('static', filename="uploads/" + item.main_image) %}
+                                        <img src="{{ image_url }}" class="rounded float-end img-thumbnail" alt="...">
+                                    {% endif %}
+                                </div>
+
+                            </div>
+
+                            <hr>
+
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th></th>
+                                    <th></th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {% for field, item_field in item_fields.items() %}
+
+                                    <tr>
+                                        <td><strong>{{ field.field|capitalize }}:</strong></td>
+                                        <td>
+
+                                        {% if field.type|lower == 'url' %}
+                                            <a href="{{ item_field.value }}">{{ item_field.value }}</a>
+                                        {% else %}
+                                            {{ item_field.value }}
+                                        {% endif %}
+                                        </td>
+
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+
+                            <hr>
+
+                            <div id="item-tags">
+                                {% for tag in item.tags %}
+                                    <a href="{{ url_for('items.items') }}?tags={{ tag.tag }}">
+                                        <button type="button" class="btn btn-sm btn-primary">{{ tag.tag }}</button>
+                                    </a>
+                                {% endfor %}
+                            </div>
+
+                            <hr>
+
+                            <div class="row">
+                                <div class="col-md-6">
+
+
+                                        <h5>Related items:
+                                            <span id="add-related-1"
+                                                  data-bs-toggle="collapse"
+                                                  href="#collapseAddRelated"
+                                                  data-toggle="tooltip" data-placement="top"
+                                                  title="Display help panel"
+                                                  class="fas fa-plus "
+                                                  style="color:black; display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+                                        </h5>
+
+                                        <div class="collapse" id="collapseAddRelated" aria-expanded="false">
+                                            {% include 'item/_related_item_form.html' %}
+                                        </div>
+                                        {% if item.related_items | length > 0 %}
+                                        {% for rel_item in item.related_items %}
+                                            <strong><a href="{{ url_for('item.item_with_username_and_inventory', username=username, inventory_slug=inventory_slug, item_slug=rel_item.slug) | replace('%40', '@') }}">{{ rel_item.name }}</a></strong>
+
+                                            <span id="delete-related-{{ rel_item.id }}"
+                                                  data-item1-id="{{ item.id }}"
+                                                  data-item2-id="{{ rel_item.id }}"
+                                                  class="fas fa-times "
+                                                  style="color:red; display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+
+                                            <br>
+                                        {% endfor %}
+                                        {% else %}
+                                        None
+                                    {% endif %}
+
+                                </div>
+
+
+                            {% if inventory.access_level != 2 %}
+                            <hr class="show-small">
+                            <br class="show-small">
+                                <div class="col-md-6">
+                                    <h5>Inventories: </h5>
+                                    {% for inventory in item.inventories %}
+                                        <strong><a
+                                                href="{{ url_for('items.items_with_username_and_inventory', username=username, inventory_slug=inventory.slug) | replace('%40', '@') }}">{{ inventory.name }}</a></strong>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+
+
+                            </div>
+
+                            <hr>
+
+                            {% if item.images | length > 0 %}
+                                <div class="row">
+
+                                    <div class="col-md-12 text-center">
+                                        <button id="btn-remove-images" type="button" class="btn btn-sm btn-primary"
+                                                disabled>
+                                            Remove
+                                        </button>
+
+                                        <button id="btn-main-image" type="button" class="btn btn-sm btn-primary"
+                                                disabled>
+                                            Make main
+                                        </button>
+                                    </div>
+
+                                </div>
+                                <hr>
+                                <br>
+
+                                <div class="row">
+                                    <div class="grid" id="masonry">
+                                        {% for img in item.images %}
+                                            {% set image_url = url_for('static', filename="uploads/" + img.image_filename) %}
+                                            <div class="item">
+                                                <img width="300" class="image-checkbox" src="{{ image_url }}"
+                                                     data-image-url="{{ image_url }}"
+                                                     id="{{ img.id }}">
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
+                                <hr>
+
+                            {% endif %}
+
+                            <div class="text-center">
+                                <img src="{{ qrcode(url_for(request.endpoint, **request.view_args) | replace('%40', '@'), box_size=6 ) }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+{% endblock %}
+
+{% block footer %}
+    {{ super() }}
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/masonry/4.1.0/masonry.pkgd.min.js"></script>
+    <script src="https://npmcdn.com/imagesloaded@4.1/imagesloaded.pkgd.min.js"></script>
+
+    <script src="{{ url_for('static', filename='js/autoComplete.js') }}"></script>
+
+    <script>
+        $(document).ready(function () {
+
+            $("#search-box").keyup(function () {
+                $.ajax({
+                    type: "GET",
+                    url: "{{ url_for('api.user_items')}}?query=" + $(this).val(),
+                    data: 'keyword=' + $(this).val(),
+                    beforeSend: function () {
+                        $("#search-box").css("background", "#FFF");
+                    },
+                    success: function (data) {
+                        $("#suggesstion-box").show();
+                        $("#suggesstion-box").html(data);
+                        $("#search-box").css("background", "#FFF");
+                    }
+                });
+            });
+
+            $('#item-field-table').DataTable({
+                "searching": true,
+                paging: false,
+                ordering: true,
+                info: true,
+                "pageLength": -1,
+            });
+
+        });
+
+        $("#save-fields-btn").on("click", function (e) {
+            e.preventDefault();
+            // clear the search table to make sure the table is complete
+            let table = $('#item-field-table').DataTable();
+            table.search('').draw();
+
+            let all_checkboxes = $('input:checkbox[id^="selected-field-"]')
+            let number_selected = [];
+            $.each(all_checkboxes, function () {
+                let $this = $(this);
+                if ($this.is(":checked")) {
+                    number_selected.push(parseInt($this.attr('data-itemfield-id')));
+                }
+            });
+
+            $.ajax({
+                type: "POST",
+                url: "{{ url_for('item.edit_item_fields')}}",
+                contentType: 'application/json;charset=UTF-8',
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token() }}",
+                },
+                data: JSON.stringify(
+                    {
+                        'field_ids': number_selected,
+                        'item_id': "{{ item.id }}",
+                        'inventory_slug': "{{ inventory_slug }}",
+                        'username': "{{ username }}",
+                    }
+                ),
+                success: function () {
+                    location.reload();
+                },
+                error: function () {
+                    location.reload();
+                }
+            });
+
+        });
+
+        $('#masonry').imagesLoaded(function () {
+
+            $('#masonry').masonry({
+                itemSelector: '.item',
+                gutter: 20,
+                fitWidth: true,
+                //percentPosition: true,
+                originTop: true
+            });
+
+        });
+
+        $(".image-checkbox").each(function () {
+            if ($(this).find('input[types="checkbox"]').first().attr("checked")) {
+                $(this).addClass('image-checkbox-checked');
+            } else {
+                $(this).removeClass('image-checkbox-checked');
+            }
+        });
+
+        $(".image-checkbox").on("click", function (e) {
+            $(this).toggleClass('image-checkbox-checked');
+            var $checkbox = $(this).find('input[types="checkbox"]');
+            $checkbox.prop("checked", !$checkbox.prop("checked"))
+
+
+            let selectedImages = $('.image-checkbox-checked')
+
+            if (selectedImages.length > 0) {
+                $('#btn-remove-images').prop('disabled', false);
+            } else {
+                $('#btn-remove-images').prop('disabled', true);
+            }
+
+            if (selectedImages.length === 1) {
+                $('#btn-main-image').prop('disabled', false);
+            } else {
+                $('#btn-main-image').prop('disabled', true);
+            }
+
+            e.preventDefault();
+        });
+
+        $("#btn-main-image").click(function (e) {
+            e.preventDefault();
+
+            let csrf_token = "{{ csrf_token() }}";
+            let selectedImages = $('.image-checkbox-checked')
+            let selectedImagesList = []
+            for (const im of selectedImages) {
+                selectedImagesList.push(im.getAttribute("data-image-url"));
+            }
+            let main_image = selectedImagesList[0]
+
+            $.ajax({
+                type: "POST",
+                url: "{{ url_for('item.set_main_image')}}",
+                contentType: 'application/json;charset=UTF-8',
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token() }}",
+                },
+                data: JSON.stringify(
+                    {
+                        'item_id': "{{ item.id }}",
+                        'item_slug': "{{ item.slug }}",
+                        'inventory_slug': "{{ inventory_slug }}",
+                        'username': "{{ username }}",
+                        'main_image': main_image
+                    }
+                ),
+                success: function () {
+                    location.reload();
+                },
+                error: function () {
+                    location.reload();
+                }
+            });
+
+        });
+
+        $("#btn-remove-images").click(function (e) {
+            e.preventDefault();
+
+            let selectedImages = $('.image-checkbox-checked')
+            let selectedImagesList = []
+            for (const im of selectedImages) {
+                selectedImagesList.push(im.id);
+            }
+
+            $.ajax({
+                type: "POST",
+                url: "{{ url_for('item.delete_images')}}",
+                contentType: 'application/json;charset=UTF-8',
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token() }}",
+                },
+                data: JSON.stringify(
+                    {
+                        'item_id': "{{ item.id }}",
+                        'item_slug': "{{ item.slug }}",
+                        'inventory_slug': "{{ inventory_slug }}",
+                        'username': "{{ username }}",
+                        'image_id_list': selectedImagesList
+                    }
+                ),
+                success: function () {
+                    location.reload();
+                },
+                error: function () {
+                    location.reload();
+                }
+            });
+        });
+
+        $('[id^="delete-related-"]').click(function (e) {
+            e.preventDefault();
+
+            let item1 = $(this).attr('data-item1-id');
+            let item2 = $(this).attr('data-item2-id');
+
+            $.ajax({
+                type: "POST",
+                url: "{{ url_for('item.unrelate_items')}}",
+                contentType: 'application/json;charset=UTF-8',
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token() }}",
+                },
+                data: JSON.stringify(
+                    {
+                        'item1': item1,
+                        'item2': item2,
+                        'inventory_slug': "{{ inventory_slug }}",
+                        'username': "{{ username }}"
+                    }
+                ),
+                success: function (e) {
+                    location.reload();
+                },
+                error: function (e) {
+                    location.reload();
+                }
+            });
+        });
+
+        const autoCompleteJS = new autoComplete({
+            selector: "#autoComplete",
+            placeHolder: "Search for Food...",
+            data: {
+                src: async (query) => {
+                    try {
+                        // Fetch Data from external Source
+                        const source = await fetch(`{{ url_for('api.user_item_types')}}?query=${query}`);
+                        // Data should be an array of `Objects` or `Strings`
+                        const data = await source.json();
+
+                        return data;
+                    } catch (error) {
+                        return error;
+                    }
+                },
+                // Data source 'Object' key to be searched
+                //keys: ["food"]
+            },
+            threshold: 0,
+            resultsList: {
+                element: (list, data) => {
+                    if (!data.results.length) {
+                        // Create "No Results" message element
+                        const message = document.createElement("div");
+                        // Add class to the created element
+                        message.setAttribute("class", "no_result");
+                        // Add message text content
+                        message.innerHTML = `<span>Save to add new type "${data.query}"</span>`;
+                        // Append message element to the results list
+                        list.prepend(message);
+                    }
+                },
+                noResults: true,
+                maxResults: undefined,
+            },
+            resultItem: {
+                highlight: true,
+            },
+            events: {
+                input: {
+                    selection: (event) => {
+                        const selection = event.detail.selection.value;
+                        autoCompleteJS.input.value = selection;
+                    }
+                }
+            }
+        });
+
+        const autoCompleteJS44 = new autoComplete({
+            selector: "#relateditem",
+            placeHolder: "Search for items ... ",
+            data: {
+                src: async (query) => {
+                    try {
+                        // Fetch Data from external Source
+                        const source = await fetch(`{{ url_for('api.user_items')}}?query=${query}`);
+                        // Data should be an array of `Objects` or `Strings`
+                        const data = await source.json();
+                        console.log(data);
+                        return data;
+                    } catch (error) {
+                        return error;
+                    }
+                }
+            },
+            threshold: 0,
+            autoFill: true,
+            resultsList: {
+                element: (list, data) => {
+                    if (!data.results.length) {
+                        // Create "No Results" message element
+                        const message = document.createElement("div");
+                        // Add class to the created element
+                        message.setAttribute("class", "no_result");
+                        // Add message text content
+                        message.innerHTML = `<span>Save to add new type "${data.query}"</span>`;
+                        // Append message element to the results list
+                        list.prepend(message);
+                    }
+                },
+                noResults: false,
+                maxResults: undefined,
+            },
+            resultItem: {
+                highlight: true,
+            },
+            events: {
+                input: {
+                    selection: (event) => {
+                        const selection = event.detail.selection.value;
+                        autoCompleteJS44.input.value = selection;
+                    }
+                }
+            }
+        });
+
+    </script>
+
+{% endblock %}

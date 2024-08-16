@@ -1,0 +1,26 @@
+<div class="col-12">
+    <label for="form_template_name" class="form-label">Template name:</label>
+    <input type="text" class="form-control" name="template_name" id="form_template_name" placeholder="" required>
+</div>
+
+<hr>
+
+{% include 'field_template/field_selector.html' %}
+
+<hr>
+
+<input type="hidden" class="form-control" name="template_id" id="form_template_id" value="-1">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="row">
+    <div class="col-4">
+        <button id="save-template-fields-btn" type="submit" class="btn btn-primary">Save</button>
+        <button class="btn btn-primary">Cancel</button>
+    </div>
+    <div class="col-8">
+        <div class="alert alert-danger alert-dismissible fade hide" role="alert" id="alert">
+            <strong>Problem</strong> You need at least 1 field in your template.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+    </div>
+</div>

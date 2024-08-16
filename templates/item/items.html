@@ -1,0 +1,882 @@
+{% extends "base.html" %}
+
+{% if inventory is not none %}
+    {% if "__default__" in inventory.name %}
+        {% set inv_name = "Default/None" %}
+    {% else %}
+        {% set inv_name = inventory.name %}
+    {% endif %}
+{% else %}
+    {% set inv_name = "All" %}
+{% endif %}
+
+{% block title %}
+    ThingList
+    {% if inventory is not none %}
+        | Items | {{ inventory.name }}
+    {% else %}
+        | Items
+    {% endif %}
+{% endblock %}
+
+{% block metadata %}
+    <meta property="og:title" content="ThingList | @{{ username }} | {{ inv_name }}"/>
+    <meta property="og:type" content="website"/>
+    <meta property="og:description" content="{{ inventory.description }}"/>
+    <meta property="og:image" content="{{ url_for('static', filename='img/thinglist-logo-50pc.png') }}"/>
+    <meta property="og:url"
+          content="{{ url_for(request.endpoint, username=username, inventory_slug=inventory_slug) }}"/>
+{% endblock %}
+
+{% block content %}
+    <link href="{{ url_for('static', filename='css/autoComplete.css') }}" rel="stylesheet">
+
+    <div class="content">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-body">
+
+
+                            <div class="row">
+                                <div class="col-md-6 order-sm-first order-last">
+                                    <h4 class="mb-0"><small>
+                                        {% if inventory is not none %}
+                                            {% if "__default__" in inventory.name %}
+                                                {% set inv_name = "Default/None" %}
+                                            {% else %}
+                                                {% set inv_name = inventory.name %}
+                                            {% endif %}
+                                            {{ inv_name }}
+                                        {% else %}
+                                            All item(s)
+                                        {% endif %}
+                                        | {{ data_dict| length }}
+                                    </small>
+                                    </h4>
+
+                                </div>
+
+
+                                <div class="col-md-6">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <div class="text-lg-end text-center">
+                                                {% if is_inventory_owner or inventory_access_level == 1 %}
+                                                    <a data-bs-toggle="collapse" href="#collapseAddItem"
+                                                       role="button" aria-expanded="false"
+                                                       data-toggle="tooltip" data-placement="top"
+                                                       title="Add new item to current inventory"
+                                                       aria-controls="collapseExample">
+                                                <span class="fas fa-plus fa-2x"
+                                                      style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+                                                    </a>
+                                                    <a id="delete-items-btn-collapse" data-bs-toggle="collapse"
+                                                       href="#collapseDeleteItems"
+                                                       role="button" aria-expanded="false"
+                                                       data-toggle="tooltip" data-placement="top" title="Delete item"
+                                                       aria-controls="confirmItemDelete">
+                                                <span id="delete-items-span" class="fas fa-minus fa-2x"
+                                                      style="color:lightgray; display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+                                                    </a>
+                                                {% endif %}
+                                                <a data-bs-toggle="collapse" href="#collapseFilter"
+                                                   role="button" aria-expanded="false"
+                                                   data-toggle="tooltip" data-placement="top"
+                                                   title="Display item filter form"
+                                                   aria-controls="collapseFilter">
+                                                <span class="fas fa-filter fa-2x"
+                                                      style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+                                                </a>
+
+                                                {% if is_inventory_owner or inventory_access_level == 1 %}
+                                                    <span class="fas fa-ellipsis-v fa-2x" data-bs-toggle="collapse"
+                                                          href="#collapseButtonBar"
+                                                          data-toggle="tooltip" data-placement="top"
+                                                          title="Display additional button bar"
+                                                          style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+                                                    <span class="fas fa-info fa-2x" data-bs-toggle="collapse"
+                                                          href="#collapseItemsHelp"
+                                                          data-toggle="tooltip" data-placement="top"
+                                                          title="Display help panel"
+                                                          style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+                                                {% endif %}
+                                                <hr class="show-small">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <div class="row">
+                                <div class="col-12">
+
+                                    {% with messages = get_flashed_messages() %}
+                                        {% if messages %}
+                                            <br>
+                                            {% for message in messages %}
+                                                <div class="alert alert-primary alert-dismissible fade show"
+                                                     role="alert">
+                                                    <strong>{{ message }}</strong>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                                            aria-label="Close"></button>
+                                                </div>
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endwith %}
+
+
+                                </div>
+                            </div>
+
+
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="collapse" id="collapseButtonBar" aria-expanded="false">
+                                        <hr>
+                                        <div class="text-center">
+                                            {% include 'item/_buttton_panel.html' %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="collapse" id="collapseFilter" aria-expanded="false">
+                                        {% include 'item/_filter_form.html' %}
+                                    </div>
+                                    {% if user_is_authenticated %}
+
+                                        <div class="collapse" id="collapseItemsHelp" aria-expanded="false">
+                                            <div class="card card-body">
+                                                {% include 'item/_items_help.html' %}
+                                            </div>
+                                        </div>
+                                        <div class="collapse" id="collapseItemFields" aria-expanded="false">
+                                            {% include 'item/_inventory_field_template.html' %}
+                                        </div>
+                                        <div class="collapse" id="moveInventory" aria-expanded="false">
+                                            <div class="card card-body">
+                                                {% include 'item/_move_item_form.html' %}
+                                            </div>
+                                        </div>
+                                        <div class="collapse" id="bulkEditItems" aria-expanded="false">
+                                            <div class="card card-body">
+                                                {% include 'item/_bulk_edit_item_form.html' %}
+                                            </div>
+                                        </div>
+                                        <div class="collapse" id="collapseAddItem" aria-expanded="false">
+                                            <div class="card card-body">
+                                                {% include 'item/_add_item_form.html' %}
+                                            </div>
+                                        </div>
+                                        <div class="collapse" id="collapseImportItems" aria-expanded="false">
+                                            {% include 'item/_import_items_form.html' %}
+                                        </div>
+                                        <div class="collapse" id="shareItems" aria-expanded="false">
+                                            {% include 'item/_share_items.html' %}
+                                        </div>
+                                        <div class="collapse" id="collapseDeleteItems" aria-expanded="false">
+                                            <div class="text-center">
+                                                <p>Do you really want to delete these items? This process cannot be
+                                                    undone.</p>
+                                                <button id="confirm-delete-items-btn" type="button"
+                                                        class="btn btn-primary btn-sm">Delete
+                                                </button>
+                                                <button id="cancel-delete-items-btn" type="button"
+                                                        class="btn btn-primary btn-sm">Cancel
+                                                </button>
+                                                <hr>
+                                            </div>
+                                        </div>
+                                        <div class="collapse" id="collapseManageUserAccess" aria-expanded="false">
+                                            {% include 'item/_manage_inventory_users.html' %}
+                                            <hr>
+                                        </div>
+                                        {% include 'item/_export_items_form.html' %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 show-big">
+
+
+<span class="fas fa-bars fa-2x" data-bs-toggle="collapse"
+      href="#"
+      style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+
+                                    <span class="fas fa-th-large fa-2x" data-bs-toggle="collapse"
+      href="#"
+      style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+
+
+                                </div>
+                                <div class="col-md-6">
+
+                                    {% if is_inventory_owner or inventory_access_level == 1 %}
+
+                                        {% if user_is_authenticated %}
+                                            <select class="form-select" id="inventory_filter" name="inventory_filter">
+                                                {% if inventory_slug == "all" %}
+                                                    <option value="all" selected>All item(s)</option>
+                                                {% else %}
+                                                    <option value="all">All item(s)</option>
+                                                {% endif %}
+                                                {% if inventory_slug == "default" %}
+                                                    <option value="default" selected>Default/None</option>
+                                                {% else %}
+                                                    <option value="default">Default/None</option>
+                                                {% endif %}
+                                                {% for option in all_user_inventories %}
+                                                    {% if "__default__" not in  option[1].name %}
+                                                        {% if inventory_slug == option[1].slug %}
+                                                            <option value="{{ option[1].slug }}"
+                                                                    selected>{{ option[1].name }}</option>
+                                                        {% else %}
+                                                            <option value="{{ option[1].slug }}">{{ option[1].name }}</option>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>
+                                        {% endif %}
+
+                                    {% endif %}
+
+
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    {% include 'item/_item-list.html' %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block footer %}
+    {{ super() }}
+    <script src="{{ url_for('static', filename='js/autoComplete.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/thinglist.js') }}"></script>
+
+    <script>
+        $(document).ready(function () {
+            const table = new DataTable('#items-table', {
+                "searching": true,
+                paging: true,
+                ordering: true,
+                info: true,
+                rowReorder: true,
+                responsive: {
+                    details: false
+                },
+                stateSave: false,
+                "pageLength": 50,
+                columnDefs: [
+                    {target: 0, searchable: true},
+                    {target: 1, searchable: true, visible: false},
+                    {target: 2, searchable: true},
+                    {target: 3, searchable: true}
+                ]
+            });
+
+            $('#item-field-table').DataTable({
+                "searching": true,
+                paging: true,
+                ordering: true,
+                info: true
+            });
+
+            $('#inventory-users-table').DataTable({
+                "searching": true,
+                paging: true,
+                ordering: true,
+                info: true
+            });
+
+            document.querySelectorAll('a.toggle-vis').forEach((el) => {
+                el.addEventListener('click', function (e) {
+                    e.preventDefault();
+
+                    let columnIdx = e.target.getAttribute('data-column');
+                    let column = table.column(columnIdx);
+
+                    // Toggle the visibility
+                    column.visible(!column.visible());
+                });
+            });
+
+        });
+
+        $("#btn-regenerate-token").on("click", function (e) {
+            e.preventDefault();
+
+            $.ajax({
+                type: "POST",
+                url: "{{ url_for('inv.regenerate_token')}}",
+                contentType: 'application/json;charset=UTF-8',
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token() }}",
+                },
+                data: JSON.stringify(
+                    {
+                        'inventory_id': {{ inventory_id }},
+                    }
+                ),
+                success: function (data) {
+                    let data_json = JSON.parse(data)
+                    $("#inventory-token").text(data_json["new-token"])
+                },
+                error: function () {
+                    location.reload();
+                }
+            });
+
+        });
+
+        $("#load-items-btn").on("click", function (e) {
+            e.preventDefault();
+            document.getElementById("load-items-span").style.removeProperty("display");
+            $('#load-items-form').submit()
+        });
+
+        $("#btn-apply-filter").on("click", function (e) {
+            e.preventDefault();
+            let searchParams = new URLSearchParams(window.location.search);
+
+            let tag = $("#form_item_tags").val();
+            if (tag !== "" && tag !== "None") {
+                searchParams.set("tags", tag);
+            }
+
+            let item_type = $("#types_autocomplete").val();
+            if (item_type !== "" && item_type !== undefined) {
+                searchParams.set("type", item_type);
+            }
+
+            let specific_location = $("#form_item_specific_location").val();
+            if (specific_location !== "" && specific_location !== "None") {
+                searchParams.set("specific_location", specific_location);
+            }
+
+            window.location.search = searchParams.toString();
+        });
+
+        $("#btn-clear-filters").on("click", function (e) {
+            e.preventDefault();
+            let searchParams = new URLSearchParams(window.location.search);
+            searchParams.delete("type");
+            searchParams.delete("location");
+            searchParams.delete("tags");
+            $("#form_item_tags").val("");
+            searchParams.delete("specific_location");
+            $("#form_item_specific_location").val("");
+            window.location.search = searchParams.toString();
+
+        });
+
+        $("#item_location_filter").on("change", function () {
+            let optionValue = $('#item_location_filter').find(":selected").text();
+            let searchParams = new URLSearchParams(window.location.search);
+            if (optionValue === "Any") {
+                searchParams.delete("location");
+                window.location.search = searchParams.toString();
+            } else {
+                searchParams.set("location", optionValue);
+                window.location.search = searchParams.toString();
+            }
+
+        });
+
+        $("#item_type_filter").on("change", function () {
+            let optionValue = $('#item_type_filter').find(":selected").text();
+            let searchParams = new URLSearchParams(window.location.search);
+            if (optionValue === "Any") {
+                searchParams.delete("type");
+                window.location.search = searchParams.toString();
+            } else {
+                searchParams.set("type", optionValue);
+                window.location.search = searchParams.toString();
+            }
+
+        });
+
+
+        $("#inventory_filter").on("change", function () {
+            let selection = $('#inventory_filter')
+            let optionText = selection.find(":selected").text();
+            let optionValue = selection.find(":selected").val();
+            let searchParams = new URLSearchParams(window.location.search);
+
+            if (optionText === "all") {
+                if (searchParams.size > 0) {
+                    window.location.href = "{{ url_for('items.items_with_username_and_inventory', username = username, inventory_slug = 'all') | replace('%40', '@')}}?" + searchParams.toString()
+                } else {
+                    window.location.href = "{{ url_for('items.items_with_username_and_inventory', username = username, inventory_slug = 'all') | replace('%40', '@')}}?" + searchParams.toString()
+                }
+            } else if (optionText === "default") {
+                window.location.href = "{{ url_for('items.items_with_username_and_inventory',username = username, inventory_slug = 'default') |replace('%40', '@')}}?" + searchParams.toString()
+            } else {
+                window.location.href = "{{ url_for('items.items_with_username_and_inventory',username = username, inventory_slug = 'INV') |replace('%40', '@')}}?".replace("INV", optionValue) + searchParams.toString()
+            }
+
+        });
+
+
+        function run_over_checkboxes() {
+            let number_selected = checkbox_count("selected-item-")
+
+            let delete_collapse_btn_selector = $('#delete-items-btn-collapse');
+            let delete_btn_selector = $('#delete-items-btn');
+            let delete_span_selector = $('#delete-items-span');
+
+            let move_items_btn_selector = $('#move-items-btn');
+            let move_items_span_selector = $('#move-items-span');
+
+            let bulk_edit_items_btn_selector = $('#bulk-edit-items-btn');
+            let bulk_edit_items_span_selector = $('#bulk-edit-items-span');
+
+            if (number_selected > 0) {
+                delete_collapse_btn_selector.attr('href', '#collapseDeleteItems');
+                delete_btn_selector.css("pointer-events", "auto");
+                move_items_btn_selector.css("pointer-events", "auto");
+
+                bulk_edit_items_btn_selector.css("pointer-events", "auto");
+                bulk_edit_items_span_selector.css("pointer-events", "auto");
+
+                delete_span_selector.css('color', 'red');
+                bulk_edit_items_span_selector.css('color', 'green');
+                move_items_span_selector.css('color', 'green');
+
+                delete_btn_selector.prop('disabled', false);
+                delete_collapse_btn_selector.prop('disabled', false);
+                move_items_btn_selector.prop('disabled', false);
+
+                bulk_edit_items_btn_selector.prop('disabled', false);
+                bulk_edit_items_span_selector.prop('disabled', false);
+
+                delete_btn_selector.attr('disabled', 'disabled');
+                move_items_btn_selector.attr('disabled', 'disabled');
+
+                bulk_edit_items_btn_selector.attr('disabled', 'disabled');
+                bulk_edit_items_span_selector.attr('disabled', 'disabled');
+            } else {
+                $("#collapseDeleteItems").collapse("hide");
+                delete_collapse_btn_selector.removeAttr('href');
+
+                delete_btn_selector.css("pointer-events", "none");
+                move_items_btn_selector.css("pointer-events", "none");
+
+                bulk_edit_items_btn_selector.css("pointer-events", "none");
+                bulk_edit_items_span_selector.css("pointer-events", "none");
+
+                delete_span_selector.css('color', 'lightgray');
+                bulk_edit_items_span_selector.css('color', 'lightgray');
+                move_items_span_selector.css('color', 'lightgray');
+
+                delete_btn_selector.prop('disabled', true);
+                delete_collapse_btn_selector.prop('disabled', true);
+                move_items_btn_selector.prop('disabled', true);
+
+                bulk_edit_items_btn_selector.prop('disabled', true);
+                bulk_edit_items_span_selector.prop('disabled', true);
+
+                delete_btn_selector.removeAttr('disabled');
+                move_items_btn_selector.removeAttr('disabled');
+
+                bulk_edit_items_btn_selector.removeAttr('disabled');
+                bulk_edit_items_span_selector.removeAttr('disabled');
+
+            }
+        }
+
+        $(document).ready(function () {
+            run_over_checkboxes();
+
+            $('#invtable').DataTable({
+                "searching": true,
+                paging: false,
+                ordering: true,
+                info: true
+            });
+        });
+
+
+        $('input:checkbox[id^="selected-item-"]').on("click", function (e) {
+            run_over_checkboxes();
+        });
+
+        $("#all-selected-items").on("click", function (e) {
+
+            let is_checked = $(this).is(":checked");
+
+            let all_checkboxes = $('input:checkbox[id^="selected-item-"]')
+            $.each(all_checkboxes, function () {
+                let $this = $(this);
+                $this.attr('checked', is_checked);
+            });
+            run_over_checkboxes();
+        });
+
+
+        $("#confirm-delete-items-btn").on("click", function (e) {
+            e.preventDefault();
+
+            let all_checkboxes = $('input:checkbox[id^="selected-item-"]')
+            let number_selected = [];
+            $.each(all_checkboxes, function () {
+                let $this = $(this);
+                if ($this.is(":checked")) {
+                    number_selected.push($this.attr('data-item-id'));
+                }
+            });
+
+            $.ajax({
+                type: "POST",
+                url: "{{ url_for('items.del_items')}}",
+                contentType: 'application/json;charset=UTF-8',
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token() }}",
+                },
+                data: JSON.stringify(
+                    {
+                        'item_ids': number_selected,
+                        'username': "{{ username }}",
+                    }
+                ),
+                success: function () {
+                    location.reload();
+                },
+                error: function () {
+                    location.reload();
+                }
+            });
+        });
+
+
+        $("#btn_submit_edit").on("click", function (e) {
+            e.preventDefault();
+            let all_checkboxes = $('input:checkbox[id^="selected-item-"]')
+            let number_selected = [];
+            $.each(all_checkboxes, function () {
+                let $this = $(this);
+                if ($this.is(":checked")) {
+                    number_selected.push($this.attr('data-item-id'));
+                }
+            });
+
+            let location_selection = $('#items_location_edit')
+            let location_selection_option_value = location_selection.find(":selected").val();
+            let items_specific_location_edit_value = $('#items_specific_location_edit').val()
+
+            let visibility_selector = $('#items_public_edit')
+            let item_visibility_option_value = visibility_selector.find(":selected").val();
+
+            $.ajax({
+                type: "POST",
+                url: "{{ url_for('items.items_edit')}}",
+                contentType: 'application/json;charset=UTF-8',
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token() }}",
+                },
+                data: JSON.stringify(
+                    {
+                        'item_ids': number_selected,
+                        'username': "{{ username }}",
+                        'inventory_slug': "{{ inventory_slug }}",
+                        'location_id': location_selection_option_value,
+                        'specific_location': items_specific_location_edit_value,
+                        'item_visibility': item_visibility_option_value
+                    }
+                ),
+                success: function () {
+                    location.reload();
+                },
+                error: function (e) {
+                    location.reload();
+                }
+            });
+
+        });
+
+
+        $("#btn_submit_move").on("click", function (e) {
+            e.preventDefault();
+            let all_checkboxes = $('input:checkbox[id^="selected-item-"]')
+            let number_selected = [];
+            $.each(all_checkboxes, function () {
+                let $this = $(this);
+                if ($this.is(":checked")) {
+                    number_selected.push($this.attr('data-item-id'));
+                }
+            });
+
+            let selection = $('#destination_inventory')
+            let optionText = selection.find(":selected").text();
+            let optionValue = selection.find(":selected").val();
+
+            let move_type_selector = $('#move_type')
+            let move_type = move_type_selector.find(":selected").val();
+
+
+            $.ajax({
+                type: "POST",
+                url: "{{ url_for('items.items_move')}}",
+                contentType: 'application/json;charset=UTF-8',
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token() }}",
+                },
+                data: JSON.stringify(
+                    {
+                        'item_ids': number_selected,
+                        'username': "{{ username }}",
+                        'to_inventory_id': optionValue,
+                        'move_type': move_type
+                    }
+                ),
+                success: function () {
+                    location.reload();
+                },
+                error: function (e) {
+                    location.reload();
+                }
+            });
+
+        });
+
+
+        $("#btn_export_pdf").on("click", function (e) {
+            e.preventDefault();
+
+
+            $.ajax({
+                type: "POST",
+                url: "{{ url_for('items.items_save_pdf')}}",
+                contentType: 'application/json;charset=UTF-8',
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token() }}",
+                },
+                data: JSON.stringify(
+                    {
+                        'inventory_slug': "{{ inventory_slug }}",
+                        'username': "{{ username }}"
+                    }
+                ),
+                success: function () {
+                    location.reload();
+                },
+                error: function (e) {
+                    location.reload();
+                }
+            });
+
+        });
+
+
+        $("#save-fields-btn").on("click", function (e) {
+            e.preventDefault();
+            // clear the search table to make sure the table is complete
+            let table = $('#item-field-table').DataTable();
+            table.search('').draw();
+            let csrf_token = "{{ csrf_token() }}";
+            let all_checkboxes = $('input:checkbox[id^="selected-field-"]')
+            let number_selected = [];
+            $.each(all_checkboxes, function () {
+                let $this = $(this);
+                if ($this.is(":checked")) {
+                    number_selected.push(parseInt($this.attr('data-itemfield-id')));
+                }
+            });
+
+            $.ajax({
+                type: "POST",
+                url: "{{ url_for('item.edit_inv_default_fields')}}",
+                contentType: 'application/json;charset=UTF-8',
+                headers: {
+                    "X-CSRFToken": csrf_token,
+                },
+                data: JSON.stringify(
+                    {
+                        'field_ids': number_selected,
+                        'inventory_id': "{{ inventory.id}}",
+                        'username': "{{ username }}",
+                    }
+                ),
+                success: function (e) {
+                    location.reload();
+                },
+                error: function (e) {
+                    location.reload();
+                }
+            });
+
+        });
+
+
+        $("#export-items-btn").on("click", function (e) {
+            e.preventDefault();
+            $('#form-export-items').submit();
+        });
+
+        $("#add_item_cancel_btn").on("click", function (e) {
+            e.preventDefault();
+            $("#collapseAddItem").collapse("toggle");
+        });
+
+        $("#cancel-delete-items-btn").on("click", function (e) {
+            e.preventDefault();
+            deselect_all_checkboxes("selected-item-");
+            $("#collapseDeleteItems").collapse("hide");
+            run_over_checkboxes();
+
+        });
+
+        $("#import-cancel-btn").on("click", function (e) {
+            e.preventDefault();
+            $("#collapseImportItems").collapse("toggle");
+        });
+
+        $("#inv-users-cancel-btn").on("click", function (e) {
+            e.preventDefault();
+            $("#collapseManageUserAccess").collapse("toggle");
+        });
+
+
+        const autoCompleteJS = new autoComplete({
+            selector: "#types_autocomplete",
+            placeHolder: "Search for types ... ",
+            data: {
+                src: async (query) => {
+                    try {
+                        // Fetch Data from external Source
+                        const source = await fetch(`{{ url_for('api.user_item_types')}}?query=${query}`);
+                        // Data should be an array of `Objects` or `Strings`
+                        const data = await source.json();
+                        return data;
+                    } catch (error) {
+                        return error;
+                    }
+                },
+                // Data source 'Object' key to be searched
+                //keys: ["food"]
+            },
+            threshold: 0,
+            autoFill: true,
+            resultsList: {
+                element: (list, data) => {
+                    if (!data.results.length) {
+                        // Create "No Results" message element
+                        const message = document.createElement("div");
+                        // Add class to the created element
+                        message.setAttribute("class", "no_result");
+                        // Add message text content
+                        message.innerHTML = `<span>Save to add new type "${data.query}"</span>`;
+                        // Append message element to the results list
+                        list.prepend(message);
+                    }
+                },
+                noResults: true,
+                maxResults: undefined,
+            },
+            resultItem: {
+                highlight: true,
+            },
+            events: {
+                input: {
+                    selection: (event) => {
+                        const selection = event.detail.selection.value;
+                        autoCompleteJS.input.value = selection;
+                    }
+                }
+            }
+        });
+
+        const autoCompleteJS2 = new autoComplete({
+            selector: "#types_autocomplete_add_form",
+            placeHolder: "Search for types ... ",
+            data: {
+                src: async (query) => {
+                    try {
+                        // Fetch Data from external Source
+                        const source2 = await fetch(`{{ url_for('api.user_item_types')}}?query=${query}`);
+                        // Data should be an array of `Objects` or `Strings`
+                        const data2 = await source2.json();
+
+                        return data2;
+                    } catch (error) {
+                        return error;
+                    }
+                },
+                // Data source 'Object' key to be searched
+                //keys: ["food"]
+            },
+            threshold: 0,
+            resultsList: {
+                element: (list, data) => {
+                    if (!data.results.length) {
+                        // Create "No Results" message element
+                        const message = document.createElement("div");
+                        // Add class to the created element
+                        message.setAttribute("class", "no_result");
+                        // Add message text content
+                        message.innerHTML = `<span>Save to add new type "${data.query}"</span>`;
+                        // Append message element to the results list
+                        list.prepend(message);
+                    }
+                },
+                noResults: true,
+                maxResults: undefined,
+            },
+            resultItem: {
+                highlight: true,
+            },
+            events: {
+                input: {
+                    selection: (event) => {
+                        const selection2 = event.detail.selection.value;
+                        autoCompleteJS2.input.value = selection2;
+                    }
+                }
+            }
+        });
+
+
+        $('[id^="confirmUserDeleteBtn-"]').on("click", function (e) {
+            e.preventDefault();
+            let $this = $(this);
+            let user_id = $this.attr('data-user-id')
+            alert(user_id);
+
+            $.ajax({
+                type: "POST",
+                url: "{{ url_for('inv.delete_user_to_inv')}}",
+                contentType: 'application/json;charset=UTF-8',
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token() }}",
+                },
+                data: JSON.stringify(
+                    {
+                        'user_id': user_id,
+                        'inventory_id': "{{ inventory.id }}",
+                    }
+                ),
+                success: function () {
+                    location.reload();
+                },
+                error: function () {
+                    location.reload();
+                }
+            });
+        });
+
+
+    </script>
+
+{% endblock %}

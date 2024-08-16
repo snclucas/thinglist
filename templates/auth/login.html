@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    <link href="{{ url_for('static', filename='css/auth.css') }}" rel="stylesheet">
+
+    <div class="wrapper">
+
+        <div class="auth-content">
+            <div class="card">
+                <div class="card-body text-center">
+                        <img class="img-fluid" src="{{ url_for('static', filename='img/thinglist-logo-50pc.png') }}"
+                             alt="ThingList logo">
+                    <form action="/login" method="POST">
+                        <div class="mb-3 text-start">
+                            <label for="email" class="form-label">Username:</label>
+                            <input type="text" name="username" class="form-control" placeholder="Enter username"
+                                   required="">
+                        </div>
+                        <div class="mb-3 text-start">
+                            <label for="password" class="form-label">Password:</label>
+                            <input type="password" name="password" class="form-control" placeholder="Password"
+                                   required="">
+                        </div>
+
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn-primary shadow-2 mb-4">Login</button>
+                    </form>
+
+                    {% if allow_registrations %}
+                        <p class="mb-0 text-muted">Don't have account yet? <a href="/register">Register</a></p>
+                    {% endif %}
+
+                    {% with messages = get_flashed_messages() %}
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-primary alert-dismissible fade show" role="alert">
+                                    <strong>{{ message }}</strong>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                            aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+{% endblock %}
