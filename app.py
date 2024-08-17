@@ -25,7 +25,7 @@ __COLLABORATOR__ = 1
 __VIEWER__ = 2
 
 # Create and name Flask app
-app = Flask("ThingList", static_url_path="", static_folder="static")
+app = Flask(import_name="ThingList", static_url_path="", static_folder="static")
 
 app.config['RESIZE_URL'] = os.environ.get('RESIZE_URL', '')
 app.config['RESIZE_ROOT'] = os.environ.get('RESIZE_ROOT', '/tmp')

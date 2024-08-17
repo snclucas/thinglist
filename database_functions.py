@@ -1800,7 +1800,7 @@ def get_items_to_delete(user: User, item_ids: list):
     return db.session.execute(stmt).all()
 
 
-def delete_items(item_ids: list, user: User):
+def delete_items(item_ids: list, user: User, inventory_id: int = None):
     """
 
     Delete Items
@@ -1833,16 +1833,28 @@ def delete_items(item_ids: list, user: User):
         for item_ in items_to_delete:
             item_ = item_[0]
             if item_ is not None:
-                # remove related item relationships
-                related_items = get_related_items(item_)
-                for related_item in related_items:
-                    db.session.delete(related_item)
+                # check if this item is in multiple directories
+                # if so, only remove the link to this item from the current inventory
+                if inventory_id is not None:
 
-                # remove item images
-                delete_item_images(item_)
+                    for itinv in item_.inventories:
+                        if itinv.id == inventory_id:
+                            item_.inventories.remove(itinv)
 
-                db.session.delete(item_)
-                number_items_deleted += 1
+                    db.session.commit()
+                    number_items_deleted = 1
+                else:
+
+                    # remove related item relationships
+                    related_items = get_related_items(item_)
+                    for related_item in related_items:
+                        db.session.delete(related_item)
+
+                    # remove item images
+                    delete_item_images(item_)
+
+                    db.session.delete(item_)
+                    number_items_deleted += 1
 
         db.session.commit()
 

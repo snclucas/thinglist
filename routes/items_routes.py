@@ -4,6 +4,7 @@ import json
 import os
 
 import csv
+import traceback
 
 import bleach
 import pdfkit
@@ -85,23 +86,23 @@ def items_load():
                                                            viewing_user_id=current_user.id)
 
                         if found_inv is None:
-                            break
+                            continue
 
                         # If we are importing into a specific inventory, only import into that inventory
                         if inventory_slug_from_form != "all":
                             if inventory_slug_ != inventory_slug_from_form:
-                                break
+                                continue
 
                         inventory_id = found_inv[0].id
 
                         if "items" in inventory_data:
                             for item in inventory_data["items"]:
-                                item_id = bleach.clean(item.get("id"))
+                                item_id = int(bleach.clean(str(item.get("id"))))
                                 item_name = bleach.clean(item.get("name"))
                                 item_description = bleach.clean(item.get("description"))
                                 item_type = bleach.clean(item.get("types"))
-                                item_quantity = bleach.clean(item.get("quantity"))
-                                item_tags = bleach.clean(item.get("tags"))
+                                item_quantity = int(bleach.clean(str(item.get("quantity"))))
+                                item_tags = [ bleach.clean(str(x))  for x in  item.get("tags")]
                                 item_location = bleach.clean(item.get("location"))
                                 item_specific_location = bleach.clean(item.get("specific_location"))
 
@@ -142,7 +143,6 @@ def items_load():
                                     # save images
                                     item_image_filename = []
                                     for img in item["images"]:
-                                        #img_type = img.get("img_type", None)
                                         img_filename = img.get("image_filename", None)
 
                                         item_slug = f"{str(new_item_['item']['id'])}-{slugify(new_item_['item']['name'])}"
@@ -185,7 +185,7 @@ def items_load():
                                                                                                                       '@'))
 
             except Exception as e:
-                pass
+                print(traceback.format_exc())
 
 
         return redirect(url_for(endpoint='items.items_with_username_and_inventory',
@@ -792,9 +792,14 @@ def del_items():
         json_data = request.json
         item_ids = json_data.get('item_ids')
         username = json_data.get('username')
+        inventory_id = json_data.get('inventory_id')
+        if inventory_id == '':
+            inventory_id = None
+        else:
+            inventory_id = int(bleach.clean(str(json_data.get('inventory_id'))))
 
         if item_ids is not None and username is not None:
-            delete_items(item_ids=item_ids, user=current_user)
+            delete_items(item_ids=item_ids, user=current_user, inventory_id=inventory_id)
         else:
             flash("There was a problem deleting your things!")
             current_app.logger.error("Error deleting items - missing item_ids or username")

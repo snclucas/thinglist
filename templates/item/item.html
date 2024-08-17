@@ -189,6 +189,7 @@
                                     {% for inventory in item.inventories %}
                                         <strong><a
                                                 href="{{ url_for('items.items_with_username_and_inventory', username=username, inventory_slug=inventory.slug) | replace('%40', '@') }}">{{ inventory.name }}</a></strong>
+                                        <br>
                                     {% endfor %}
                                 </div>
                             {% endif %}
