@@ -75,9 +75,25 @@
                             {% endif %}
 
                             <div class="row">
+                                <div class="col-12">
+                                    {% with messages = get_flashed_messages() %}
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-primary alert-dismissible fade show" role="alert">
+                                    <strong>{{ message }}</strong>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                            aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                                </div>
+                            </div>
+
+                            <div class="row">
 
                                 <div class="col-md-8 order-sm-first order-last">
-                                    <p class="card-text">{{ item.description }}</p>
+                                    <p class="card-text">{{ item.description | safe }}</p>
                                     <h6><strong>Type:</strong> {{ item_type }}</h6>
 
                                     {% if item_access_level == 0 %}
@@ -90,10 +106,9 @@
                                         {% endif %}
                                     {% endif %}
 
-                                <h6><strong>Quantity:</strong> {{ item.quantity }}</h6>
+                                    <h6><strong>Quantity:</strong> {{ item.quantity }}</h6>
 
                                 </div>
-
 
 
                                 <div class="col-md-4">
@@ -121,11 +136,11 @@
                                         <td><strong>{{ field.field|capitalize }}:</strong></td>
                                         <td>
 
-                                        {% if field.type|lower == 'url' %}
-                                            <a href="{{ item_field.value }}">{{ item_field.value }}</a>
-                                        {% else %}
-                                            {{ item_field.value }}
-                                        {% endif %}
+                                            {% if field.type|lower == 'url' %}
+                                                <a href="{{ item_field.value }}">{{ item_field.value }}</a>
+                                            {% else %}
+                                                {{ item_field.value }}
+                                            {% endif %}
                                         </td>
 
                                     </tr>
@@ -149,22 +164,23 @@
                                 <div class="col-md-6">
 
 
-                                        <h5>Related items:
-                                            <span id="add-related-1"
-                                                  data-bs-toggle="collapse"
-                                                  href="#collapseAddRelated"
-                                                  data-toggle="tooltip" data-placement="top"
-                                                  title="Display help panel"
-                                                  class="fas fa-plus "
-                                                  style="color:black; display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-                                        </h5>
+                                    <h5>Related items:
+                                        <span id="add-related-1"
+                                              data-bs-toggle="collapse"
+                                              href="#collapseAddRelated"
+                                              data-toggle="tooltip" data-placement="top"
+                                              title="Display help panel"
+                                              class="fas fa-plus "
+                                              style="color:black; display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+                                    </h5>
 
-                                        <div class="collapse" id="collapseAddRelated" aria-expanded="false">
-                                            {% include 'item/_related_item_form.html' %}
-                                        </div>
-                                        {% if item.related_items | length > 0 %}
+                                    <div class="collapse" id="collapseAddRelated" aria-expanded="false">
+                                        {% include 'item/_related_item_form.html' %}
+                                    </div>
+                                    {% if item.related_items | length > 0 %}
                                         {% for rel_item in item.related_items %}
-                                            <strong><a href="{{ url_for('item.item_with_username_and_inventory', username=username, inventory_slug=inventory_slug, item_slug=rel_item.slug) | replace('%40', '@') }}">{{ rel_item.name }}</a></strong>
+                                            <strong><a
+                                                    href="{{ url_for('item.item_with_username_and_inventory', username=username, inventory_slug=inventory_slug, item_slug=rel_item.slug) | replace('%40', '@') }}">{{ rel_item.name }}</a></strong>
 
                                             <span id="delete-related-{{ rel_item.id }}"
                                                   data-item1-id="{{ item.id }}"
@@ -174,25 +190,25 @@
 
                                             <br>
                                         {% endfor %}
-                                        {% else %}
+                                    {% else %}
                                         None
                                     {% endif %}
 
                                 </div>
 
 
-                            {% if inventory.access_level != 2 %}
-                            <hr class="show-small">
-                            <br class="show-small">
-                                <div class="col-md-6">
-                                    <h5>Inventories: </h5>
-                                    {% for inventory in item.inventories %}
-                                        <strong><a
-                                                href="{{ url_for('items.items_with_username_and_inventory', username=username, inventory_slug=inventory.slug) | replace('%40', '@') }}">{{ inventory.name }}</a></strong>
-                                        <br>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
+                                {% if inventory.access_level != 2 %}
+                                    <hr class="show-small">
+                                    <br class="show-small">
+                                    <div class="col-md-6">
+                                        <h5>Inventories: </h5>
+                                        {% for inventory in item.inventories %}
+                                            <strong><a
+                                                    href="{{ url_for('items.items_with_username_and_inventory', username=username, inventory_slug=inventory.slug) | replace('%40', '@') }}">{{ inventory.name }}</a></strong>
+                                            <br>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
 
 
                             </div>
@@ -257,8 +273,44 @@
 
     <script src="{{ url_for('static', filename='js/autoComplete.js') }}"></script>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/4.5.1/tinymce.min.js"
+            integrity="sha512-SJh7xW/9SLzllt0PqjnYlomfUPi7UYF40TXU5m6kVXLFr1hdKe+L8Tqqoi1y9vlsMQBdGC2lZI0d6w04Nn6piQ=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <script type="text/javascript">
+        const username = {{ username|tojson|safe }}
+        const csrf_token = {{ csrf_token()|tojson|safe }}
+        const inventory_slug = {{ inventory_slug|tojson|safe}}
+        const item_slug = {{ item.slug|tojson|safe}}
+        const item_id = {{ item.id|tojson|safe}}
+        const edit_item_url = {{ url_for('item.edit_item_fields')|tojson|safe}}
+
+        const user_items_url = {{ url_for('api.user_items')|tojson|safe}}
+        const user_item_types_url = {{ url_for('api.user_item_types')|tojson|safe}}
+        const unrelate_items_url = {{ url_for('item.unrelate_items')|tojson|safe}}
+        const delete_images_url = {{ url_for('item.delete_images')|tojson|safe}}
+        const set_main_image_url = {{ url_for('item.set_main_image')|tojson|safe}}
+
+    </script>
+
     <script>
         $(document).ready(function () {
+
+            tinymce.init({
+                selector: 'textarea#form_item_description',
+                height: 300,
+                theme: 'modern',
+                menubar: false,
+                forced_root_block : '',
+                plugins: [
+                    'advlist lists link hr pagebreak',
+                    'searchreplace wordcount code',
+                    'nonbreaking table',
+                    'paste textcolor textpattern visualchars wordcount'
+                ],
+                toolbar1: 'bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent',
+                image_advtab: false
+            });
 
             $("#search-box").keyup(function () {
                 $.ajax({

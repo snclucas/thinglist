@@ -65,6 +65,8 @@ app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER')
 
 app.config['ALLOW_REGISTRATIONS'] = os.environ.get('ALLOW_REGISTRATIONS', 0)
 
+app.config['ITEM_DESCRIPTION_CHAR_LIMIT'] = os.environ.get('ITEM_DESCRIPTION_CHAR_LIMIT', 20000)
+
 csrf = CSRFProtect(app)
 
 QRcode(app)

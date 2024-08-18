@@ -13,10 +13,15 @@
             <div class="row">
                 <div class="col-12">
                     <label for="form_item_description" class="form-label">Description:</label>
-                    <input type="text" class="form-control" name="item_description" id="form_item_description"
+
+                    <textarea type="text" class="form-control" name="item_description" id="form_item_description"
                            value="{{ item.description }}"
-                           placeholder="">
+                           placeholder="">{{ item.description|safe }}</textarea>
+
                 </div>
+
+
+
             </div>
 
             <hr>

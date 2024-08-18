@@ -114,7 +114,7 @@ class Item(db.Model):
     item_type = db.Column(db.Integer, db.ForeignKey('item_type.id'), nullable=True)
     name = db.Column(db.String(255), nullable=False, unique=False)
     slug = db.Column(db.String(255), nullable=True, unique=False)
-    description = db.Column(db.String(2000), nullable=True, unique=False)
+    description = db.Column(db.String(10000), nullable=True, unique=False)
     quantity = db.Column(db.Integer, nullable=False, unique=False, default=1)
     inventories = db.relationship('Inventory', secondary='inventory_items', back_populates='items', lazy='subquery')
     tags = db.relationship('Tag', secondary='item_tags', back_populates='items', lazy='subquery')

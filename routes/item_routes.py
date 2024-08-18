@@ -161,7 +161,17 @@ def edit_item(item_id):
         item_quantity = request.form.get("item_quantity")
 
         item_name = bleach.clean(item_name)
-        item_description = bleach.clean(item_description)
+        item_description = item_description
+
+        description_limit = app.config['ITEM_DESCRIPTION_CHAR_LIMIT']
+
+        if len(item_description) > int(description_limit):
+            flash(f"Description must be less than {description_limit} characters")
+            return redirect(url_for('item.item_with_username_and_inventory',
+                                    username=username,
+                                    inventory_slug=inventory_slug,
+                                    item_slug=item_slug))
+
         item_quantity = bleach.clean(item_quantity)
 
         del form_data["item_name"]
