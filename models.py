@@ -99,6 +99,7 @@ class Inventory(db.Model):
     token = db.Column(db.String(255), nullable=False, unique=False)
     short_code = db.Column(db.String(255), nullable=True, unique=True)
     type = db.Column(db.Integer, nullable=True, unique=False, default=1)
+    invtags = db.relationship('Invtag', secondary='inventory_tags', back_populates='inventories', lazy='subquery')
 
 
 class Relateditems(db.Model):
@@ -206,11 +207,37 @@ class Tag(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
 
 
+class Invtag(db.Model):
+    __tablename__ = "invtags"
+    __searchable__ = ['invtag']
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    tag = db.Column(db.String(50), nullable=True, unique=True)
+    inventories = db.relationship('Inventory', secondary='inventory_tags', back_populates='invtags', cascade="all,delete")
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+
+
+
+
 class ItemTag(db.Model):
     __tablename__ = "item_tags"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     item_id = db.Column(db.Integer, db.ForeignKey('items.id', ondelete='CASCADE'))
     tag_id = db.Column(db.Integer, db.ForeignKey('tags.id', ondelete='CASCADE'))
+
+
+class InventoryTag(db.Model):
+    __tablename__ = "inventory_tags"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    inventory_id = db.Column(db.Integer, db.ForeignKey('inventories.id', ondelete='CASCADE'))
+    tag_id = db.Column(db.Integer, db.ForeignKey('invtags.id', ondelete='CASCADE'))
+
+
+
+
+
+
+
+
 
 
 class UserLocation(db.Model):

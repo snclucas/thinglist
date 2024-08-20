@@ -45,6 +45,7 @@ def post_user_add_hook(new_user: User):
     with app.app_context():
         add_user_inventory(name=f"__default__{new_user.username}", description=f"Default inventory",
                            access_level=0,
+                           inventory_type=1,
                            user_id=new_user.id)
         get_or_add_new_location(location_name=_NONE_, location_description="No location (default)",
                                 to_user_id=new_user.id)
@@ -390,7 +391,7 @@ def backup_to_json():
 
 
 
-def create_inventory(name, description, slug, to_user, access_level):
+def create_inventory(name: str, description: str, slug: str, inventory_type: int, to_user, access_level):
     """
     Create a new inventory.
 
@@ -407,7 +408,7 @@ def create_inventory(name, description, slug, to_user, access_level):
     """
     inventory_token = uuid.uuid4().hex
     new_inventory = Inventory(name=name, description=description, token=inventory_token,
-                              slug=slug, owner=to_user, access_level=access_level)
+                              slug=slug, owner=to_user, type=inventory_type, access_level=access_level)
     db.session.expire_on_commit = False
     db.session.add(new_inventory)
     db.session.flush()
@@ -418,14 +419,15 @@ def create_inventory(name, description, slug, to_user, access_level):
     return new_inventory, new_inventory_id
 
 
-def add_user_inventory(name: str, description: str,
-                       access_level: int, user_id: int) -> Tuple[Optional[dict], str]:
+def add_user_inventory(name: str, description: str, inventory_type: int, slug: str = None,
+                       access_level: int = 1, user_id: int = None) -> Tuple[Optional[dict], str]:
     """
     Add a new inventory to a user.
 
     Args:
         name (str): The name of the inventory.
         description (str): The description of the inventory.
+        inventory_type (int): The type of the inventory.
         access_level (int): The access level of the inventory.
         user_id (int): The ID of the user.
 
@@ -442,7 +444,8 @@ def add_user_inventory(name: str, description: str,
     if name == "":
         return None, "Name cannot be empty"
 
-    slug = slugify(name)
+    if slug is None:
+        slug = slugify(name)
 
     with app.app_context():
         try:
@@ -451,13 +454,16 @@ def add_user_inventory(name: str, description: str,
             if to_user is None:
                 return None, "User not found"
 
-            new_inventory, new_inventory_id = create_inventory(name, description, slug, to_user, access_level)
+            new_inventory, new_inventory_id = create_inventory(name=name, description=description,
+                                                               inventory_type=inventory_type,
+                                                               slug=slug, to_user=to_user, access_level=access_level)
 
             result_return_value = {
                 "id": new_inventory_id,
                 "name": name,
                 "description": description,
                 "slug": slug,
+                "type": inventory_type,
                 "access_level": access_level
             }
 
@@ -2582,7 +2588,7 @@ def delete_item_from_inventory(user: User, inventory_id: int, item_id: int) -> N
 
 
 def edit_inventory_data(user_id: int, inventory_id: int, name: str,
-                        description: str, access_level: int) -> None:
+                        description: str, inventory_type: int, access_level: int) -> None:
     session = db.session
 
     stmt = select(UserInventory, Inventory).join(Inventory) \
@@ -2594,8 +2600,8 @@ def edit_inventory_data(user_id: int, inventory_id: int, name: str,
     if results_ is not None:
         results_[1].name = name
         results_[1].description = description
+        results_[1].type = inventory_type
         results_[1].access_level = access_level
-        #results_[0].access_level = access_level
         db.session.commit()
 
 
@@ -2728,6 +2734,7 @@ def get_user_inventories(current_user_id: int, requesting_user_id: int, access_l
                 "inventory_access_level": inv.access_level,
                 "inventory_owner": inv.owner.username,
                 "inventory_item_count": len(inv.items),
+                "inventory_type": inv.type,
                 "userinventory_access_level": user_inv.access_level
             }
             ret_results.append(d)

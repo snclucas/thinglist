@@ -188,12 +188,14 @@
             let inventory_id = $(this).attr('data-inventory-id');
             let inventory_name = $(this).attr('data-inventory-name');
             let inventory_desc = $(this).attr('data-inventory-description');
+            let inventory_type = $(this).attr('data-inventory-type');
             let inventory_public = $(this).attr('data-inventory-public');
 
             $('#edit_form_inventory_id').val(inventory_id)
             $('#edit_form_inventory_name').val(inventory_name)
             $('#edit_form_inventory_description').val(inventory_desc)
 
+            $("div.inv_type select").val(inventory_type);
 
             let inventory_public_is_checked = (inventory_public === "1")
 

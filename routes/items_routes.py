@@ -23,7 +23,7 @@ from database_functions import get_all_user_locations, \
     get_user_templates, get_item_custom_field_data, \
     get_users_for_inventory, get_user_inventory_by_id, get_or_add_new_location, edit_items_locations, \
     change_item_access_level, link_items, copy_items, commit, find_items_new, __PUBLIC, __PRIVATE, \
-    find_user_by_username, add_images_to_item, set_item_main_image, get_user_inventories
+    find_user_by_username, add_images_to_item, set_item_main_image, get_user_inventories, add_user_inventory
 from models import FieldTemplate
 from utils import generate_item_image_filename
 
@@ -81,19 +81,44 @@ def items_load():
 
                         inventory_slug_ = inventory_data.get("slug", None)
 
-                        found_inv = find_inventory_by_slug(inventory_slug=inventory_slug_,
-                                                           inventory_owner_id=current_user.id,
-                                                           viewing_user_id=current_user.id)
+                        found_inv, found_userinv = find_inventory_by_slug(inventory_slug=inventory_slug_,
+                                                                          inventory_owner_id=current_user.id,
+                                                                          viewing_user_id=current_user.id)
 
                         if found_inv is None:
-                            continue
+                            inventory_name = bleach.clean(inventory_data.get("name"))
+                            inventory_description = bleach.clean(inventory_data.get("description"))
+                            inventory_type = int(bleach.clean(str(inventory_data.get("type", 1))))
+                            inventory_access_level = int(bleach.clean(str(inventory_data.get("access_level", 1))))
+
+                            found_inv, status = add_user_inventory(name=inventory_name,
+                                                         description=inventory_description,
+                                                         inventory_type=inventory_type,
+                                                         slug=inventory_slug_,
+                                                         access_level=inventory_access_level,
+                                                         user_id=current_user.id)
+                            if status != "success":
+                                continue
+
+                        else:
+                            found_inv = {
+                                "id": found_inv.id,
+                                "name": found_inv.name,
+                                "description": found_inv.description,
+                                "slug": found_inv.slug,
+                                "type": found_inv.type,
+                                "access_level": found_inv.access_level,
+                                "owner_id": found_inv.owner_id
+                            }
+
+                            d = 4
 
                         # If we are importing into a specific inventory, only import into that inventory
                         if inventory_slug_from_form != "all":
                             if inventory_slug_ != inventory_slug_from_form:
                                 continue
 
-                        inventory_id = found_inv[0].id
+                        inventory_id = found_inv["id"]
 
                         if "items" in inventory_data:
                             for item in inventory_data["items"]:
@@ -457,6 +482,8 @@ def items_save():
                                                    current_user, inventory_id, request_params=request_params)
 
         dd = get_item_custom_field_data(user_id=current_user.id, item_list=item_id_list)
+
+
 
         field_set = set()
 

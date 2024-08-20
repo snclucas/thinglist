@@ -116,6 +116,9 @@ def add_inventory():
     if inventory_description_ is None:
         inventory_description_ = ""
 
+    inventory_type_ = request.form.get("inventory_type")
+    inventory_type_ = int(bleach.clean(str(inventory_type_)))
+
     inventory_name_ = bleach.clean(inventory_name_)
     inventory_description_ = bleach.clean(inventory_description_)
 
@@ -124,6 +127,7 @@ def add_inventory():
         access_level_ = __PUBLIC
 
     new_inventory_data, msg = add_user_inventory(name=inventory_name_, description=inventory_description_,
+                                                 inventory_type=inventory_type_,
                                                  access_level=access_level_, user_id=current_user.id)
 
     if new_inventory_data is None:
@@ -151,13 +155,15 @@ def edit_inventory():
         inventory_id = bleach.clean(request.form.get("inventory_id"))
         inventory_name = bleach.clean(request.form.get("inventory_name"))
         inventory_description = bleach.clean(request.form.get("inventory_description"))
+        inventory_type = int(bleach.clean(request.form.get("inventory_type")))
 
         access_level_ = __PRIVATE
         if "inventory_public" in request.form:
             access_level_ = __PUBLIC
 
         edit_inventory_data(user_id=current_user.id, inventory_id=int(inventory_id), name=inventory_name,
-                            description=inventory_description, access_level=int(access_level_))
+                            description=inventory_description, inventory_type=inventory_type,
+                            access_level=int(access_level_))
 
         return redirect(url_for('inv.inventories'))
 
