@@ -23,8 +23,10 @@ from database_functions import get_all_user_locations, \
     get_user_templates, get_item_custom_field_data, \
     get_users_for_inventory, get_user_inventory_by_id, get_or_add_new_location, edit_items_locations, \
     change_item_access_level, link_items, copy_items, commit, find_items_new, __PUBLIC, __PRIVATE, \
-    find_user_by_username, add_images_to_item, set_item_main_image, get_user_inventories, add_user_inventory
+    find_user_by_username, add_images_to_item, set_item_main_image, get_user_inventories, add_user_inventory, \
+    add_new_template, save_template_fields, get_item_fields, save_inventory_fieldtemplate
 from models import FieldTemplate
+
 from utils import generate_item_image_filename
 
 items_routes = Blueprint('items', __name__)
@@ -92,11 +94,11 @@ def items_load():
                             inventory_access_level = int(bleach.clean(str(inventory_data.get("access_level", 1))))
 
                             found_inv, status = add_user_inventory(name=inventory_name,
-                                                         description=inventory_description,
-                                                         inventory_type=inventory_type,
-                                                         slug=inventory_slug_,
-                                                         access_level=inventory_access_level,
-                                                         user_id=current_user.id)
+                                                                     description=inventory_description,
+                                                                     inventory_type=inventory_type,
+                                                                     slug=inventory_slug_,
+                                                                     access_level=inventory_access_level,
+                                                                     user_id=current_user.id)
                             if status != "success":
                                 continue
 
@@ -113,6 +115,23 @@ def items_load():
 
                             d = 4
 
+                        # lets sort the field template out
+                        field_set_ = inventory_data.get("field_set", None)
+                        if field_set_ is not None:
+                            template_name_ = bleach.clean(inventory_data.get("name"))
+
+                            if template_name_ is not None:
+                                template_slugs_ = field_set_.get("slugs", [])
+                                if len(template_slugs_) > 0:
+                                    template_slugs_ = [bleach.clean(str(x)) for x in template_slugs_]
+                                    field_template_id_ = save_template_fields(template_name=template_name_, fields=template_slugs_, user=current_user)
+
+                                    result = save_inventory_fieldtemplate(inventory_id=found_inv["id"],
+                                                                          inventory_template=field_template_id_,
+                                                                          user_id=current_user.id)
+
+                                    d = 5
+
                         # If we are importing into a specific inventory, only import into that inventory
                         if inventory_slug_from_form != "all":
                             if inventory_slug_ != inventory_slug_from_form:
@@ -125,9 +144,11 @@ def items_load():
                                 item_id = int(bleach.clean(str(item.get("id"))))
                                 item_name = bleach.clean(item.get("name"))
                                 item_description = bleach.clean(item.get("description"))
-                                item_type = bleach.clean(item.get("types"))
+                                item_type = item.get("types", "none")
+                                if item_type is not None:
+                                    item_type = bleach.clean(item_type)
                                 item_quantity = int(bleach.clean(str(item.get("quantity"))))
-                                item_tags = [ bleach.clean(str(x))  for x in  item.get("tags")]
+                                item_tags = [ bleach.clean(str(x)) for x in item.get("tags")]
                                 item_location = bleach.clean(item.get("location"))
                                 item_specific_location = bleach.clean(item.get("specific_location"))
 
@@ -148,11 +169,7 @@ def items_load():
                                     tag_array[t] = tag_array[t].strip()
                                     tag_array[t] = tag_array[t].replace(" ", "@#$")
 
-                                custom_fields = {}
-                                for k in list(item.keys()):
-                                    if k not in ["id", "name", "description", "type", "tags", "location", "specific_location", "quantity"]:
-                                        if k != "images":
-                                            custom_fields[k] = item[k]
+                                custom_fields = item.get("custom_fields", {})
 
                                 new_item_ = add_item_to_inventory(item_id=item_id, item_name=item_name,
                                                                   item_desc=item_description,
@@ -453,6 +470,20 @@ class AlchemyEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
+
+@items_routes.route('/items/manage', methods=['POST'])
+@login_required
+def items_manage():
+    if request.method == 'POST':
+        if request.form.get('export-items-btn', None) is not None:
+            return items_save()
+        else:
+            return items_load()
+
+
+
+
+
 @items_routes.route('/items/save', methods=['POST'])
 @login_required
 def items_save():
@@ -481,9 +512,13 @@ def items_save():
         data_dict, item_id_list = find_items_query(current_user.username,
                                                    current_user, inventory_id, request_params=request_params)
 
-        dd = get_item_custom_field_data(user_id=current_user.id, item_list=item_id_list)
+        dd, slugs = get_item_custom_field_data(user_id=current_user.id, item_list=item_id_list)
 
-
+        #save the json items with a flag stating if they are just links to other items in the inventroy
+        if inventory_default_fields is not None:
+            inventory_field_template_name = inventory_default_fields.name
+        else:
+            inventory_field_template_name = None
 
         field_set = set()
 
@@ -497,23 +532,42 @@ def items_save():
         if inventory_ is not None:
             json_output = {
                 "inventory": {"id": inventory_id, "name": inventory_.name, "description": inventory_.description,
-                              "slug": inv_slug, "field_set": headers_, "items": []}}
+                              "slug": inv_slug,
+                              "std_fields": headers_,
+                              "field_set": {
+                                  "name": inventory_field_template_name,
+                                  "fields": list(field_set),
+                                  "slugs": slugs
+                              },
+                              "items": []
+                              }}
         else:
             json_output = {
                 "inventory": {"items": []}}
 
         for row in data_dict:
             item_ = row["item"]
+            item_custom_fields_ = get_item_fields(item_id=item_.id)
+
+            ddd = {}
+            for field_data in item_custom_fields_:
+                field_ = field_data[0]
+                item_field_ = field_data[1]
+                template_field_ = field_data[2]
+                ddd[field_.slug] = item_field_.value
+
 
             tmp_json = {
                 "id": item_.id,
                 "name": item_.name,
                 "description": item_.description,
                 "tags": [x.tag.replace("@#$", " ") for x in item_.tags],
-                "types": row["types"],
+                "type": row["types"],
                 "location": row["location"],
                 "specific_location": item_.specific_location,
-                "quantity": item_.quantity
+                "quantity": item_.quantity,
+                "is_link": row["item_is_link"],
+                "custom_fields": ddd
             }
 
             item_images = []
@@ -749,11 +803,31 @@ def find_items_query(requested_username: str, logged_in_user, inventory_id: int,
     #                     request_user=requested_user,
     #                     logged_in_user=logged_in_user)
 
+
+
     item_id_list = []
     data_dict = []
     for i in items_:
-        item_id_list.append(i[0].id)
-        dat = {"item": i[0], "types": i[1], "location": i[2], "item_access_level": i[3]}
+
+        if inventory_id is not None:
+            item_ = i[0]
+            types_ = i[1]
+            location_ = i[2]
+            item_access_level_ = i[3]
+            item_is_link_ = i[4]
+            user_inventory_ = i[5]
+        else:
+            item_ = i[0]
+            types_ = i[1]
+            location_ = i[2]
+            item_access_level_ = i[3]
+            item_is_link_ = i[4]
+            user_inventory_ = None
+
+
+        item_id_list.append(item_.id)
+        dat = {"item": item_, "types": types_, "location": location_,
+               "item_access_level": item_access_level_, "item_is_link": item_is_link_}
 
         data_dict.append(
             dat

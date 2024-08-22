@@ -1,0 +1,59 @@
+<form method="POST" action="{{ url_for("items.items_manage") }}" id="load-items-form"
+      enctype="multipart/form-data">
+
+
+    <div class="mb-3">
+
+        <select class="form-select" id="inventory_slug" name="inventory_slug">
+
+            <option value="all" selected>All item(s)</option>
+
+            <option value="default">Default/None</option>
+
+            {% for option in user_inventories %}
+                {% if "__default__" not in  option.inventory_name %}
+
+                    <option value="{{ option.inventory_slug }}">{{ option.inventory_name }}</option>
+
+                {% endif %}
+            {% endfor %}
+        </select>
+
+        <hr>
+
+
+    </div>
+
+    <div class="mb-3">
+
+        <input type="hidden" class="form-control" name="username" id="form_username" value="{{ username }}">
+        <input type="hidden" class="form-control" name="inventory_slug" id="form_inventory"
+               value="{{ inventory_slug }}">
+        <input type="submit" class="btn btn-primary" id="export-items-btn" name="export-items-btn"
+               value="Export your items">
+
+    </div>
+
+    <div class="mb-3">
+
+        <h6 class="text-center"><strong>-- or --</strong></h6>
+
+    </div>
+
+    <div class="mb-3">
+
+
+        <input class="form-control" type="file" name="file" accept=".json">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <br>
+        <button type="submit" class="btn btn-primary" id="import-items-btn" name="import-items-btn">
+            <span id="load-items-span" class="spinner-border spinner-border-sm"
+                  role="status" aria-hidden="true" style="display: none"></span>
+            Import your items
+        </button>
+
+
+    </div>
+
+
+</form>

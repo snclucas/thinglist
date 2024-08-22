@@ -16,17 +16,9 @@
 
 
     {% if is_inventory_owner or inventory_access_level == 1 %}
-        <span class="fas fa-file-import fa-2x" data-bs-toggle="collapse"
-              href="#collapseImportItems"
-              style="display: inline-block; margin-right: 20px;"></span>
 
-
-
-        <span id="export-items-btn" class="fas fa-file-export fa-2x"
-              style="display: inline-block; margin-right: 20px;"></span>
-
-        <span id="btn_export_pdf" class="fas fa-file-pdf fa-2x"
-              style="display: inline-block; margin-right: 20px;"></span>
+        <!-- <span id="btn_export_pdf" class="fas fa-file-pdf fa-2x"
+              style="display: inline-block; margin-right: 20px;"></span> -->
 
         <a id="move-items-btn" data-bs-toggle="collapse" href="#moveInventory"
            role="button" aria-expanded="false" aria-controls="moveInventory">
@@ -49,8 +41,5 @@
 
 
     {% endif %}
-
-
-
 
 {% endif %}

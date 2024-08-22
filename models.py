@@ -188,6 +188,7 @@ class InventoryItem(db.Model):
     inventory_id = db.Column(db.Integer, db.ForeignKey('inventories.id'))
     item_id = db.Column(db.Integer, db.ForeignKey('items.id'))
     access_level = db.Column(db.Integer, default=0)
+    is_link = db.Column(db.Boolean(), default=False)
 
 
 class ItemType(db.Model):

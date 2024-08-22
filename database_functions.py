@@ -554,7 +554,7 @@ def delete_notification_by_id(notification_id: int, user: User):
 
 def get_item_custom_field_data(user_id: int, item_list=None):
     with app.app_context():
-        item_field_data_ = db.session.query(Item.id, Field.field, ItemField.value) \
+        item_field_data_ = db.session.query(Item.id, Field.field, ItemField.value, Field.slug) \
             .join(ItemField, ItemField.field_id == Field.id) \
             .join(Item, ItemField.item_id == Item.id) \
             .filter(Item.user_id == user_id) \
@@ -566,6 +566,7 @@ def get_item_custom_field_data(user_id: int, item_list=None):
 
         item_field_data_ = item_field_data_.all()
 
+        slugs = []
         sdsd = {}
         for row in item_field_data_:
             if row[0] in sdsd:
@@ -573,7 +574,10 @@ def get_item_custom_field_data(user_id: int, item_list=None):
             else:
                 sdsd[row[0]] = {row[1]: row[2]}
 
-        return sdsd
+            if row[3] not in slugs:
+                slugs.append(row[3])
+
+        return sdsd, slugs
 
 
 def delete_itemtypes_from_db(itemtype_ids, user_id: int) -> (bool, str):
@@ -843,7 +847,7 @@ def find_all_my_items(logged_in_user: User):
 def _find_my_items(logged_in_user: User, inventory_id, query_params):
     with app.app_context():
         if inventory_id is not None and inventory_id != '':
-            query = db.session.query(Item, ItemType.name, Location.name, InventoryItem.access_level, UserInventory) \
+            query = db.session.query(Item, ItemType.name, Location.name, InventoryItem.access_level, InventoryItem.is_link, UserInventory) \
                 .join(ItemType, ItemType.id == Item.item_type) \
                 .join(Location, Location.id == Item.location_id)
 
@@ -854,7 +858,7 @@ def _find_my_items(logged_in_user: User, inventory_id, query_params):
             query = query.filter(UserInventory.inventory_id == inventory_id)
             query = query.filter(UserInventory.user_id == logged_in_user.id)
         else:
-            query = db.session.query(Item, ItemType.name, Location.name, InventoryItem.access_level) \
+            query = db.session.query(Item, ItemType.name, Location.name, InventoryItem.access_level, InventoryItem.is_link) \
                 .join(ItemType, ItemType.id == Item.item_type) \
                 .join(Location, Location.id == Item.location_id)
 
@@ -2018,7 +2022,8 @@ def link_items(item_ids: list, user: User, inventory_id: int):
             for item_, inventory_item_ in results_:
                 if inventory_item_.inventory_id != inventory_id:
                     new_inventory_item_ = InventoryItem(inventory_id=inventory_id, item_id=item_.id,
-                                                        access_level=inventory_item_.access_level)
+                                                        access_level=inventory_item_.access_level,
+                                                        is_link=True)
 
                     db.session.add(new_inventory_item_)
 
@@ -2181,7 +2186,7 @@ def commit():
 
 
 def add_item_to_inventory(item_id=None, item_name=None, item_desc=None, item_type=None, item_tags=None,
-                          inventory_id=None, user_id=None, item_quantity=None,
+                          inventory_id=None, user_id=None, item_quantity=1,
                           item_location_id=None, item_specific_location="", custom_fields=None):
     app_context = app.app_context()
 
@@ -2325,7 +2330,7 @@ def get_or_add_new_location(location_name: str, location_description: str, to_us
         }
 
 
-def add_new_template(name: str, fields: str, to_user: User) -> Location:
+def add_new_template(name: str, fields: str, to_user: User) -> FieldTemplate:
     with app.app_context():
         try:
             template_ = FieldTemplate(name=name, fields=fields, user_id=to_user.id)
@@ -2940,6 +2945,13 @@ def set_inventory_default_fields(inventory_id, user, default_fields):
 
 
 def save_template_fields(template_name, fields, user):
+    field_type = 1
+    if len(fields) > 0:
+        if isinstance(fields[0], int):
+            field_type = 1
+        else:
+            field_type = 2
+
     with app.app_context():
 
         field_template_ = FieldTemplate.query.filter_by(name=template_name).filter_by(user_id=user.id).one_or_none()
@@ -2950,7 +2962,10 @@ def save_template_fields(template_name, fields, user):
             db.session.add(field_template_)
 
             for field in fields:
-                field_ = Field.query.filter_by(id=field).one_or_none()
+                if field_type == 1:
+                    field_ = Field.query.filter_by(id=field).one_or_none()
+                else:
+                    field_ = Field.query.filter_by(slug=field).one_or_none()
                 if field_ is not None:
                     field_template_.fields.append(field_)
 
@@ -2959,7 +2974,10 @@ def save_template_fields(template_name, fields, user):
 
             field_template_.fields = []
             for field in fields:
-                field_ = Field.query.filter_by(id=field).one_or_none()
+                if field_type == 1:
+                    field_ = Field.query.filter_by(id=field).one_or_none()
+                else:
+                    field_ = Field.query.filter_by(slug=field).one_or_none()
                 if field_ is not None:
                     field_template_.fields.append(field_)
 
@@ -2986,7 +3004,7 @@ def save_template_fields(template_name, fields, user):
 
         db.session.commit()
 
-        return
+        return field_template_.id
 
 
 def update_item_fields(data, item_id: int):

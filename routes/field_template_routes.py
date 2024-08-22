@@ -101,7 +101,7 @@ def set_template_fields():
             if len(field_ids) == 0:
                 abort(Response("At least 1 field is required for the template", 400))
 
-            field_ids = [str(x) for x in field_ids]
+            field_ids = [int(x) for x in field_ids] # was str(x)
 
             save_template_fields(template_name=template_name, fields=field_ids, user=current_user)
 

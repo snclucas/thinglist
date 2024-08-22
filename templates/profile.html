@@ -108,6 +108,36 @@
 
 
             <hr>
+
+
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="content text-left">
+
+                            <a id="move-items-btn" data-bs-toggle="collapse" href="#collapseManageData"
+                               role="button" aria-expanded="false" aria-controls="moveInventory">
+                                <h5>Manage your data (import / export)</h5>
+                            </a>
+
+                            <div class="collapse" id="collapseManageData" aria-expanded="false">
+                                <div class="row">
+                                    <hr>
+                                    <div class="col-md-3"></div>
+                                    <div class="col-md-6 text-center">
+
+                                        {% include '_manage_items_form.html' %}
+                                    </div>
+                                    <div class="col-md-3"></div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
             <div class="row">
                 <div class="col-md-12">
                     <div class="card">
@@ -180,6 +210,8 @@
             });
 
         });
+
+
 
 
         $('[id^=confirmNotificationDeleteBtn]').on("click", function (e) {
