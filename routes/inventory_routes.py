@@ -34,7 +34,7 @@ def my_utility_processor():
     return dict(item_tag_to_string=item_tag_to_string)
 
 
-@inv.route('/inventories', methods=['GET'])
+@inv.route('/lists', methods=['GET'])
 @login_required
 def inventories():
     """
@@ -57,7 +57,7 @@ def inventories():
                            user_is_authenticated=user_is_authenticated, number_inventories=number_inventories)
 
 
-@inv.route('/@<string:username>/inventories')
+@inv.route('/@<string:username>/lists')
 def inventories_for_username(username):
     current_user_id = None
     requesting_user_id = None
@@ -94,7 +94,7 @@ def inventories_for_username(username):
                            number_inventories=number_inventories)
 
 
-@inv.route('/inventory/<int:inventory_id>')
+@inv.route('/list/<int:inventory_id>')
 @login_required
 def inventory(inventory_id: int):
     inventory_ = find_inventory(inventory_id=inventory_id)
@@ -106,7 +106,7 @@ def inventory(inventory_id: int):
     return render_template(template_name_or_list='404.html', message="No such inventory"), 404
 
 
-@inv.route(rule='/inventory/add', methods=['POST'])
+@inv.route(rule='/list/add', methods=['POST'])
 @login_required
 def add_inventory():
     inventory_name_ = request.form.get("inventory_name")
@@ -137,7 +137,7 @@ def add_inventory():
                             inventory_slug=new_inventory_data["slug"]))
 
 
-@inv.route(rule='/inventory/delete', methods=['POST'])
+@inv.route(rule='/list/delete', methods=['POST'])
 @login_required
 def del_inventory():
     if request.method == 'POST':
@@ -148,7 +148,7 @@ def del_inventory():
         return redirect(url_for('inv.inventories'))
 
 
-@inv.route(rule='/inventory/edit', methods=['POST'])
+@inv.route(rule='/list/edit', methods=['POST'])
 @login_required
 def edit_inventory():
     if request.method == 'POST':
@@ -214,7 +214,7 @@ def regenerate_token():
                    {'ContentType': 'application/json'}
 
 
-@inv.route('/inventory/access', methods=['POST'])
+@inv.route('/list/access', methods=['POST'])
 @login_required
 def register_for_inventory_access():
     if request.method == 'POST':
@@ -233,7 +233,7 @@ def register_for_inventory_access():
 
 
 
-@inv.route('/inventory/adduser', methods=['POST'])
+@inv.route('/list/adduser', methods=['POST'])
 @login_required
 def add_user_to_inv():
     if request.method == 'POST':
@@ -260,7 +260,7 @@ def add_user_to_inv():
             return redirect(url_for('inv.inventories'))
 
 
-@inv.route('/inventory/@<username>/<inventory_slug>/delete/<item_id>', methods=['POST'])
+@inv.route('/list/@<username>/<inventory_slug>/delete/<item_id>', methods=['POST'])
 @login_required
 def delete_from_inventory(username: str, inventory_slug, item_id):
     inventory_, user_inventory_ = find_inventory_by_slug(inventory_slug=inventory_slug,
@@ -269,7 +269,7 @@ def delete_from_inventory(username: str, inventory_slug, item_id):
     return redirect(url_for('inv.inventory_by_slug', username=username, inventory_slug=inventory_.slug))
 
 
-@inv.route('/inventory/additem', methods=['POST'])
+@inv.route('/list/additem', methods=['POST'])
 @login_required
 def add_to_inventory():
 

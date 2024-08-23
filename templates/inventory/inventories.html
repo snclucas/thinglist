@@ -7,17 +7,7 @@
 
         <div class="row">
             <div class="col-12">
-                {% with messages = get_flashed_messages() %}
-                        {% if messages %}
-                            {% for message in messages %}
-                                <div class="alert alert-primary alert-dismissible fade show" role="alert">
-                                    <strong>{{ message }}</strong>
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
-                                            aria-label="Close"></button>
-                                </div>
-                            {% endfor %}
-                        {% endif %}
-                    {% endwith %}
+                {% include '_flash_messages.html' %}
             </div>
         </div>
 
@@ -34,7 +24,7 @@
                                     <div class="text-end">
                                         {% if user_is_authenticated %}
                                             <span class="fas fa-plus fa-2x"
-                                                  data-toggle="tooltip" data-placement="top" title="Add a new inventory"
+                                                  data-toggle="tooltip" data-placement="top" title="Add a new list"
                                                   data-bs-toggle="collapse"
                                                   href="#collapseInventoryAdd"
                                                   style="display: inline-block; margin-right: 20px;"></span>
@@ -49,7 +39,7 @@
                                             <a id="delete-inventories-btn-collapse" data-bs-toggle="collapse"
                                            href="#collapseDeleteInventories"
                                            role="button" aria-expanded="false"
-                                           data-toggle="tooltip" data-placement="top" title="Delete inventory"
+                                           data-toggle="tooltip" data-placement="top" title="Delete list"
                                            aria-controls="confirmInventoryDelete">
                                                 <span id="delete-inventories-span" class="fas fa-minus fa-2x"
                                                       style="color:lightgray; display: inline-block; margin-right: 20px;cursor: pointer;"></span>
@@ -69,14 +59,14 @@
                                     {% if user_is_authenticated %}
                                         <div class="collapse" id="collapseInventoryAdd" aria-expanded="false">
                                             <div class="card card-body">
-                                                <h5>Add new inventory:</h5>
+                                                <h5>Add new list:</h5>
                                                 {% include 'inventory/_add_inventory_form.html' %}
                                             </div>
                                         </div>
 
                                         <div class="collapse" id="collapseInventoryEdit" aria-expanded="false">
                                             <div class="card card-body">
-                                                <h5>Edit inventory:</h5>
+                                                <h5>Edit list:</h5>
                                                 {% include 'inventory/_edit_inventory_form.html' %}
                                             </div>
                                         </div>

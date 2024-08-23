@@ -13,7 +13,7 @@ from sqlalchemy.sql.functions import func
 from app import db, app, __PUBLIC__, __OWNER__
 from email_utils import send_email
 from models import Inventory, User, Item, UserInventory, InventoryItem, ItemType, Tag, \
-    Location, Image, ItemImage, Field, ItemField, FieldTemplate, Notification, TemplateField, Relateditems
+    Location, Image, Field, ItemField, FieldTemplate, Notification, TemplateField, Relateditems, ItemImage
 
 _NONE_ = "None"
 
@@ -1395,6 +1395,13 @@ def set_item_main_image(main_image_url: str, item_id: int, user: User):
         except SQLAlchemyError:
             db.session.rollback()
             return False
+
+
+def get_all_images(user_id: int = None) -> list[Image]:
+    with app.app_context():
+        images_ = Image.query.all()
+        itemimages_ = ItemImage.query.all()
+        return images_, itemimages_
 
 
 def add_images_to_item(item_id: int, filenames: list[str], user: User)-> (bool, str):

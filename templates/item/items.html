@@ -109,29 +109,6 @@
                                 </div>
                             </div>
 
-
-                            <div class="row">
-                                <div class="col-12">
-
-                                    {% with messages = get_flashed_messages() %}
-                                        {% if messages %}
-                                            <br>
-                                            {% for message in messages %}
-                                                <div class="alert alert-primary alert-dismissible fade show"
-                                                     role="alert">
-                                                    <strong>{{ message }}</strong>
-                                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
-                                                            aria-label="Close"></button>
-                                                </div>
-                                            {% endfor %}
-                                        {% endif %}
-                                    {% endwith %}
-
-
-                                </div>
-                            </div>
-
-
                             <div class="row">
                                 <div class="col-md-12">
                                     <div class="collapse" id="collapseButtonBar" aria-expanded="false">
@@ -173,9 +150,7 @@
                                                 {% include 'item/_add_item_form.html' %}
                                             </div>
                                         </div>
-                                        <div class="collapse" id="collapseImportItems" aria-expanded="false">
-                                            {% include 'item/_import_items_form.html' %}
-                                        </div>
+
                                         <div class="collapse" id="shareItems" aria-expanded="false">
                                             {% include 'item/_share_items.html' %}
                                         </div>
@@ -192,11 +167,7 @@
                                                 <hr>
                                             </div>
                                         </div>
-                                        <div class="collapse" id="collapseManageUserAccess" aria-expanded="false">
-                                            {% include 'item/_manage_inventory_users.html' %}
-                                            <hr>
-                                        </div>
-                                        {% include 'item/_export_items_form.html' %}
+
                                     {% endif %}
                                 </div>
                             </div>

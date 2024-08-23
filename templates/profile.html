@@ -120,12 +120,18 @@
                                 <h5>Manage your data (import / export)</h5>
                             </a>
 
+                            <div class="row">
+                                <div class="col-12">
+                                    {% include '_flash_messages.html' %}
+                                </div>
+                            </div>
+
                             <div class="collapse" id="collapseManageData" aria-expanded="false">
+
                                 <div class="row">
                                     <hr>
                                     <div class="col-md-3"></div>
                                     <div class="col-md-6 text-center">
-
                                         {% include '_manage_items_form.html' %}
                                     </div>
                                     <div class="col-md-3"></div>
@@ -210,8 +216,6 @@
             });
 
         });
-
-
 
 
         $('[id^=confirmNotificationDeleteBtn]').on("click", function (e) {

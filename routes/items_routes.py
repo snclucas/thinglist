@@ -5,6 +5,7 @@ import os
 
 import csv
 import traceback
+from json import JSONDecodeError
 
 import bleach
 import pdfkit
@@ -15,6 +16,7 @@ from flask_login import login_required, current_user
 from slugify import slugify
 
 from app import app
+from routes.index_routes import profile
 from database_functions import get_all_user_locations, \
     get_all_item_types, \
     find_type_by_text, find_inventory_by_slug, find_location_by_name, \
@@ -24,7 +26,7 @@ from database_functions import get_all_user_locations, \
     get_users_for_inventory, get_user_inventory_by_id, get_or_add_new_location, edit_items_locations, \
     change_item_access_level, link_items, copy_items, commit, find_items_new, __PUBLIC, __PRIVATE, \
     find_user_by_username, add_images_to_item, set_item_main_image, get_user_inventories, add_user_inventory, \
-    add_new_template, save_template_fields, get_item_fields, save_inventory_fieldtemplate
+    save_template_fields, get_item_fields, save_inventory_fieldtemplate
 from models import FieldTemplate
 
 from utils import generate_item_image_filename
@@ -57,7 +59,7 @@ def items_load():
 
     if request.method == 'POST':
         inventory_slug_from_form = request.form.get("inventory_slug")
-        # inventory_id = request.form.get("inventory_id")
+        inventory_slug_from_form = bleach.clean(inventory_slug_from_form)
 
         if request.files:
             uploaded_file = request.files['file']  # This line uses the same variable and worked fine
@@ -68,13 +70,15 @@ def items_load():
             import_file_mimetype = mimetypes.MimeTypes().guess_type(filepath)[0]
             if "application/json" not in import_file_mimetype:
                 flash("Uploaded file does not seem to be a JSON file.")
-
-                return redirect(url_for('items.items_with_username_and_inventory',
-                                        username=username, inventory_slug=inventory_slug_from_form).replace('%40', '@'))
+                return profile(username=username)
 
             try:
                 with open(filepath, 'r') as f:
-                    data = json.load(f)
+                    try:
+                        data = json.load(f)
+                    except JSONDecodeError as e:
+                        flash("Uploaded file does not seem to be a valid JSON file.")
+                        return profile(username=username)
 
                     for inventory_ in data:
                         inventory_data = inventory_.get("inventory", None)
@@ -82,6 +86,7 @@ def items_load():
                             break
 
                         inventory_slug_ = inventory_data.get("slug", None)
+                        inventory_slug_ = bleach.clean(inventory_slug_)
 
                         found_inv, found_userinv = find_inventory_by_slug(inventory_slug=inventory_slug_,
                                                                           inventory_owner_id=current_user.id,
@@ -94,11 +99,11 @@ def items_load():
                             inventory_access_level = int(bleach.clean(str(inventory_data.get("access_level", 1))))
 
                             found_inv, status = add_user_inventory(name=inventory_name,
-                                                                     description=inventory_description,
-                                                                     inventory_type=inventory_type,
-                                                                     slug=inventory_slug_,
-                                                                     access_level=inventory_access_level,
-                                                                     user_id=current_user.id)
+                                                                   description=inventory_description,
+                                                                   inventory_type=inventory_type,
+                                                                   slug=inventory_slug_,
+                                                                   access_level=inventory_access_level,
+                                                                   user_id=current_user.id)
                             if status != "success":
                                 continue
 
@@ -113,8 +118,6 @@ def items_load():
                                 "owner_id": found_inv.owner_id
                             }
 
-                            d = 4
-
                         # lets sort the field template out
                         field_set_ = inventory_data.get("field_set", None)
                         if field_set_ is not None:
@@ -124,7 +127,8 @@ def items_load():
                                 template_slugs_ = field_set_.get("slugs", [])
                                 if len(template_slugs_) > 0:
                                     template_slugs_ = [bleach.clean(str(x)) for x in template_slugs_]
-                                    field_template_id_ = save_template_fields(template_name=template_name_, fields=template_slugs_, user=current_user)
+                                    field_template_id_ = save_template_fields(template_name=template_name_,
+                                                                              fields=template_slugs_, user=current_user)
 
                                     result = save_inventory_fieldtemplate(inventory_id=found_inv["id"],
                                                                           inventory_template=field_template_id_,
@@ -148,7 +152,7 @@ def items_load():
                                 if item_type is not None:
                                     item_type = bleach.clean(item_type)
                                 item_quantity = int(bleach.clean(str(item.get("quantity"))))
-                                item_tags = [ bleach.clean(str(x)) for x in item.get("tags")]
+                                item_tags = [bleach.clean(str(x)) for x in item.get("tags")]
                                 item_location = bleach.clean(item.get("location"))
                                 item_specific_location = bleach.clean(item.get("specific_location"))
 
@@ -190,21 +194,24 @@ def items_load():
                                         item_slug = f"{str(new_item_['item']['id'])}-{slugify(new_item_['item']['name'])}"
 
                                         if img_filename is None:
-                                            img_filename = generate_item_image_filename(item_slug=item_slug, item_id=item_id, img_type="jpg")
+                                            img_filename = generate_item_image_filename(item_slug=item_slug,
+                                                                                        item_id=item_id, img_type="jpg")
 
                                         img_is_main = img.get("is_main", "false")
                                         img_data = img.get("image_data", None)
                                         img_hash = img.get("image_hash", None)
 
                                         if img_is_main == "true":
-                                            set_item_main_image(main_image_url=img_filename, item_id=item_id, user=current_user)
+                                            set_item_main_image(main_image_url=img_filename, item_id=item_id,
+                                                                user=current_user)
 
-                                        img_filepath = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'], img_filename)
+                                        img_filepath = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'],
+                                                                    img_filename)
 
                                         import base64
                                         imgdata = base64.b64decode(img_data)
 
-                                        raw = img_data.encode('utf-8')#.encode("utf-8")
+                                        raw = img_data.encode('utf-8')
                                         key = 'SOME_SECRET_KEY'.encode('utf-8')
                                         hashed = hmac.new(key, raw, hashlib.sha1)
                                         img_hmac_hash = base64.encodebytes(hashed.digest()).decode('utf-8')
@@ -214,24 +221,17 @@ def items_load():
                                                 f.write(imgdata)
                                                 item_image_filename.append(img_filename)
 
-
                                     add_images_to_item(new_item_['item']['id'], item_image_filename, user=current_user)
-
-
-
 
                                 if new_item_["status"] == "error":
                                     flash("Sorry, there was an error importing these things.")
-                                    return redirect(url_for(endpoint='items.items_with_username_and_inventory',
-                                                            username=username, inventory_slug=inventory_slug_from_form).replace('%40',
-                                                                                                                      '@'))
+                                    return profile(username=username)
 
             except Exception as e:
                 print(traceback.format_exc())
 
+        return profile(username=username)
 
-        return redirect(url_for(endpoint='items.items_with_username_and_inventory',
-                                username=username, inventory_slug=inventory_slug_from_form).replace('%40', '@'))
 
 @items_routes.route('/items/load', methods=['POST'])
 @login_required
@@ -451,6 +451,7 @@ def items_save_pdf():
 
 from sqlalchemy.ext.declarative import DeclarativeMeta
 
+
 class AlchemyEncoder(json.JSONEncoder):
 
     def default(self, obj):
@@ -460,7 +461,7 @@ class AlchemyEncoder(json.JSONEncoder):
             for field in [x for x in dir(obj) if not x.startswith('_') and x != 'metadata']:
                 data = obj.__getattribute__(field)
                 try:
-                    json.dumps(data) # this will fail on non-encodable values, like other classes
+                    json.dumps(data)  # this will fail on non-encodable values, like other classes
                     fields[field] = data
                 except TypeError:
                     fields[field] = None
@@ -468,7 +469,6 @@ class AlchemyEncoder(json.JSONEncoder):
             return fields
 
         return json.JSONEncoder.default(self, obj)
-
 
 
 @items_routes.route('/items/manage', methods=['POST'])
@@ -479,9 +479,6 @@ def items_manage():
             return items_save()
         else:
             return items_load()
-
-
-
 
 
 @items_routes.route('/items/save', methods=['POST'])
@@ -514,7 +511,7 @@ def items_save():
 
         dd, slugs = get_item_custom_field_data(user_id=current_user.id, item_list=item_id_list)
 
-        #save the json items with a flag stating if they are just links to other items in the inventroy
+        # save the json items with a flag stating if they are just links to other items in the inventroy
         if inventory_default_fields is not None:
             inventory_field_template_name = inventory_default_fields.name
         else:
@@ -556,7 +553,6 @@ def items_save():
                 template_field_ = field_data[2]
                 ddd[field_.slug] = item_field_.value
 
-
             tmp_json = {
                 "id": item_.id,
                 "name": item_.name,
@@ -571,7 +567,7 @@ def items_save():
             }
 
             item_images = []
-            #save images
+            # save images
             for img in item_.images:
                 tmp_img_dict = {"is_main": False}
                 img_path = os.path.join(app.config['UPLOAD_FOLDER'], img.image_filename)
@@ -713,7 +709,8 @@ def items_with_username_and_inventory(username=None, inventory_slug=None):
     all_fields = dict(get_all_fields())
 
     request_params = _process_url_query(req_=request, inventory_user=requested_user)
-    data_dict, item_id_list = find_items_query(requested_username=requested_username, logged_in_user=logged_in_user, inventory_id=inventory_id,
+    data_dict, item_id_list = find_items_query(requested_username=requested_username, logged_in_user=logged_in_user,
+                                               inventory_id=inventory_id,
                                                request_params=request_params)
 
     inventory_id = -1
@@ -782,7 +779,6 @@ def _get_inventory(inventory_slug: str, logged_in_user_id, inventory_owner_id):
 
 
 def find_items_query(requested_username: str, logged_in_user, inventory_id: int, request_params):
-
     query_params = {
         'item_type': request_params["requested_item_type_id"],
         'item_location': request_params["requested_item_location_id"],
@@ -803,8 +799,6 @@ def find_items_query(requested_username: str, logged_in_user, inventory_id: int,
     #                     request_user=requested_user,
     #                     logged_in_user=logged_in_user)
 
-
-
     item_id_list = []
     data_dict = []
     for i in items_:
@@ -823,7 +817,6 @@ def find_items_query(requested_username: str, logged_in_user, inventory_id: int,
             item_access_level_ = i[3]
             item_is_link_ = i[4]
             user_inventory_ = None
-
 
         item_id_list.append(item_.id)
         dat = {"item": item_, "types": types_, "location": location_,
