@@ -27,21 +27,13 @@
                         <button class="btn btn-primary shadow-2 mb-4">Login</button>
                     </form>
 
+                    <p class="mb-0 text-muted"> <a href="/reset-password">Forgot your password?</a></p>
+
                     {% if allow_registrations %}
-                        <p class="mb-0 text-muted">Don't have account yet? <a href="/register">Register</a></p>
+                        <p class="mb-0 text-muted"> <a href="/register">Don't have account yet?</a></p>
                     {% endif %}
 
-                    {% with messages = get_flashed_messages() %}
-                        {% if messages %}
-                            {% for message in messages %}
-                                <div class="alert alert-primary alert-dismissible fade show" role="alert">
-                                    <strong>{{ message }}</strong>
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
-                                            aria-label="Close"></button>
-                                </div>
-                            {% endfor %}
-                        {% endif %}
-                    {% endwith %}
+                    {% include '_flash_messages.html' %}
 
                 </div>
             </div>

@@ -1,3 +1,4 @@
+import datetime
 import re
 import uuid
 
@@ -7,7 +8,7 @@ from app import login_manager, flask_bcrypt, app
 from flask_login import (login_required, login_user, logout_user, confirm_login)
 
 from database_functions import find_user, save_new_user, find_user_by_token, activate_user_in_db, find_user_by_username, \
-    find_user_by_email
+    find_user_by_email, update_user_password_by_token, update_user_token_by_email
 from email_utils import send_email
 from models import User
 
@@ -27,7 +28,7 @@ auth_flask_login = Blueprint('auth_flask_login', __name__, template_folder='temp
 #         db.session.commit()
 #         flash('Your password has been reset.')
 #         return redirect(url_for('login'))
-#     return render_template('reset_password.html', form=form)
+#     return render_template('reset_password_request.html', form=form)
 
 
 def sanitize(input_string):
@@ -99,10 +100,83 @@ def activate_user(token):
     template = "auth/login.html"
 
     if user_ is not None and not user_.activated and user_.token == token:
+        token_expiry = user_.token_expires
+        if datetime.datetime.now() > token_expiry:
+            flash("Expired registration request")
+            return render_template(template)
+
         activate_user_in_db(user_id=user_.id)
         flash("You are now an activated Thing!")
 
     return render_template(template)
+
+
+@auth_flask_login.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password_token(token):
+    template = "auth/reset_password.html"
+
+    if request.method == 'GET':
+        user_ = find_user_by_token(token=token)
+        if user_ is not None and user_.activated:
+            return render_template(template, token=token)
+    else:
+        user_ = find_user_by_token(token=token)
+
+        token_expiry = user_.token_expires
+        if datetime.datetime.now() > token_expiry:
+            flash("Expired registration request")
+            return reset_password_token(token)
+
+        if user_ is not None and user_.activated:
+            password1 = sanitize(request.form.get("password1"))
+            password2 = sanitize(request.form.get("password2"))
+
+            if password1 == password2:
+                password_check_results = password_check(password1)
+                if not password_check_results['password_ok']:
+                    flash("Password does not meet the criteria")
+                    return reset_password_token(token)
+
+                password_hash = flask_bcrypt.generate_password_hash(password1)
+                update_user_password_by_token(token=token, password_hash=password_hash)
+                return login()
+            else:
+                flash("Both passwords must match")
+                return reset_password_token(token)
+        else:
+            flash("There was a problem updating your password")
+            return reset_password_token(token)
+
+
+
+@auth_flask_login.route("/reset-password", methods=["GET", "POST"])
+def reset_password_request():
+
+    token_epiration_minutes = int(app.config['TOKEN_EXPIRATION_MINUTES'])
+
+    template = "auth/reset_password_request.html"
+
+    if request.method == 'POST':
+        email = sanitize(request.form.get("email"))
+        user_ = find_user(username_or_email=email)
+
+        if user_ is not None and user_.activated:
+            confirmation_token = uuid.uuid4().hex
+            token_expires = datetime.datetime.now() + datetime.timedelta(minutes=token_epiration_minutes)
+            update_user_token_by_email(email=email, user_token=confirmation_token, token_expires=token_expires)
+
+            text_body = render_template('email/reset_password.txt', user=user_, token=confirmation_token)
+            html_body = render_template('email/reset_password.html', user=user_, token=confirmation_token)
+            send_email("Password change", sender=app.config['ADMINS'][0], recipients=[user_.email],
+                       text_body=text_body, html_body=html_body)
+
+
+
+        flash("Check your email")
+        return render_template(template)
+
+    else:
+        return render_template(template)
 
 
 @auth_flask_login.route("/passwd", methods=["GET", "POST"])
@@ -118,6 +192,8 @@ def change_password():
             user_ = find_user(username_or_email=username)
             if user_ is not None:
                 confirmation_token = uuid.uuid4().hex
+
+                user_.token = confirmation_token
 
                 text_body = render_template('email/reset_password.txt', user=username, token=confirmation_token)
                 html_body = render_template('email/reset_password.html', user=username, token=confirmation_token)
@@ -135,11 +211,11 @@ def change_password():
 
 
         flash("If this account exists, an email will be sent with instructions to reset the password")
-        return render_template("auth/reset_password.html")
+        return render_template("auth/reset_password_request.html")
 
 
     else:
-        return render_template("auth/reset_password.html")
+        return render_template("auth/reset_password_request.html")
 
 
 def password_check(password):
@@ -212,6 +288,7 @@ def register():
 
     """
     allow_registrations = (int(app.config['ALLOW_REGISTRATIONS']) == 1)
+    token_epiration_minutes = int(app.config['TOKEN_EXPIRATION_MINUTES'])
 
     if not allow_registrations:
         return render_template(template_name_or_list="auth/register.html", allow_registrations=allow_registrations)
@@ -248,15 +325,19 @@ def register():
         password_hash = flask_bcrypt.generate_password_hash(supplied_password)
 
         confirmation_token = uuid.uuid4().hex
+        token_expires = datetime.datetime.now() + datetime.timedelta(minutes=token_epiration_minutes)
 
         # prepare User
-        new_user = User(username=username, email=email, password=password_hash, token=confirmation_token)
+        new_user = User(username=username, email=email,
+                        password=password_hash, token=confirmation_token, token_expires=token_expires)
 
         try:
             user_added, msg, user = save_new_user(new_user)
             if user_added:
-                text_body = render_template(template_name_or_list='email/user_registration.txt', user=username, token=confirmation_token)
-                html_body = render_template(template_name_or_list='email/user_registration.html', user=username, token=confirmation_token)
+                text_body = render_template(template_name_or_list='email/user_registration.txt', user=username,
+                                            token=confirmation_token, token_expires=token_expires.isoformat())
+                html_body = render_template(template_name_or_list='email/user_registration.html', user=username,
+                                            token=confirmation_token, token_expires=token_expires.isoformat())
                 send_email(subject="New user registration", sender=app.config['ADMINS'][0], recipients=[email],
                            text_body=text_body, html_body=html_body)
                 flash("Check your email for an activation link!")

@@ -64,7 +64,7 @@ app.config['ADMINS'] = os.environ.get('ADMINS')
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER')
 
 app.config['ALLOW_REGISTRATIONS'] = os.environ.get('ALLOW_REGISTRATIONS', 0)
-
+app.config['TOKEN_EXPIRATION_MINUTES'] = os.environ.get('TOKEN_EXPIRATION_MINUTES', 15)
 app.config['ITEM_DESCRIPTION_CHAR_LIMIT'] = os.environ.get('ITEM_DESCRIPTION_CHAR_LIMIT', 20000)
 
 csrf = CSRFProtect(app)

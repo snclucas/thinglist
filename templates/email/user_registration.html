@@ -8,5 +8,7 @@
 <p>Alternatively, you can paste the following link in your browser's address bar:</p>
 <p>{{ url_for('auth_flask_login.activate_user', token=token, _external=True) }}</p>
 
+<p>This email expired: {{ token_expires }}</p>
+
 <p>Sincerely,</p>
 <p>Thing Master</p>

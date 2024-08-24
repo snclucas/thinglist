@@ -1,3 +1,4 @@
+import datetime
 import os
 import pathlib
 import uuid
@@ -3093,3 +3094,22 @@ def set_field_status(item_id, field_ids, is_visible=True):
                     db.session.add(instance_)
 
             db.session.commit()
+
+def update_user_password_by_token(token: str, password_hash: str):
+    with app.app_context():
+        with app.app_context():
+            user_ = find_user_by_token(token=token)
+            if user_ is not None and user_.activated:
+                user_.password = password_hash
+                user_.token = ""
+                db.session.commit()
+        return
+
+def update_user_token_by_email(email: str, user_token: str, token_expires: datetime):
+    with app.app_context():
+        user_ = find_user(username_or_email=email)
+        if user_ is not None and user_.activated:
+            user_.token = user_token
+            user_.token_expires = token_expires
+            db.session.commit()
+        return

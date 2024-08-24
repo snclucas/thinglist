@@ -34,6 +34,7 @@ class User(UserMixin, db.Model):
     notifications = db.relationship('Notification', backref='users', passive_deletes="all")
     activated = db.Column(db.Boolean(), nullable=True, unique=False, default=False)
     token = db.Column(db.String(255), nullable=True, unique=False)
+    token_expires = db.Column(db.DateTime(), default=datetime.datetime.now)
 
 
 class Notification(db.Model):
