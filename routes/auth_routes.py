@@ -64,8 +64,11 @@ def login():
 
     if request.method == "POST" and "username" in request.form:
 
-        username = sanitize(request.form.get("username"))
-        password = sanitize(request.form.get("password"))
+        username = sanitize(request.form.get("username", None))
+        password = sanitize(request.form.get("password", None))
+        if username is None or password is None:
+            flash("Username or password cannot be empty")
+            return render_template("auth/login.html")
 
         user = find_user(username_or_email=username)
         if user and flask_bcrypt.check_password_hash(user.password, password) and user.is_active:

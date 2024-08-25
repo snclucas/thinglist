@@ -1,6 +1,6 @@
 import datetime
 import os
-import pathlib
+
 import uuid
 from typing import Union, List, Tuple, Optional
 
@@ -104,15 +104,30 @@ def find_user(username_or_email: str) -> User:
     return user
 
 
-def find_user_by_username(username: str) -> User:
+def find_user_by_id2(id: int) -> Optional[User]:
     """
-    Find a user by their username.
-
-    Parameters:
-    - username (str): The username of the user to find.
+    Args:
+        id: The id of the user to find.
 
     Returns:
-    - User: The user object if found, None otherwise.
+        An instance of the User class if the user is found, or None if not found or an error occurs.
+    """
+    try:
+        user = User.query.filter_by(id=id).first()
+    except (NoResultFound, InvalidRequestError, SQLAlchemyError) as e:
+        err_msg = f"Error finding user by id: {str(e)}"
+        app.logger.error(err_msg)
+        return None
+    return user
+
+
+def find_user_by_username(username: str) -> Optional[User]:
+    """
+    Args:
+        username: The username of the user to find.
+
+    Returns:
+        An instance of the User class if the user is found, or None if not found or an error occurs.
     """
     try:
         user = User.query.filter_by(username=username).first()
@@ -123,7 +138,7 @@ def find_user_by_username(username: str) -> User:
     return user
 
 
-def find_user_by_email(email: str) -> User:
+def find_user_by_email(email: str) -> Optional[User]:
     """
     Finds a user by email.
 
@@ -148,7 +163,7 @@ def find_user_by_email(email: str) -> User:
     return user
 
 
-def find_user_by_token(token: str) -> User:
+def find_user_by_token(token: str) -> Optional[User]:
     """
 
     Find user by token.

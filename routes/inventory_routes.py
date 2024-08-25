@@ -277,7 +277,7 @@ def add_to_inventory():
         item_name = bleach.clean(request.form.get("name"))
         item_description = bleach.clean(request.form.get("description"))
         inventory_id = request.form.get("inventory_id")
-        item_quantity = request.form.get("quantity")
+        item_quantity = request.form.get("quantity", 1)
 
         username = request.form.get("username").lower()
         inventory_slug = request.form.get("inventory_slug").lower()

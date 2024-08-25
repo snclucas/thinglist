@@ -46,6 +46,14 @@ def my_utility_processor():
 
 
 def _find_list_index(list_, value):
+    """
+    Args:
+        list_ (list): The list in which to search for the value.
+        value: The value to search for in the list.
+
+    Returns:
+        int: The index of the value in the list. If the value is not found, -1 is returned.
+    """
     try:
         return list_.index(value)
     except ValueError:
@@ -471,7 +479,7 @@ class AlchemyEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-@items_routes.route('/items/manage', methods=['POST'])
+@items_routes.route(rule='/items/manage', methods=['POST'])
 @login_required
 def items_manage():
     if request.method == 'POST':
@@ -481,7 +489,7 @@ def items_manage():
             return items_load()
 
 
-@items_routes.route('/items/save', methods=['POST'])
+@items_routes.route(rule='/items/save', methods=['POST'])
 @login_required
 def items_save():
     inventory_slug = request.form.get("inventory_slug")
@@ -722,7 +730,7 @@ def items_with_username_and_inventory(username=None, inventory_slug=None):
     else:
         current_username = None
 
-    return render_template('item/items.html',
+    return render_template(template_name_or_list='item/items.html',
                            inventory_id=inventory_id,
                            current_username=current_username,
                            username=username,
@@ -790,14 +798,6 @@ def find_items_query(requested_username: str, logged_in_user, inventory_id: int,
                             query_params=query_params,
                             requested_username=requested_username,
                             logged_in_user=logged_in_user)
-
-    # items_ = find_items(inventory_id=inventory_id,
-    #                     item_type=request_params["requested_item_type_id"],
-    #                     item_location=request_params["requested_item_location_id"],
-    #                     item_tags=request_params["requested_tag_strings"],
-    #                     item_specific_location=request_params["requested_item_specific_location"],
-    #                     request_user=requested_user,
-    #                     logged_in_user=logged_in_user)
 
     item_id_list = []
     data_dict = []

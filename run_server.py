@@ -44,8 +44,9 @@ def add_headers(response):
     """
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    #response.headers['Content-Security-Policy'] = "default-src 'self'; style-src-elem 'self' http://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; unsafe-inline"
     response.headers['X-XSS-Protection'] = '1; mode=block'
-
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     response.headers['Last-Modified'] = datetime.now()
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
     response.headers['Pragma'] = 'no-cache'

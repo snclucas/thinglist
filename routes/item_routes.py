@@ -49,7 +49,7 @@ def my_utility_processor():
 
 @item_routes.route('/@<username>/<inventory_slug>/<item_slug>')
 def item_with_username_and_inventory(username: str, inventory_slug: str, item_slug: str):
-    inventory_owner_username = username
+    inventory_owner_username = bleach.clean(username)
     inventory_owner = None
     inventory_owner_id = None
 
