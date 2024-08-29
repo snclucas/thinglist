@@ -24,9 +24,9 @@ from database_functions import get_all_user_locations, \
     get_all_fields, add_new_user_itemtype, \
     get_user_templates, get_item_custom_field_data, \
     get_users_for_inventory, get_user_inventory_by_id, get_or_add_new_location, edit_items_locations, \
-    change_item_access_level, link_items, copy_items, commit, find_items_new, __PUBLIC, __PRIVATE, \
+    change_item_access_level, link_items, copy_items, commit, find_items_new, __PUBLIC__, __PRIVATE__, \
     find_user_by_username, add_images_to_item, set_item_main_image, get_user_inventories, add_user_inventory, \
-    save_template_fields, get_item_fields, save_inventory_fieldtemplate
+    save_template_fields, get_item_fields, save_inventory_fieldtemplate, find_template_by_id
 from models import FieldTemplate
 
 from utils import generate_item_image_filename
@@ -626,7 +626,7 @@ def items_with_username(username=None):
 
 @items_routes.route('/@<string:username>/<inventory_slug>')
 def items_with_username_and_inventory(username=None, inventory_slug=None):
-    inventory_owner_username = username
+    inventory_owner_username = bleach.clean(username)
     inventory_owner = None
     inventory_owner_id = None
 
@@ -636,7 +636,7 @@ def items_with_username_and_inventory(username=None, inventory_slug=None):
     logged_in_user_id = None
 
     # remove spurious whitespace (if any)
-    inventory_slug = inventory_slug.strip()
+    inventory_slug = bleach.clean(inventory_slug.strip())
 
     user_locations_ = None
     inventory_templates = None
@@ -644,23 +644,14 @@ def items_with_username_and_inventory(username=None, inventory_slug=None):
 
     if user_is_authenticated:
         logged_in_user = current_user
-        user_locations_ = get_all_user_locations(user=logged_in_user)
-        inventory_templates = get_user_templates(user=current_user)
+        user_locations_ = get_all_user_locations(user_id=logged_in_user.id)
+        inventory_templates = get_user_templates(user_id=current_user.id)
 
         if current_user == inventory_owner_username:
             inventory_owner = current_user
             inventory_owner_id = inventory_owner.id
 
     requested_username = username
-
-    # if username is None:
-    #     username = current_user.username
-    # else:
-    #     requested_user = find_user(username_or_email=username)
-    #     if requested_user is not None:
-    #         username = requested_user.username
-    #     else:
-    #         return render_template('404.html', message="Not found"), 404
 
     if logged_in_user is not None:
         logged_in_user_id = logged_in_user.id
@@ -690,10 +681,10 @@ def items_with_username_and_inventory(username=None, inventory_slug=None):
     if inventory_ is None and inventory_slug != "all":
         return render_template('404.html', message="No such inventory"), 404
 
-    if not user_is_authenticated and inventory_.access_level == __PRIVATE:
+    if not user_is_authenticated and inventory_.access_level == __PRIVATE__:
         return render_template('404.html', message="No such inventory"), 404
 
-    if not user_is_authenticated and inventory_.access_level == __PUBLIC:
+    if not user_is_authenticated and inventory_.access_level == __PUBLIC__:
         is_inventory_owner = False
         inventory_access_level = 2
     else:
@@ -755,7 +746,7 @@ def items_with_inventory(inventory_slug=None):
     return items_with_username_and_inventory(username=None, inventory_slug=inventory_slug)
 
 
-def _get_inventory(inventory_slug: str, logged_in_user_id, inventory_owner_id):
+def _get_inventory(inventory_slug: str, logged_in_user_id: int, inventory_owner_id: int):
     if inventory_slug == "default":
         inventory_slug_to_use = f"default-{current_user.username}"
     elif inventory_slug is None or inventory_slug == '':
@@ -777,7 +768,7 @@ def _get_inventory(inventory_slug: str, logged_in_user_id, inventory_owner_id):
             field_template_id_ = inventory_.field_template
 
             if field_template_id_ is not None:
-                field_template_ = FieldTemplate.query.filter_by(id=field_template_id_).one_or_none()
+                field_template_ = find_template_by_id(template_id=field_template_id_)
 
     else:
         inventory_id = None
@@ -803,7 +794,7 @@ def find_items_query(requested_username: str, logged_in_user, inventory_id: int,
     data_dict = []
     for i in items_:
 
-        if inventory_id is not None:
+        if inventory_id is not None and logged_in_user is not None:
             item_ = i[0]
             types_ = i[1]
             location_ = i[2]
@@ -881,11 +872,19 @@ def del_items():
     Returns:
     - None
     """
+    user_is_authenticated = current_user.is_authenticated
 
     if request.json and all(key in request.json for key in ('item_ids', 'username')):
         json_data = request.json
         item_ids = json_data.get('item_ids')
+
         username = json_data.get('username')
+        username = bleach.clean(username)
+
+        # create redirect_url and ensure it has an '@' symbol before the user
+        redirect_url = url_for(endpoint='items.items_with_username',
+                               username=username).replace(__old='%40', __new='@')
+
         inventory_id = json_data.get('inventory_id')
         if inventory_id == '':
             inventory_id = None
@@ -897,9 +896,5 @@ def del_items():
         else:
             flash("There was a problem deleting your things!")
             current_app.logger.error("Error deleting items - missing item_ids or username")
-
-        # create redirect_url and ensure it has an '@' symbol before the user
-        redirect_url = url_for(endpoint='items.items_with_username',
-                               username=username).replace(__old='%40', __new='@')
 
         return redirect(redirect_url)

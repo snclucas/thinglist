@@ -64,7 +64,7 @@ def profile(username):
     # -1 for the default None item type
     num_item_types = len(get_all_itemtypes_for_user(user_id=current_user.id, string_list=False)) - 1
     num_items = get_user_item_count(user_id=current_user.id)
-    num_field_templates = len(get_user_templates(user=current_user))
+    num_field_templates = len(get_user_templates(user_id=current_user.id))
     num_user_locations = get_number_user_locations(user_id=current_user.id)
 
     if user_is_authenticated:

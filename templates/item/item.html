@@ -76,17 +76,7 @@
 
                             <div class="row">
                                 <div class="col-12">
-                                    {% with messages = get_flashed_messages() %}
-                        {% if messages %}
-                            {% for message in messages %}
-                                <div class="alert alert-primary alert-dismissible fade show" role="alert">
-                                    <strong>{{ message }}</strong>
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert"
-                                            aria-label="Close"></button>
-                                </div>
-                            {% endfor %}
-                        {% endif %}
-                    {% endwith %}
+                                    {% include '_flash_messages.html' %}
                                 </div>
                             </div>
 
@@ -165,6 +155,7 @@
 
 
                                     <h5>Related items:
+                                         {% if item_access_level == 0 %}
                                         <span id="add-related-1"
                                               data-bs-toggle="collapse"
                                               href="#collapseAddRelated"
@@ -172,6 +163,7 @@
                                               title="Display help panel"
                                               class="fas fa-plus "
                                               style="color:black; display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+                                        {% endif %}
                                     </h5>
 
                                     <div class="collapse" id="collapseAddRelated" aria-expanded="false">
@@ -197,11 +189,11 @@
                                 </div>
 
 
-                                {% if inventory.access_level != 2 %}
+                                {% if inventory.access_level != __PUBLIC__ %}
                                     <hr class="show-small">
                                     <br class="show-small">
                                     <div class="col-md-6">
-                                        <h5>Inventories: </h5>
+                                        <h5>Lists: </h5>
                                         {% for inventory in item.inventories %}
                                             <strong><a
                                                     href="{{ url_for('items.items_with_username_and_inventory', username=username, inventory_slug=inventory.slug) | replace('%40', '@') }}">{{ inventory.name }}</a></strong>
@@ -216,6 +208,7 @@
                             <hr>
 
                             {% if item.images | length > 0 %}
+                                {% if inventory.access_level != __PUBLIC__ %}
                                 <div class="row">
 
                                     <div class="col-md-12 text-center">
@@ -231,6 +224,7 @@
                                     </div>
 
                                 </div>
+                                    {% endif %}
                                 <hr>
                                 <br>
 
@@ -277,13 +271,15 @@
             integrity="sha512-SJh7xW/9SLzllt0PqjnYlomfUPi7UYF40TXU5m6kVXLFr1hdKe+L8Tqqoi1y9vlsMQBdGC2lZI0d6w04Nn6piQ=="
             crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
+    <script src="{{ url_for('static', filename='js/item.js') }}"></script>
+
     <script type="text/javascript">
         const username = {{ username|tojson|safe }}
         const csrf_token = {{ csrf_token()|tojson|safe }}
         const inventory_slug = {{ inventory_slug|tojson|safe}}
         const item_slug = {{ item.slug|tojson|safe}}
         const item_id = {{ item.id|tojson|safe}}
-        const edit_item_url = {{ url_for('item.edit_item_fields')|tojson|safe}}
+        const edit_item_fields_url = {{ url_for('item.edit_item_fields')|tojson|safe}}
 
         const user_items_url = {{ url_for('api.user_items')|tojson|safe}}
         const user_item_types_url = {{ url_for('api.user_item_types')|tojson|safe}}
@@ -296,21 +292,7 @@
     <script>
         $(document).ready(function () {
 
-            tinymce.init({
-                selector: 'textarea#form_item_description',
-                height: 300,
-                theme: 'modern',
-                menubar: false,
-                forced_root_block : '',
-                plugins: [
-                    'advlist lists link hr pagebreak',
-                    'searchreplace wordcount code',
-                    'nonbreaking table',
-                    'paste textcolor textpattern visualchars wordcount'
-                ],
-                toolbar1: 'bold italic | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent',
-                image_advtab: false
-            });
+
 
             $("#search-box").keyup(function () {
                 $.ajax({
@@ -492,35 +474,7 @@
             });
         });
 
-        $('[id^="delete-related-"]').click(function (e) {
-            e.preventDefault();
 
-            let item1 = $(this).attr('data-item1-id');
-            let item2 = $(this).attr('data-item2-id');
-
-            $.ajax({
-                type: "POST",
-                url: "{{ url_for('item.unrelate_items')}}",
-                contentType: 'application/json;charset=UTF-8',
-                headers: {
-                    "X-CSRFToken": "{{ csrf_token() }}",
-                },
-                data: JSON.stringify(
-                    {
-                        'item1': item1,
-                        'item2': item2,
-                        'inventory_slug': "{{ inventory_slug }}",
-                        'username': "{{ username }}"
-                    }
-                ),
-                success: function (e) {
-                    location.reload();
-                },
-                error: function (e) {
-                    location.reload();
-                }
-            });
-        });
 
         const autoCompleteJS = new autoComplete({
             selector: "#autoComplete",

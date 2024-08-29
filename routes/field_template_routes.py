@@ -80,7 +80,7 @@ def template(template_id):
 @login_required
 def templates_with_username(username):
     all_fields = dict(get_all_fields())
-    user_templates = get_user_templates(user=current_user)
+    user_templates = get_user_templates(user_id=current_user.id)
     return render_template('field_template/field_templates.html',
                            name=current_user.username, templates=user_templates, all_fields=all_fields)
 

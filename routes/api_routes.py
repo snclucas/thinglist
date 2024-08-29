@@ -40,7 +40,7 @@ def user_items():
 @api_routes.route('/api/locations', methods=['GET'])
 @login_required
 def locations():
-    locations_ = get_all_user_locations(user=current_user)
+    locations_ = get_all_user_locations(user_id=current_user.id)
     loc_array = []
     for loc_ in locations_:
         loc_array.append(f"location:{loc_.name.lower()}")

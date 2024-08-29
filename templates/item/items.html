@@ -86,7 +86,7 @@
                                                    data-toggle="tooltip" data-placement="top"
                                                    title="Display item filter form"
                                                    aria-controls="collapseFilter">
-                                                <span class="fas fa-filter fa-2x"
+                                                <span id="filter-items-span"  class="fas fa-filter fa-2x"
                                                       style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
                                                 </a>
 
@@ -283,6 +283,14 @@
                     column.visible(!column.visible());
                 });
             });
+
+            var urlParams = new URLSearchParams(window.location.search)
+            let filter_items_span_selector = $('#filter-items-span');
+            if (urlParams.size > 0) {
+                filter_items_span_selector.css('color', 'green');
+            } else {
+                filter_items_span_selector.css('color', 'black');
+            }
 
         });
 

@@ -11,12 +11,19 @@ from sqlalchemy import select, and_, ClauseElement, or_
 from sqlalchemy.exc import SQLAlchemyError, NoResultFound, InvalidRequestError
 from sqlalchemy.sql.functions import func
 
-from app import db, app, __PUBLIC__, __OWNER__
+from app import db, app
 from email_utils import send_email
 from models import Inventory, User, Item, UserInventory, InventoryItem, ItemType, Tag, \
     Location, Image, Field, ItemField, FieldTemplate, Notification, TemplateField, Relateditems, ItemImage
 
 _NONE_ = "None"
+
+
+__PRIVATE__ = 0
+__OWNER__ = 0
+__VIEWER__ = 1
+__COLLABORATOR__ = 2
+__PUBLIC__ = 3
 
 
 def drop_then_create():
@@ -129,6 +136,8 @@ def find_user_by_username(username: str) -> Optional[User]:
     Returns:
         An instance of the User class if the user is found, or None if not found or an error occurs.
     """
+    if username is None:
+        return None
     try:
         user = User.query.filter_by(username=username).first()
     except (NoResultFound, InvalidRequestError, SQLAlchemyError) as e:
@@ -334,10 +343,10 @@ def find_inventory_by_slug(inventory_slug: str, inventory_owner_id: int = None,
         app.logger.error(err_msg)
         return None, None
 
-    if not isinstance(viewing_user_id, int):
-        err_msg = f"Error finding inventory by slug: supplied viewing_user_id is not an integer"
-        app.logger.error(err_msg)
-        return None, None
+    # if not isinstance(viewing_user_id, int):
+    #     err_msg = f"Error finding inventory by slug: supplied viewing_user_id is not an integer"
+    #     app.logger.error(err_msg)
+    #     return None, None
 
     user_is_logged_in = (viewing_user_id is not None)
 
@@ -370,6 +379,21 @@ def find_inventory_by_slug(inventory_slug: str, inventory_owner_id: int = None,
                 return inventory_, None
             else:
                 return None, None
+
+
+def find_template_by_id(template_id: int) -> Optional[FieldTemplate]:
+    """
+    Args:
+        template_id: The ID of the template to be found.
+
+    Returns:
+        An instance of FieldTemplate if a template with the specified ID is found, otherwise returns None.
+    """
+    if template_id is not None:
+        field_template_ = FieldTemplate.query.filter_by(id=template_id).one_or_none()
+        return field_template_
+    else:
+        return None
 
 
 def find_all_user_inventories(user: User) -> list:
@@ -899,7 +923,7 @@ inventory access
 def _find_someone_elses_items_loggedin(logged_in_user: User, request_user_id, inventory_id, query_params):
     with app.app_context():
 
-        query = db.session.query(Item, ItemType.name, Location.name, InventoryItem.access_level) \
+        query = db.session.query(Item, ItemType.name, Location.name, InventoryItem.access_level, InventoryItem.is_link) \
             .join(ItemType, ItemType.id == Item.item_type) \
             .join(Location, Location.id == Item.location_id)
 
@@ -924,7 +948,7 @@ def _find_someone_elses_items_loggedin(logged_in_user: User, request_user_id, in
 def _find_someone_elses_items_notloggedin(request_user_id, inventory_id, query_params):
     with app.app_context():
 
-        query = db.session.query(Item, ItemType.name, Location.name, InventoryItem.access_level) \
+        query = db.session.query(Item, ItemType.name, Location.name, InventoryItem.access_level, InventoryItem.is_link) \
             .join(ItemType, ItemType.id == Item.item_type) \
             .join(Location, Location.id == Item.location_id)
 
@@ -1143,8 +1167,8 @@ def change_item_access_level(item_ids: int, access_level: int, user_id: int):
 
 
 
-def get_all_user_locations(user: User) -> list[Location]:
-    user_locations_ = Location.query.filter_by(user_id=user.id).all()
+def get_all_user_locations(user_id: int) -> Optional[list[Location]]:
+    user_locations_ = Location.query.filter_by(user_id=user_id).all()
     return user_locations_
 
 
@@ -1282,8 +1306,7 @@ def find_location_by_name(location_name: str) -> Location:
 
 
 
-__PRIVATE = 0
-__PUBLIC = 1
+
 
 
 
@@ -2227,7 +2250,6 @@ def add_item_to_inventory(item_id=None, item_name=None, item_desc=None, item_typ
                 new_item = find_item(user_id=user_id, item_id=item_id)
 
             if item_id is None or new_item is None:
-            #if item_id is None:
                 # create the new item
                 new_item = Item(name=item_name, description=item_desc, user_id=user_id, quantity=item_quantity,
                                 location_id=item_location_id, specific_location=item_specific_location)
@@ -2693,6 +2715,33 @@ def delete_location(user_id: int, location_ids) -> dict:
     return {"success": True}
 
 
+
+def get_user_public_lists(for_user_id: int):
+    with app.app_context():
+        stmt = db.session.query(Inventory).filter(
+            Inventory.owner_id == for_user_id).filter(Inventory.access_level == __PUBLIC__)
+        r = db.session.execute(stmt).all()
+
+        ret_results = []
+
+        for inv in r:
+            inv = inv[0]
+            d = {
+                "inventory_id": inv.id,
+                "inventory_name": inv.name,
+                "inventory_description": inv.description,
+                "inventory_slug": inv.slug,
+                "inventory_access_level": inv.access_level,
+                "inventory_owner": inv.owner.username,
+                "inventory_item_count": len(inv.items),
+                "inventory_type": inv.type,
+                "userinventory_access_level": __PRIVATE__
+            }
+            ret_results.append(d)
+
+        return ret_results
+
+
 def get_user_inventories(current_user_id: int, requesting_user_id: int, access_level: int = -1) -> list:
     """
     Gets the inventories associated with a user.
@@ -2726,7 +2775,7 @@ def get_user_inventories(current_user_id: int, requesting_user_id: int, access_l
     if not isinstance(requesting_user_id, int) and requesting_user_id is not None:
         raise TypeError("requesting_user_id must be an integer")
 
-    with app.app_context():
+    with (((app.app_context()))):
 
         # stmt = db.session.query(Inventory, UserInventory).join(UserInventory).filter(UserInventory.user_id==1).all()
         stmt = db.session.query(Inventory, UserInventory).join(UserInventory)
@@ -2746,8 +2795,10 @@ def get_user_inventories(current_user_id: int, requesting_user_id: int, access_l
                     .filter(UserInventory.access_level == access_level)
         else:
             #stmt = stmt.filter(UserInventory.user_id == requesting_user_id).filter(UserInventory.access_level != 0)
-            stmt = db.session.query(Inventory, UserInventory).join(UserInventory).filter(Inventory.owner_id == requesting_user_id).filter(
-                Inventory.access_level == 1)
+            stmt = db.session.query(Inventory, UserInventory
+                                    ).join(UserInventory
+                                           ).filter(Inventory.owner_id == requesting_user_id
+                                                    ).filter(Inventory.access_level == 1)
 
         r = db.session.execute(stmt).all()
 
@@ -2770,18 +2821,18 @@ def get_user_inventories(current_user_id: int, requesting_user_id: int, access_l
         return ret_results
 
 
-def get_user_templates(user: User):
+def get_user_templates(user_id: int):
     """
     Retrieve the templates associated with a given user.
 
-    :param user: The user object for which templates are to be retrieved.
-    :type user: User
+    :param user_id: The user id for which templates are to be retrieved.
+    :type int: int
 
     :return: A list of templates associated with the user.
     :rtype: list
     """
     session = db.session
-    stmt = select(FieldTemplate).join(User).where(User.id == user.id)
+    stmt = select(FieldTemplate).join(User).where(User.id == user_id)
     r = session.execute(stmt).all()
     return r
 

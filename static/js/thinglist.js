@@ -1,3 +1,10 @@
+
+
+
+
+
+
+
 function checkbox_count(checkbox_selector) {
 
     let all_checkboxes = $('input:checkbox[id^=' + checkbox_selector + ']')

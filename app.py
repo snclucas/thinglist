@@ -18,11 +18,7 @@ if not load_dotenv('.env'):
     if not load_dotenv('../.env'):
         raise Exception("Could not read environment file")
 
-__PUBLIC__ = 2
-__PRIVATE__ = 0
-__OWNER__ = 0
-__COLLABORATOR__ = 1
-__VIEWER__ = 2
+
 
 # Create and name Flask app
 app = Flask(import_name="ThingList", static_url_path="", static_folder="static")

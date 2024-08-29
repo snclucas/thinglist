@@ -1,4 +1,5 @@
 import collections
+import json
 import os
 import pathlib
 import random
@@ -11,7 +12,7 @@ from flask import Blueprint, render_template, redirect, url_for, request, jsonif
 from flask_login import login_required, current_user
 # from flask_weasyprint import render_pdf, HTML
 
-from app import app, __VIEWER__
+from app import app
 from database_functions import get_all_user_locations, \
     get_all_item_types, \
     update_item_by_id, get_item_by_slug, add_images_to_item, delete_images_from_item, set_item_main_image, \
@@ -19,7 +20,7 @@ from database_functions import get_all_user_locations, \
     get_item_fields, get_all_item_fields, \
     get_all_fields, set_field_status, update_item_fields, \
     set_inventory_default_fields, save_inventory_fieldtemplate, get_user_location_by_id, unrelate_items_by_id, \
-    find_item_by_slug, relate_items_by_id, __PUBLIC, find_user_by_username
+    find_item_by_slug, relate_items_by_id, find_user_by_username, __PUBLIC__, __PRIVATE__, __VIEWER__
 from utils import correct_image_orientation, generate_item_image_filename
 
 item_routes = Blueprint('item', __name__)
@@ -35,6 +36,13 @@ def my_utility_processor():
 
     return dict(item_tag_to_string=item_tag_to_string)
 
+
+@app.context_processor
+def inject_globals():
+    return dict(
+        __PUBLIC__=__PUBLIC__,
+        __PRIVATE__=__PRIVATE__,
+    )
 
 # @item_routes.route('/item/save-pdf', methods=['POST'])
 # @login_required
@@ -56,7 +64,7 @@ def item_with_username_and_inventory(username: str, inventory_slug: str, item_sl
     user_is_authenticated = current_user.is_authenticated
     all_user_locations_ = None
     if user_is_authenticated:
-        all_user_locations_ = get_all_user_locations(user=current_user)
+        all_user_locations_ = get_all_user_locations(user_id=current_user.id)
 
         requested_user = current_user
         requested_user_id = requested_user.id
@@ -88,7 +96,7 @@ def item_with_username_and_inventory(username: str, inventory_slug: str, item_sl
 
     item_access_level = __VIEWER__
     if user_inventory_ is None:
-        if inventory_.access_level != __PUBLIC:
+        if inventory_.access_level != __PUBLIC__:
             return render_template('404.html', message="No such item or you do not have access to this item"), 404
     else:
         item_access_level = user_inventory_.access_level
@@ -270,7 +278,7 @@ def save_inventory_template():
     return redirect(url_for(endpoint='items.items_with_username_and_inventory',
                             username=current_user.username, inventory_slug=inventory_slug))
 
-
+@login_required
 @item_routes.route("/item/relate-items", methods=["POST"])
 def relate_items():
     item_id = request.form.get("item_id")
@@ -300,15 +308,22 @@ def relate_items():
                             item_slug=item_slug))
 
 
-@item_routes.route('/unrelate-items', methods=['POST'])
+@item_routes.route(rule='/unrelate-items', methods=['POST'])
 def unrelate_items():
-    if request.method == 'POST':
-        json_data = request.json
-        item1 = json_data['item1']
-        item2 = json_data['item2']
-        item1 = int(item1)
-        item2 = int(item2)
-        unrelate_items_by_id(item1_id=item1, item2_id=item2)
+    user_is_authenticated = current_user.is_authenticated
+    if user_is_authenticated:
+        if request.method == 'POST':
+            json_data = request.json
+            item1_id = json_data['item1']
+            item1_id = bleach.clean(str(item1_id))
+            item2_id = json_data['item2']
+            item2_id = bleach.clean(str(item2_id))
+            item1 = int(item1_id)
+            item2 = int(item2_id)
+            unrelate_items_by_id(item1_id=item1, item2_id=item2)
+            return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
+    else:
+        return json.dumps({'success': False}), 200, {'ContentType': 'application/json'}
 
 
 @item_routes.route("/item/images/remove", methods=["POST"])

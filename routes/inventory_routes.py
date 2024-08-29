@@ -10,18 +10,13 @@ from database_functions import get_user_inventories, delete_item_from_inventory,
     get_items_for_inventory, find_inventory, get_all_item_types, find_inventory_by_slug, \
     find_user_by_username, edit_inventory_data, get_all_user_locations, \
     delete_inventory_by_id, add_user_to_inventory, delete_user_to_inventory, find_inventory_by_id, add_user_inventory, \
-    send_inventory_invite, regenerate_inventory_token, find_inventory_by_access_token, add_user_to_inventory_from_token
+    send_inventory_invite, regenerate_inventory_token, find_inventory_by_access_token, add_user_to_inventory_from_token, \
+    __PRIVATE__, __PUBLIC__, get_user_public_lists, __VIEWER__
 from email_utils import send_email
 
 inv = Blueprint('inv', __name__)
 
 
-__OWNER = 0
-__COLLABORATOR = 1
-__VIEWER = 2
-__PRIVATE = 0
-__PUBLIC = 1
-__READ_ONLY = 2
 
 
 @inv.context_processor
@@ -53,7 +48,8 @@ def inventories():
 
     number_inventories = len(user_invs) - 1  # -1 to count for the 'hidden' default inventory
 
-    return render_template(template_name_or_list='inventory/inventories.html', username=current_user.username, inventories=user_invs,
+    return render_template(template_name_or_list='inventory/inventories.html', username=current_user.username,
+                           inventories=user_invs,
                            user_is_authenticated=user_is_authenticated, number_inventories=number_inventories)
 
 
@@ -66,10 +62,12 @@ def inventories_for_username(username):
     else:
         user_is_authenticated = False
 
+    user_ = find_user_by_username(username=username)
+
     if user_is_authenticated:
         current_user_id = current_user.id
         if username != current_user.username:
-            user_ = find_user_by_username(username=username)
+
             if user_ is not None:
                 requesting_user_id = user_.id
                 username = user_.username
@@ -83,13 +81,20 @@ def inventories_for_username(username):
                                      requesting_user_id=requesting_user_id,
                                      access_level=-1)
 
-    if len(user_invs) == 0:
+    if user_is_authenticated and current_user_id == requesting_user_id:
+        public_lists = []
+    else:
+        public_lists = get_user_public_lists(for_user_id=user_.id)
+
+    lists = user_invs + public_lists
+
+    if len(lists) == 0:
         return render_template(template_name_or_list='404.html', message="No inventories"), 404
 
-    number_inventories = len(user_invs) - 1  # -1 to count for the 'hidden' default inventory
+    number_inventories = len(lists) # - 1  # -1 to count for the 'hidden' default inventory
 
     return render_template(template_name_or_list='inventory/inventories.html',
-                           inventories=user_invs, username=username,
+                           inventories=lists, username=username,
                            user_is_authenticated=user_is_authenticated,
                            number_inventories=number_inventories)
 
@@ -122,9 +127,9 @@ def add_inventory():
     inventory_name_ = bleach.clean(inventory_name_)
     inventory_description_ = bleach.clean(inventory_description_)
 
-    access_level_ = __PRIVATE
+    access_level_ = __PRIVATE__
     if "inventory_public" in request.form:
-        access_level_ = __PUBLIC
+        access_level_ = __PUBLIC__
 
     new_inventory_data, msg = add_user_inventory(name=inventory_name_, description=inventory_description_,
                                                  inventory_type=inventory_type_,
@@ -157,9 +162,9 @@ def edit_inventory():
         inventory_description = bleach.clean(request.form.get("inventory_description"))
         inventory_type = int(bleach.clean(request.form.get("inventory_type")))
 
-        access_level_ = __PRIVATE
+        access_level_ = __PRIVATE__
         if "inventory_public" in request.form:
-            access_level_ = __PUBLIC
+            access_level_ = __PUBLIC__
 
         edit_inventory_data(user_id=current_user.id, inventory_id=int(inventory_id), name=inventory_name,
                             description=inventory_description, inventory_type=inventory_type,
@@ -223,7 +228,7 @@ def register_for_inventory_access():
         inventory_ = find_inventory_by_access_token(access_token=access_token)
         if inventory_ is not None:
             result = add_user_to_inventory_from_token(inventory_id=inventory_.id, user_to_add=current_user,
-                                                      added_user_access_level=__READ_ONLY)
+                                                      added_user_access_level=__VIEWER__)
             flash(f"Inventory {inventory_.name} added...")
         else:
             flash("Invalid inventory access token")
