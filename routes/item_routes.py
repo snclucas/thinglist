@@ -20,7 +20,8 @@ from database_functions import get_all_user_locations, \
     get_item_fields, get_all_item_fields, \
     get_all_fields, set_field_status, update_item_fields, \
     set_inventory_default_fields, save_inventory_fieldtemplate, get_user_location_by_id, unrelate_items_by_id, \
-    find_item_by_slug, relate_items_by_id, find_user_by_username, __PUBLIC__, __PRIVATE__, __VIEWER__
+    find_item_by_slug, relate_items_by_id, find_user_by_username, __PUBLIC__, __PRIVATE__, __VIEWER__, __INVENTORY__, \
+    __LIST__
 from utils import correct_image_orientation, generate_item_image_filename
 
 item_routes = Blueprint('item', __name__)
@@ -42,6 +43,9 @@ def inject_globals():
     return dict(
         __PUBLIC__=__PUBLIC__,
         __PRIVATE__=__PRIVATE__,
+
+        __INVENTORY__=__INVENTORY__,
+        __LIST__=__LIST__
     )
 
 # @item_routes.route('/item/save-pdf', methods=['POST'])
@@ -320,7 +324,7 @@ def unrelate_items():
             item2_id = bleach.clean(str(item2_id))
             item1 = int(item1_id)
             item2 = int(item2_id)
-            unrelate_items_by_id(item1_id=item1, item2_id=item2)
+            status, message = unrelate_items_by_id(item1_id=item1, item2_id=item2)
             return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
     else:
         return json.dumps({'success': False}), 200, {'ContentType': 'application/json'}

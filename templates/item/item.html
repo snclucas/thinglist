@@ -110,7 +110,10 @@
 
                             </div>
 
-                            <hr>
+
+
+
+{% if inventory == __INVENTORY__ %}
 
                             <table>
                                 <thead>
@@ -137,6 +140,10 @@
                                 {% endfor %}
                                 </tbody>
                             </table>
+{% endif %}
+
+
+
 
                             <hr>
 

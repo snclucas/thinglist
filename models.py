@@ -86,6 +86,7 @@ class Location(db.Model):
 
 class Inventory(db.Model):
     __tablename__ = "inventories"
+    __searchable__ = ['name', 'description']
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(50))
     slug = db.Column(db.String(50), nullable=True, unique=False)
@@ -111,6 +112,7 @@ class Relateditems(db.Model):
 
 class Item(db.Model):
     __tablename__ = "items"
+    __searchable__ = ['name', 'description']
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     item_type = db.Column(db.Integer, db.ForeignKey('item_type.id'), nullable=True)
@@ -211,7 +213,7 @@ class Tag(db.Model):
 
 class Invtag(db.Model):
     __tablename__ = "invtags"
-    __searchable__ = ['invtag']
+    __searchable__ = ['tag']
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     tag = db.Column(db.String(50), nullable=True, unique=True)
     inventories = db.relationship('Inventory', secondary='inventory_tags', back_populates='invtags', cascade="all,delete")

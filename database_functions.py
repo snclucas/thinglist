@@ -25,6 +25,9 @@ __VIEWER__ = 1
 __COLLABORATOR__ = 2
 __PUBLIC__ = 3
 
+__INVENTORY__ = 0
+__LIST__ = 1
+
 
 def drop_then_create():
     try:
@@ -1286,7 +1289,7 @@ def find_location_by_id(location_id: int) -> Union[dict, None]:
 
     try:
         location_ = Location.query.filter_by(id=location_id).one_or_none()
-    except (NoResultFound, InvalidRequestError, SQLAlchemyError) as e:
+    except (NoResultFound, InvalidRequestError, SQLAlchemyError):
         return None
     if location_ is not None:
         return location_.__dict__

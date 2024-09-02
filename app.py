@@ -9,6 +9,8 @@ from flask_bcrypt import Bcrypt
 from flask_wtf.csrf import CSRFProtect
 from flask_mail import Mail
 
+#from flask_msearch import Search
+
 #from pycharm_flask_debug_patch import restart_with_reloader_patch
 
 
@@ -22,6 +24,8 @@ if not load_dotenv('.env'):
 
 # Create and name Flask app
 app = Flask(import_name="ThingList", static_url_path="", static_folder="static")
+
+
 
 app.config['RESIZE_URL'] = os.environ.get('RESIZE_URL', '')
 app.config['RESIZE_ROOT'] = os.environ.get('RESIZE_ROOT', '/tmp')
@@ -80,6 +84,9 @@ app.config['ELASTICSEARCH_URL'] = ELASTICSEARCH_URL
 app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
 
 db = SQLAlchemy(app, session_options={"expire_on_commit": "False"})
+
+#search = Search(db=db)
+#search.init_app(app)
 
 # Flask BCrypt will be used to salt the user password
 flask_bcrypt = Bcrypt(app)
