@@ -27,7 +27,7 @@
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md-11">
-                                    <h5>{{ item.name }} </h5>
+                                    <h5>{{ item.name }} | {{ item.quantity }} </h5>
                                 </div>
                                 <div class="col-md-1">
                                     {% if item_access_level == 0 %}
@@ -80,6 +80,24 @@
                                 </div>
                             </div>
 
+
+                            <div class="row">
+                                <div class="col-md-6 order-sm-first order-last">
+                                    <h6><strong>Location:</strong> {{ item_location['name'] }}</h6>
+                                </div>
+                                <div class="col-md-6 order-sm-first order-last">
+                                    {% if item_access_level == 0 %}
+                                        <h6><strong>Location:</strong> {{ item_location['name'] }}</h6>
+
+                                        {% if item.specific_location is not none %}
+                                            <h6><strong>Specific location #:</strong> {{ item.specific_location }}</h6>
+                                        {% else %}
+                                            <h6><strong>Specific location #:</strong> Not set</h6>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </div>
+
                             <div class="row">
 
                                 <div class="col-md-8 order-sm-first order-last">
@@ -96,8 +114,6 @@
                                         {% endif %}
                                     {% endif %}
 
-                                    <h6><strong>Quantity:</strong> {{ item.quantity }}</h6>
-
                                 </div>
 
 
@@ -110,40 +126,33 @@
 
                             </div>
 
-
-
-
-{% if inventory == __INVENTORY__ %}
-
-                            <table>
-                                <thead>
-                                <tr>
-                                    <th></th>
-                                    <th></th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {% for field, item_field in item_fields.items() %}
-
+                            {% if inventory == __INVENTORY__ %}
+                                <table>
+                                    <thead>
                                     <tr>
-                                        <td><strong>{{ field.field|capitalize }}:</strong></td>
-                                        <td>
-
-                                            {% if field.type|lower == 'url' %}
-                                                <a href="{{ item_field.value }}">{{ item_field.value }}</a>
-                                            {% else %}
-                                                {{ item_field.value }}
-                                            {% endif %}
-                                        </td>
-
+                                        <th></th>
+                                        <th></th>
                                     </tr>
-                                {% endfor %}
-                                </tbody>
-                            </table>
-{% endif %}
+                                    </thead>
+                                    <tbody>
+                                    {% for field, item_field in item_fields.items() %}
 
+                                        <tr>
+                                            <td><strong>{{ field.field|capitalize }}:</strong></td>
+                                            <td>
 
+                                                {% if field.type|lower == 'url' %}
+                                                    <a href="{{ item_field.value }}">{{ item_field.value }}</a>
+                                                {% else %}
+                                                    {{ item_field.value }}
+                                                {% endif %}
+                                            </td>
 
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            {% endif %}
 
                             <hr>
 

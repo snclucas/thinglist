@@ -5,6 +5,11 @@
     ThingList
 {% endblock %}
 
+{% block head %}
+    {{ super() }}
+{% endblock %}
+
+
 {% block content %}
 
     <div class="content">
@@ -147,34 +152,29 @@
             <div class="row">
                 <div class="col-md-12">
                     <div class="card">
-                        <div class="content text-center">
+                        <div class="content text-left">
 
                             <a id="move-items-btn" data-bs-toggle="collapse" href="#collapseUserSettings"
                                role="button" aria-expanded="false" aria-controls="moveInventory">
-                                <i class="fas fa-user-cog fa-2x"></i>
+                                <h5>Settings & Account</h5>
                             </a>
 
 
                             <div class="collapse" id="collapseUserSettings" aria-expanded="false">
 
-                                <hr>
-                                <form action="/login" method="POST">
-                                    <div class="mb-3 text-start">
-                                        <label for="email" class="form-label">Username:</label>
-                                        <input type="text" name="username" class="form-control"
-                                               placeholder="Enter username"
-                                               required="">
-                                    </div>
-                                    <div class="mb-3 text-start">
-                                        <label for="password" class="form-label">Password:</label>
-                                        <input type="password" name="password" class="form-control"
-                                               placeholder="Password"
-                                               required="">
+                                <div class="container">
+                                    <div class="row justify-content-left">
+                                        <div class="col-12 col-lg-10 col-xl-8 mx-auto">
+                                            <div class="my-4">
+
+                                                {% include '_settings.html' %}
+                                                {% include '_account.html' %}
+
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button class="btn btn-primary shadow-2 mb-4">Login</button>
-                                </form>
+                                </div>
 
                             </div>
 
@@ -198,7 +198,13 @@
 
         </div>
 
+
     </div>
+
+
+
+
+
 
 {% endblock %}
 

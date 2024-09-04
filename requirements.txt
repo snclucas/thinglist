@@ -3,6 +3,7 @@ sqlalchemy~=2.0.19
 flask_sqlalchemy
 flask_bcrypt
 flask_resize
+flask_msearch
 flask_wtf
 Flask-QRcode
 flask_login
