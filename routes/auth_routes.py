@@ -5,12 +5,13 @@ import uuid
 from flask import current_app, Blueprint, render_template, request, flash, redirect, url_for
 
 from app import login_manager, flask_bcrypt, app
-from flask_login import (login_required, login_user, logout_user, confirm_login)
+from flask_login import (login_required, login_user, logout_user, confirm_login, current_user)
 
 from database_functions import find_user, save_new_user, find_user_by_token, activate_user_in_db, find_user_by_username, \
-    find_user_by_email, update_user_password_by_token, update_user_token_by_email
+    find_user_by_email, update_user_password_by_token, update_user_token_by_email, update_user_password_by_user_id
 from email_utils import send_email
 from models import User
+from routes.index_routes import profile
 
 auth_flask_login = Blueprint('auth_flask_login', __name__, template_folder='templates')
 
@@ -182,43 +183,41 @@ def reset_password_request():
         return render_template(template)
 
 
-@auth_flask_login.route("/passwd", methods=["GET", "POST"])
+@auth_flask_login.route("/change-password", methods=["POST"])
 @login_required
 def change_password():
-    current_app.logger.info(request.form)
 
     if request.method == 'POST':
 
-        username = request.form['username']
+        old_password = sanitize(request.form.get("old_password"))
+        new_password1 = sanitize(request.form.get("new_password1"))
+        new_password2 = sanitize(request.form.get("new_password2"))
 
-        try:
-            user_ = find_user(username_or_email=username)
-            if user_ is not None:
-                confirmation_token = uuid.uuid4().hex
+        if flask_bcrypt.check_password_hash(current_user.password, old_password):
 
-                user_.token = confirmation_token
+            if new_password1 == new_password2:
+                password_check_results = password_check(new_password1)
+                if password_check_results['password_ok']:
+                    success, possible_error = update_user_password_by_user_id(user_id=current_user.id,
+                                                    password_hash=flask_bcrypt.generate_password_hash(new_password1))
+                    if not success:
+                        current_app.logger.error(f"Error changing password [{possible_error}]")
+                        flash("Unable to update password")
+                        return render_template("profile.html")
+                    else:
+                        flash("Password updated")
+                        return render_template("profile.html")
+                else:
+                    flash("Password does not meet the criteria")
+                    return profile(current_user.username)
 
-                text_body = render_template('email/reset_password.txt', user=username, token=confirmation_token)
-                html_body = render_template('email/reset_password.html', user=username, token=confirmation_token)
-                send_email("Password change", sender=app.config['ADMINS'][0], recipients=[user_.email],
-                           text_body=text_body, html_body=html_body)
-
-        except Exception as err:
-            current_app.logger.error("Error on registration - possible duplicate emails")
-
-
-
-
-
-
-
-
-        flash("If this account exists, an email will be sent with instructions to reset the password")
-        return render_template("auth/reset_password_request.html")
+        else:
+            flash("Old password is incorrect")
+            return render_template("profile.html")
 
 
-    else:
-        return render_template("auth/reset_password_request.html")
+
+
 
 
 def password_check(password):

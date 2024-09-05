@@ -3174,6 +3174,20 @@ def update_user_password_by_token(token: str, password_hash: str):
                 db.session.commit()
         return
 
+def update_user_password_by_user_id(user_id: str, password_hash: str):
+    with app.app_context():
+        user_ = find_user_by_id(user_id=user_id)
+        if user_ is not None and user_.activated:
+            user_.password = password_hash
+            user_.token = ""
+            try:
+                db.session.commit()
+                return True, None
+            except Exception as e:
+                db.session.rollback()
+                return False, e
+    return False, None
+
 def update_user_token_by_email(email: str, user_token: str, token_expires: datetime):
     with app.app_context():
         user_ = find_user(username_or_email=email)
