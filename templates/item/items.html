@@ -86,7 +86,7 @@
                                                    data-toggle="tooltip" data-placement="top"
                                                    title="Display item filter form"
                                                    aria-controls="collapseFilter">
-                                                <span id="filter-items-span"  class="fas fa-filter fa-2x"
+                                                <span id="filter-items-span" class="fas fa-filter fa-2x"
                                                       style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
                                                 </a>
 
@@ -180,8 +180,8 @@
       style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
 
                                     <span class="fas fa-th-large fa-2x" data-bs-toggle="collapse"
-      href="#"
-      style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+                                          href="#"
+                                          style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
 
 
                                 </div>
@@ -221,7 +221,11 @@
                             </div>
                             <div class="row">
                                 <div class="col-md-12">
-                                    {% include 'item/_item-list.html' %}
+                                    {% if view == "list" %}
+                                        {% include 'item/_item-list.html' %}
+                                    {% else %}
+                                        {% include 'item/_item-grid.html' %}
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -286,8 +290,19 @@
 
             var urlParams = new URLSearchParams(window.location.search)
             let filter_items_span_selector = $('#filter-items-span');
+
+
             if (urlParams.size > 0) {
-                filter_items_span_selector.css('color', 'green');
+
+                if (urlParams.size === 1) {
+                    if (urlParams.get("view") == null) {
+                        filter_items_span_selector.css('color', 'green');
+                    }
+                } else {
+                    filter_items_span_selector.css('color', 'green');
+                }
+
+
             } else {
                 filter_items_span_selector.css('color', 'black');
             }

@@ -14,22 +14,21 @@
         <div class="row align-items-center">
             <div class="col">
                 <strong class="mb-0">Change password</strong>
-                <p class="text-muted mb-0">Do this regualarly to prevent
+                <p class="text-muted mb-0">Do this regularly to prevent
                     your things being stolen!.</p>
             </div>
         </div>
-
 
         <div class="row align-items-center">
             <div class="col">
                 <form action="{{ url_for('auth_flask_login.change_password') }}" method="POST">
                     <div class="form-group">
                         <br>
-                        <input type="password" class="form-control" name="old_password"
+                        <input type="password" class="form-control" name="old_password" required
                                placeholder="Enter your old password">
-                        <input type="password" class="form-control mt-1" name="new_password1"
+                        <input type="password" class="form-control mt-1" name="new_password1" required=""
                                placeholder="New password">
-                        <input type="password" class="form-control mt-1" name="new_password2"
+                        <input type="password" class="form-control mt-1" name="new_password2" required=""
                                placeholder="Confirm new password">
                         <br>
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

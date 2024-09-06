@@ -61,6 +61,9 @@ def post_user_add_hook(new_user: User):
         get_or_add_new_location(location_name=_NONE_, location_description="No location (default)",
                                 to_user_id=new_user.id)
         add_new_user_itemtype(name=_NONE_, user_id=new_user.id)
+
+
+
     # add default locations, types
 
 
@@ -3171,6 +3174,7 @@ def update_user_password_by_token(token: str, password_hash: str):
             if user_ is not None and user_.activated:
                 user_.password = password_hash
                 user_.token = ""
+                db.session.merge(user_)
                 db.session.commit()
         return
 
@@ -3181,6 +3185,7 @@ def update_user_password_by_user_id(user_id: str, password_hash: str):
             user_.password = password_hash
             user_.token = ""
             try:
+                db.session.merge(user_)
                 db.session.commit()
                 return True, None
             except Exception as e:
@@ -3194,5 +3199,6 @@ def update_user_token_by_email(email: str, user_token: str, token_expires: datet
         if user_ is not None and user_.activated:
             user_.token = user_token
             user_.token_expires = token_expires
+            db.session.merge(user_)
             db.session.commit()
         return

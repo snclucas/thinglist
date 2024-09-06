@@ -19,11 +19,22 @@ def generate_short_id(num_of_chars: int):
 
 
 class User(UserMixin, db.Model):
+    def __init__(self, **kwargs):
+        # set up cols for user
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+        # create watchlist: watchlist and user will both get their ids
+        # created at the same time when the session creating User
+        # is committed, and watchlist will have the user_id key too
+        self.preferences = Preferences()
+
+
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(50), nullable=True, unique=True)
     password = db.Column(db.String(255), nullable=False, server_default='')
     email = db.Column(db.String(255), nullable=False, unique=True)
+    preferences = db.relationship("Preferences", uselist=False, backref="users")
     is_active = db.Column(db.Boolean(), default=True)
     is_admin = db.Column(db.Boolean(), default=False)
     user_created = db.Column(db.DateTime(), default=datetime.datetime.now)
@@ -36,6 +47,12 @@ class User(UserMixin, db.Model):
     token = db.Column(db.String(255), nullable=True, unique=False)
     token_expires = db.Column(db.DateTime(), default=datetime.datetime.now)
 
+
+class Preferences(db.Model):
+    __tablename__ = "preferences"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    default_public = db.Column(db.Boolean(), default=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
 class Notification(db.Model):
     __tablename__ = "notifications"
@@ -183,6 +200,7 @@ class UserInventory(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
     inventory_id = db.Column(db.Integer, db.ForeignKey('inventories.id'))
     access_level = db.Column(db.Integer, default=0)
+    view = db.Column(db.Integer, default=0)
 
 
 class InventoryItem(db.Model):

@@ -1,0 +1,47 @@
+<div class="container py-2">
+    <div class="row" data-masonry='{"percentPosition": true }'>
+
+
+        {% for item_data in data_dict %}
+                {% set item = item_data["item"] %}
+                {% set item_type = item_data["types"] %}
+                {% set item_slug = item.slug %}
+                {% set item_location = item_data["location"] %}
+                {% set item_visibility = item_data["item_access_level"] %}
+                {% set quantity = item.quantity %}
+                {% if quantity > 1 %}
+                    {% set quantity_string = " (" +  quantity|string  +')' %}
+                {% else %}
+                    {% set quantity_string = "" %}
+                    {% endif %}
+
+    <div class="col-sm-4 col-md-3 py-3">
+            <div class="card border-primary">
+                <div class="card-body">
+
+                    {% if item.main_image is not none %}
+                                        {% set image_url = url_for('static', filename="uploads/" + item.main_image) %}
+                                        <img src="{{ image_url }}" class="rounded float-end img-thumbnail" alt="...">
+                                    {% endif %}
+
+                    <h3 class="card-title"><a href="{{ url_for('item.item_with_username_and_inventory', username=username,
+                                inventory_slug=item.inventories[0].slug, item_slug=item_slug) | replace('%40', '@') }}">{{ item.name }} {{ quantity_string }}</a></h3>
+                    <p class="card-text">{{ item.name |truncate(100,true,'...') }}</p>
+
+                {% for tag in item.tags %}
+                            <a href="{{ url_for('items.items_with_username_and_inventory', username=username, inventory_slug=inventory_slug) | replace('%40', '@') }}?tags={{ tag.tag | replace('@#$', ' ') }}">
+                                <span class="tag_list">{{ tag.tag | replace('@#$', ' ') }}</span>
+                            </a>
+                        {% endfor %}
+
+                </div>
+            </div>
+        </div>
+
+
+        {% endfor %}
+
+
+
+    </div>
+</div>

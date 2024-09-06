@@ -642,6 +642,8 @@ def items_with_username_and_inventory(username=None, inventory_slug=None):
     inventory_templates = None
     users_in_this_inventory = None
 
+
+
     if user_is_authenticated:
         logged_in_user = current_user
         user_locations_ = get_all_user_locations(user_id=logged_in_user.id)
@@ -660,6 +662,9 @@ def items_with_username_and_inventory(username=None, inventory_slug=None):
         requested_user_id = requested_user.id
     else:
         requested_user = current_user
+
+    request_params = _process_url_query(req_=request, inventory_user=requested_user)
+    view = request_params.get("view", "list")  # 0 - list, 1 - grid
 
     if user_is_authenticated:
         all_user_inventories = find_all_user_inventories(user=current_user)
@@ -696,6 +701,14 @@ def items_with_username_and_inventory(username=None, inventory_slug=None):
             user_inventory_ = get_user_inventory_by_id(user_id=current_user.id, inventory_id=inventory_id)
             if user_inventory_ is not None:
                 inventory_access_level = user_inventory_[0].access_level
+
+                if view is None:
+                    user_inv_view_int = user_inventory_[0].view
+                    if user_inv_view_int == 0:
+                        view = "list"
+                    else:
+                        view = "grid"
+
             else:
                 return render_template('404.html', message="No inventory or no permissions to view inventory"), 404
 
@@ -707,7 +720,7 @@ def items_with_username_and_inventory(username=None, inventory_slug=None):
     item_types_ = get_all_item_types()
     all_fields = dict(get_all_fields())
 
-    request_params = _process_url_query(req_=request, inventory_user=requested_user)
+
     data_dict, item_id_list = find_items_query(requested_username=requested_username, logged_in_user=logged_in_user,
                                                inventory_id=inventory_id,
                                                request_params=request_params)
@@ -721,6 +734,7 @@ def items_with_username_and_inventory(username=None, inventory_slug=None):
     else:
         current_username = None
 
+
     return render_template(template_name_or_list='item/items.html',
                            inventory_id=inventory_id,
                            current_username=current_username,
@@ -731,6 +745,7 @@ def items_with_username_and_inventory(username=None, inventory_slug=None):
                            inventory_templates=inventory_templates,
                            inventory_field_template=inventory_field_template,
                            tags=request_params["requested_tag_strings"],
+                           view=view,
                            all_fields=all_fields, is_inventory_owner=is_inventory_owner,
                            inventory_access_level=inventory_access_level,
                            user_locations=user_locations_,
@@ -824,6 +839,7 @@ def _process_url_query(req_, inventory_user):
     requested_item_type_string = req_.args.get('type')
     requested_tag_strings = req_.args.get('tags')
     requested_item_location_string = req_.args.get('location')
+    view = req_.args.get('view')
     requested_item_specific_location = req_.args.get('specific_location')
 
     # convert the text 'location_' to an id
@@ -855,7 +871,8 @@ def _process_url_query(req_, inventory_user):
         "requested_item_type_string": requested_item_type_string,
         "requested_item_location_id": requested_item_location_id,
         "requested_item_location_string": requested_item_location_string,
-        "requested_item_specific_location": requested_item_specific_location
+        "requested_item_specific_location": requested_item_specific_location,
+        "view": view
     }
 
 
