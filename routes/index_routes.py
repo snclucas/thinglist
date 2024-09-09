@@ -1,6 +1,7 @@
-from flask import Blueprint, render_template, request, redirect, url_for
+from flask import Blueprint, render_template, request, redirect, url_for, send_file
 from flask_login import login_required, current_user
 
+from app import app
 from database_functions import get_user_inventories, get_user_item_count, get_user_templates, get_user_locations, \
     get_all_itemtypes_for_user, find_user_by_username, delete_notification_by_id, get_number_user_locations
 
@@ -21,6 +22,31 @@ def index():
     else:
         return render_template('index.html')
 
+
+@app.context_processor
+def utility_processor():
+    def get_image_url(image_id):
+        base_url = app.config['USER_IMAGES_BASE_URL']
+        image = f"{base_url}/{image_id}"
+        return image
+    return dict(get_image_url=get_image_url)
+
+
+@main.route('/testimages/<string:image_id>')
+def testimages(image_id):
+    return render_template('testimages.html', image_id=image_id)
+
+@main.route('/images/<string:image_id>')
+def images(image_id):
+    base_url = app.config['IMAGES_BASE_URL']
+    image = f"{base_url}/{image_id}"
+    return image
+    #return send_file(image, mimetype='image/gif')
+    # return send_file(
+    #     io.BytesIO(image_binary),
+    #     mimetype='image/jpeg',
+    #     as_attachment=True,
+    #     download_name='%s.jpg' % pid)
 
 @main.route('/about')
 def about():

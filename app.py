@@ -66,6 +66,9 @@ app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER')
 app.config['ALLOW_REGISTRATIONS'] = os.environ.get('ALLOW_REGISTRATIONS', 0)
 app.config['TOKEN_EXPIRATION_MINUTES'] = os.environ.get('TOKEN_EXPIRATION_MINUTES', 15)
 app.config['ITEM_DESCRIPTION_CHAR_LIMIT'] = os.environ.get('ITEM_DESCRIPTION_CHAR_LIMIT', 20000)
+app.config['USER_IMAGES_BASE_URL'] = os.environ.get('USER_IMAGES_BASE_URL', '')
+app.config['USER_IMAGES_BASE_PATH'] = os.environ.get('USER_IMAGES_BASE_PATH', '')
+app.config['ITEM_MASONARY_IMAGE_SIZE'] = os.environ.get('ITEM_MASONARY_IMAGE_SIZE', 200)
 
 csrf = CSRFProtect(app)
 

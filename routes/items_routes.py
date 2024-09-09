@@ -26,7 +26,7 @@ from database_functions import get_all_user_locations, \
     get_users_for_inventory, get_user_inventory_by_id, get_or_add_new_location, edit_items_locations, \
     change_item_access_level, link_items, copy_items, commit, find_items_new, __PUBLIC__, __PRIVATE__, \
     find_user_by_username, add_images_to_item, set_item_main_image, get_user_inventories, add_user_inventory, \
-    save_template_fields, get_item_fields, save_inventory_fieldtemplate, find_template_by_id
+    save_template_fields, get_item_fields, save_inventory_fieldtemplate, find_template_by_id, save_user_inventory_view
 from models import FieldTemplate
 
 from utils import generate_item_image_filename
@@ -642,8 +642,6 @@ def items_with_username_and_inventory(username=None, inventory_slug=None):
     inventory_templates = None
     users_in_this_inventory = None
 
-
-
     if user_is_authenticated:
         logged_in_user = current_user
         user_locations_ = get_all_user_locations(user_id=logged_in_user.id)
@@ -708,6 +706,12 @@ def items_with_username_and_inventory(username=None, inventory_slug=None):
                         view = "list"
                     else:
                         view = "grid"
+                else:
+                    _saved_view = user_inventory_[0].view
+                    if _saved_view != view:
+                        _new_view = 0 if view == "list" else 1
+                        save_user_inventory_view(user_id=current_user.id,
+                                                 inventory_id=inventory_id, view=_new_view)
 
             else:
                 return render_template('404.html', message="No inventory or no permissions to view inventory"), 404

@@ -147,7 +147,7 @@ def item_with_username_and_inventory(username: str, inventory_slug: str, item_sl
                            item=item_, username=username, item_type=item_type_string,
                            all_item_types=all_item_types_,
                            all_user_locations=all_user_locations_, item_location=item_location,
-                           image_dir=app.config['UPLOAD_FOLDER'], item_access_level=item_access_level)
+                           item_access_level=item_access_level)
 
 
 @item_routes.route('/item/edit/<item_id>', methods=['POST'])
@@ -425,7 +425,7 @@ def upload():
         image.save(in_mem_file, format="JPEG")
         in_mem_file.seek(0)
 
-        pathlib.Path(os.path.join(app.config['UPLOAD_FOLDER'], new_filename)).write_bytes(
+        pathlib.Path(os.path.join(app.config['USER_IMAGES_BASE_PATH'], new_filename)).write_bytes(
             in_mem_file.getbuffer().tobytes())
 
     add_images_to_item(item_id=item_id, filenames=new_filename_list, user=current_user)

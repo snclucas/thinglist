@@ -1,0 +1,39 @@
+{% if item.images | length > 0 %}
+    {% if inventory.access_level != __PUBLIC__ %}
+        <div class="row">
+
+            <div class="col-md-12 text-center">
+                <button id="btn-remove-images" type="button" class="btn btn-sm btn-primary"
+                        disabled>
+                    Remove
+                </button>
+
+                <button id="btn-main-image" type="button" class="btn btn-sm btn-primary"
+                        disabled>
+                    Make main
+                </button>
+            </div>
+
+        </div>
+    {% endif %}
+    <hr>
+    <br>
+
+    <div class="row">
+        <div class="grid" id="masonry">
+            {% for img in item.images %}
+                <div class="item">
+                    <img width="{{ config['ITEM_MASONARY_IMAGE_SIZE'] }}"
+                         class="image-checkbox rounded float-end img-thumbnail"
+                         src="{{ get_image_url(img.image_filename) }}"
+                         data-image-url="{{ img.image_filename }}"
+                         id="{{ img.image_filename }}"
+                         alt="">
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <hr>
+
+{% endif %}

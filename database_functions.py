@@ -1485,27 +1485,23 @@ def add_images_to_item(item_id: int, filenames: list[str], user: User)-> (bool, 
             return False
 
 
-def find_image(image_id: int, user: User) -> Optional[Image]:
+def find_image_by_filename(image_filename: str, user: User) -> Optional[Image]:
     """
-    Find Image
+    Args:
+        image_filename: A string representing the filename of the image.
+        user: An instance of the User class representing the user.
 
-    Find an image with the given image ID and user.
-
-    :param image_id: The ID of the image to find.
-    :type image_id: int
-    :param user: The user associated with the image.
-    :type user: User
-    :return: The found image or None if it does not exist or an error occurs.
-    :rtype: Optional[Image]
+    Returns:
+        An optional instance of the Image class if found, otherwise None.
 
     """
-    if image_id is None:
+    if image_filename is None:
         return None
     if user is None:
         return None
 
     try:
-        image_ = Image.query.filter_by(id=image_id).filter_by(user_id=user.id).first()
+        image_ = Image.query.filter_by(image_filename=image_filename).filter_by(user_id=user.id).first()
     except SQLAlchemyError:
         db.session.rollback()
         return None
@@ -1529,7 +1525,7 @@ def delete_images_from_item(item_id: int, image_ids, user: User) -> (bool, str):
             return False, f"No item with id {item_id} found for user {user.username}"
 
         for image_id in image_ids:
-            image_ = find_image(image_id=image_id, user=user)
+            image_ = find_image_by_filename(image_filename=image_id, user=user)
             if image_ is None:
                 return False, f"No image with id {image_id} found for user {user.username}"
 
@@ -1539,7 +1535,7 @@ def delete_images_from_item(item_id: int, image_ids, user: User) -> (bool, str):
                 item_.images.remove(image_)
 
                 try:
-                    os.remove(os.path.join(app.root_path, app.config['UPLOAD_FOLDER'], image_.image_filename))
+                    os.remove(os.path.join(app.root_path, app.config['USER_IMAGES_BASE_PATH'], image_.image_filename))
                 except OSError as er:
                     return False, f"Could not delete image with id {image_id} for user {user.username}"
 
@@ -2508,6 +2504,13 @@ def get_user_inventory_by_id(user_id: int, inventory_id: int) -> Inventory:
     r = session.execute(stmt).one_or_none()
 
     return r
+
+def save_user_inventory_view(user_id: int, inventory_id: int, view: int):
+    with app.app_context():
+        user_inventory_ = get_user_inventory_by_id(user_id=user_id, inventory_id=inventory_id)
+        if user_inventory_ is not None:
+            user_inventory_[0].view = view
+            db.session.commit()
 
 
 def find_item_by_slug(item_slug: str, user_id: int) -> Item:

@@ -174,15 +174,13 @@
                             <div class="row">
                                 <div class="col-md-6 show-big">
 
+                                  <a href="{{ url_for('items.items_with_username_and_inventory', username = username, inventory_slug = inventory_slug, view = 'list') }}">
+                                      <span class="fas fa-bars fa-2x" data-bs-toggle="collapse" style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+                                  </a>
 
-<span class="fas fa-bars fa-2x" data-bs-toggle="collapse"
-      href="#"
-      style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-
-                                    <span class="fas fa-th-large fa-2x" data-bs-toggle="collapse"
-                                          href="#"
-                                          style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-
+                                    <a href="{{ url_for('items.items_with_username_and_inventory', username = username, inventory_slug = inventory_slug, view = 'grid') }}">
+                                    <span class="fas fa-th-large fa-2x" data-bs-toggle="collapse" style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+                                    </a>
 
                                 </div>
                                 <div class="col-md-6">

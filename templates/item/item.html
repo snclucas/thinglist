@@ -119,7 +119,7 @@
 
                                 <div class="col-md-4">
                                     {% if item.main_image is not none %}
-                                        {% set image_url = url_for('static', filename="uploads/" + item.main_image) %}
+                                        {% set image_url = get_image_url(item.main_image) %}
                                         <img src="{{ image_url }}" class="rounded float-end img-thumbnail" alt="...">
                                     {% endif %}
                                 </div>
@@ -170,37 +170,7 @@
                                 <div class="col-md-6">
 
 
-                                    <h5>Related items:
-                                         {% if item_access_level == 0 %}
-                                        <span id="add-related-1"
-                                              data-bs-toggle="collapse"
-                                              href="#collapseAddRelated"
-                                              data-toggle="tooltip" data-placement="top"
-                                              title="Display help panel"
-                                              class="fas fa-plus "
-                                              style="color:black; display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-                                        {% endif %}
-                                    </h5>
-
-                                    <div class="collapse" id="collapseAddRelated" aria-expanded="false">
-                                        {% include 'item/_related_item_form.html' %}
-                                    </div>
-                                    {% if item.related_items | length > 0 %}
-                                        {% for rel_item in item.related_items %}
-                                            <strong><a
-                                                    href="{{ url_for('item.item_with_username_and_inventory', username=username, inventory_slug=inventory_slug, item_slug=rel_item.slug) | replace('%40', '@') }}">{{ rel_item.name }}</a></strong>
-
-                                            <span id="delete-related-{{ rel_item.id }}"
-                                                  data-item1-id="{{ item.id }}"
-                                                  data-item2-id="{{ rel_item.id }}"
-                                                  class="fas fa-times "
-                                                  style="color:red; display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-
-                                            <br>
-                                        {% endfor %}
-                                    {% else %}
-                                        None
-                                    {% endif %}
+                                    {% include 'item/_related_items.html' %}
 
                                 </div>
 
@@ -223,43 +193,7 @@
 
                             <hr>
 
-                            {% if item.images | length > 0 %}
-                                {% if inventory.access_level != __PUBLIC__ %}
-                                <div class="row">
-
-                                    <div class="col-md-12 text-center">
-                                        <button id="btn-remove-images" type="button" class="btn btn-sm btn-primary"
-                                                disabled>
-                                            Remove
-                                        </button>
-
-                                        <button id="btn-main-image" type="button" class="btn btn-sm btn-primary"
-                                                disabled>
-                                            Make main
-                                        </button>
-                                    </div>
-
-                                </div>
-                                    {% endif %}
-                                <hr>
-                                <br>
-
-                                <div class="row">
-                                    <div class="grid" id="masonry">
-                                        {% for img in item.images %}
-                                            {% set image_url = url_for('static', filename="uploads/" + img.image_filename) %}
-                                            <div class="item">
-                                                <img width="300" class="image-checkbox" src="{{ image_url }}"
-                                                     data-image-url="{{ image_url }}"
-                                                     id="{{ img.id }}">
-                                            </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-
-                                <hr>
-
-                            {% endif %}
+                            {% include 'item/_item_masonary_images.html' %}
 
                             <div class="text-center">
                                 <img src="{{ qrcode(url_for(request.endpoint, **request.view_args) | replace('%40', '@'), box_size=6 ) }}">
