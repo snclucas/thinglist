@@ -25,8 +25,8 @@ __VIEWER__ = 1
 __COLLABORATOR__ = 2
 __PUBLIC__ = 3
 
-__INVENTORY__ = 0
-__LIST__ = 1
+__INVENTORY__ = 1
+__LIST__ = 2
 
 
 def drop_then_create():
@@ -402,15 +402,15 @@ def find_template_by_id(template_id: int) -> Optional[FieldTemplate]:
         return None
 
 
-def find_all_user_inventories(user: User) -> list:
-    if user is None:
+def find_all_user_inventories(user_id: int) -> list:
+    if user_id is None:
         raise ValueError("User cannot be None")
 
     try:
         select_query = select(UserInventory, Inventory) \
             .join(Inventory) \
             .join(User) \
-            .where(user.id == UserInventory.user_id)
+            .where(user_id == UserInventory.user_id)
         result = db.session.execute(select_query).all()
         return result
     except Exception as ex:
@@ -421,7 +421,7 @@ def find_all_user_inventories(user: User) -> list:
 
 
 
-def send_inventory_invite(recipient_username, text_body, html_body):
+def send_inventory_invite(recipient_username: str, text_body: str, html_body: str):
     recipient_user_ = find_user_by_username(username=recipient_username)
     if recipient_user_ is not None:
         send_email("New user registration", recipients=[recipient_user_.email], text_body=text_body, html_body=html_body)
@@ -1394,16 +1394,16 @@ def relate_items_by_id(item1_id: int, item2_id: int) -> (bool, str):
             return False, f"Items with ids {item1_id} and {item2_id} are already related"
 
 
-def add_item_inventory(item, inventory):
-    with app.app_context():
-        stmt = select(Item).where(Item.id == item)
-        item_ = db.session.execute(stmt).first()
-
-        stmt = select(Inventory).where(Inventory.id == inventory)
-        inventory_ = db.session.execute(stmt).first()
-
-        inventory_[0].items.append(item_[0])
-        db.session.commit()
+# def add_item_inventory(item, inventory): XXXX
+#     with app.app_context():
+#         stmt = select(Item).where(Item.id == item)
+#         item_ = db.session.execute(stmt).first()
+#
+#         stmt = select(Inventory).where(Inventory.id == inventory)
+#         inventory_ = db.session.execute(stmt).first()
+#
+#         inventory_[0].items.append(item_[0])
+#         db.session.commit()
 
 
 def set_item_main_image(main_image_url: str, item_id: int, user: User):
@@ -1704,10 +1704,10 @@ def _parse_tags(item_tags: List[str], user: User) -> List[Tag]:
     return tags_objects
 
 
-def _get_selected_item(user: User, item_id: int):
+def _get_selected_item(user_id: int, item_id: int):
     select_statement = select(Item) \
             .join(User) \
-            .where(User.id == user.id) \
+            .where(User.id == user_id) \
             .where(Item.id == item_id)
     return db.session.execute(select_statement).first()
 
@@ -1763,7 +1763,7 @@ def update_item_by_id(item_data: dict, item_id: int, user: User) -> (bool, str):
     with app.app_context():
         db.session.expire_on_commit = False
 
-        item_result = _get_selected_item(user, item_id)
+        item_result = _get_selected_item(user.id, item_id)
         _populate_item_fields(item_result, item_data, user)
 
         item_result[0].item_type = _get_itemtype_id(item_data, user)
@@ -2166,7 +2166,7 @@ def get_or_create_item(name_, description_, tags_):
 
 def get_or_create(model, defaults=None, **kwargs):
     with app.app_context():
-        instance = db.session.query(model).filter_by(**kwargs).one_or_none()
+        instance = db.session.query(model).filter_by(**kwargs).first()
         if instance:
             return instance, False
         else:
@@ -3110,6 +3110,24 @@ def update_item_fields(data, item_id: int):
             raise e
 
 
+
+def add_field(field_name:str, user_id:int):
+    with app.app_context():
+        slug = slugify(field_name)
+        return get_or_create(model=Field, field=field_name, user_id=user_id, slug=slug, type="input")
+
+
+def delete_field_by_field_name(field_name:str, user_id:int):
+    with app.app_context():
+        field_ = Field.query.filter_by(field=field_name, user_id=user_id).one_or_none()
+        if field_ is not None:
+            db.session.delete(field_)
+            db.session.commit()
+            return True
+
+        return False
+
+
 def add_new_item_field(item: Item, custom_fields: dict, user_id: int, app_context=None):
     if custom_fields is None:
         custom_fields = {}
@@ -3170,18 +3188,23 @@ def set_field_status(item_id, field_ids, is_visible=True):
 
             db.session.commit()
 
-def update_user_password_by_token(token: str, password_hash: str):
+def update_user_password_by_token(token: str, password_hash: str) -> Tuple[bool, Optional[Exception]]:
     with app.app_context():
         with app.app_context():
             user_ = find_user_by_token(token=token)
             if user_ is not None and user_.activated:
                 user_.password = password_hash
                 user_.token = ""
-                db.session.merge(user_)
-                db.session.commit()
-        return
+                try:
+                    db.session.merge(user_)
+                    db.session.commit()
+                    return True, None
+                except Exception as e:
+                    db.session.rollback()
+                    return False, e
+        return False, None
 
-def update_user_password_by_user_id(user_id: str, password_hash: str):
+def update_user_password_by_user_id(user_id: int, password_hash: str) -> Tuple[bool, Optional[Exception]]:
     with app.app_context():
         user_ = find_user_by_id(user_id=user_id)
         if user_ is not None and user_.activated:

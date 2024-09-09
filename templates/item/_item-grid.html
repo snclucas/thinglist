@@ -34,7 +34,6 @@
                         <strong><h5 class="card-title"><a href="{{ url_for('item.item_with_username_and_inventory', username=username,
                                 inventory_slug=item.inventories[0].slug, item_slug=item_slug) | replace('%40', '@') }}">{{ item.name }} {{ quantity_string }}</a>
                         </h5></strong>
-                        <p class="card-text">{{ item.name |truncate(100,true,'...') }}</p>
 
                         {% for tag in item.tags %}
                             <a href="{{ url_for('items.items_with_username_and_inventory', username=username, inventory_slug=inventory_slug) | replace('%40', '@') }}?tags={{ tag.tag | replace('@#$', ' ') }}">

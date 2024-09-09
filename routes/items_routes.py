@@ -578,7 +578,7 @@ def items_save():
             # save images
             for img in item_.images:
                 tmp_img_dict = {"is_main": False}
-                img_path = os.path.join(app.config['UPLOAD_FOLDER'], img.image_filename)
+                img_path = os.path.join(app.config['USER_IMAGES_BASE_PATH'], img.image_filename)
 
                 import base64
 
@@ -665,7 +665,7 @@ def items_with_username_and_inventory(username=None, inventory_slug=None):
     view = request_params.get("view", "list")  # 0 - list, 1 - grid
 
     if user_is_authenticated:
-        all_user_inventories = find_all_user_inventories(user=current_user)
+        all_user_inventories = find_all_user_inventories(user_id=current_user.id)
     else:
         all_user_inventories = None
 

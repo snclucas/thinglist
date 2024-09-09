@@ -409,7 +409,6 @@ def upload():
 
     uploaded_files = request.files.getlist("file[]")
     for file in uploaded_files:
-        file_name, file_extension = os.path.splitext(file.filename)
 
         new_filename = generate_item_image_filename(item_slug=item_slug, item_id=item_id, img_type="jpg")
         new_filename_list.append(new_filename)
