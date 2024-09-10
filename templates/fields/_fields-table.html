@@ -1,0 +1,43 @@
+
+{% if fields | length > 0 %}
+
+    <table class="table table-striped dataTable" id="my-fields-table">
+        <thead class="success">
+
+        <tr>
+            <th></th>
+            <th></th>
+        </tr>
+
+        </thead>
+        <tbody>
+        {% for field in fields %}
+
+            <tr>
+                <td>
+                     {{ field[0].field }}
+                </td>
+
+            <td>
+                <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" data-field-id="{{ field[0]['id'] }}"
+                               id="selected-item-{{ field[0]['id'] }}">
+                    </div>
+            </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+{% else %}
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class=" text-center">
+                <h5>No fields defined :(</h5>
+                <p>You can add a new field by clicking the <i class="fas fa-plus"></i> icon at the top.</p>
+            </div>
+        </div>
+    </div>
+
+{% endif %}

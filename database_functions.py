@@ -3011,6 +3011,34 @@ def get_all_fields():
         ddd = db.session.execute(stmt).all()
         return ddd
 
+def get_all_fields_include_users(user_id: int):
+    with app.app_context():
+        q_ = db.session.query(Field.field).filter(or_(Field.user_id == user_id, Field.user_id == None))
+        res_ = db.session.execute(q_).all()
+        return res_
+
+def get_all_user_fields(user_id: int):
+    with app.app_context():
+        q_ = db.session.query(Field).filter(Field.user_id == user_id)
+        res_ = db.session.execute(q_).all()
+        return res_
+
+
+def delete_fields_from_db(user_id: str, field_ids) -> None:
+    if not isinstance(field_ids, list):
+        field_ids = [field_ids]
+
+    stmt = select(Field).join(User) \
+        .where(Field.user_id == user_id) \
+        .where(Field.id.in_(field_ids))
+    fields_ = db.session.execute(stmt).all()
+
+    for field_ in fields_:
+        db.session.delete(field_[0])
+        db.session.commit()
+
+
+
 
 def set_inventory_default_fields(inventory_id, user, default_fields):
     with app.app_context():

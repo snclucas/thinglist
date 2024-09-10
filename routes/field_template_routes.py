@@ -8,7 +8,7 @@ from flask_login import login_required, current_user
 from database_functions import find_template, add_new_template, update_template_by_id, get_user_templates, \
     get_all_fields, save_template_fields, get_user_template_by_id, delete_templates_from_db, \
     set_template_fields_orders, \
-    get_template_fields_by_id
+    get_template_fields_by_id, get_all_fields_include_users
 from models import FieldTemplate
 
 field_template = Blueprint('field_template', __name__)
@@ -62,7 +62,8 @@ def template(template_id):
     :param template_id: The ID of the field template to retrieve.
     :return: The rendered template or a 404 error message if the template does not exist or the user does not have access.
     """
-    all_fields = dict(get_all_fields())
+    #all_fields = dict(get_all_fields())
+    all_fields = dict(get_all_fields_include_users(user_id=current_user.id))
 
     user_template_ = get_user_template_by_id(template_id=template_id, user_id=current_user.id)
 

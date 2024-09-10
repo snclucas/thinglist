@@ -17,9 +17,7 @@
 
             <div class="row">
 
-                <div class="col-md-3"></div>
-
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <div class="card">
                         <a class="nav-link" href="{{ url_for('items.items_with_username', username=username) }}">
                             <div class="content">
@@ -35,7 +33,7 @@
                     </div>
                 </div>
 
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <div class="card">
                         <a class="nav-link" href="{{ url_for('inv.inventories_for_username', username=username) }}">
                             <div class="content">
@@ -52,7 +50,26 @@
 
                 </div>
 
-                <div class="col-md-3">
+                <div class="col-md-4">
+
+
+                    <div class="card">
+                        <a class="nav-link" href="{{ url_for('field.fields_with_username', username=username) }}">
+                            <div class="content">
+                                <div class="row">
+                                    <div class="dfd text-center">
+                                        <i class="grey large-icon mb-2 fas fa-table"></i>
+                                        <h4 class="mb-0">{{ num_user_fields }}</h4>
+                                        <p class="text-muted">USER FIELDS</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+
+
+
+
 
                 </div>
 
