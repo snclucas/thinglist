@@ -63,7 +63,7 @@ def template(template_id):
     :return: The rendered template or a 404 error message if the template does not exist or the user does not have access.
     """
     #all_fields = dict(get_all_fields())
-    all_fields = dict(get_all_fields_include_users(user_id=current_user.id))
+    all_fields = list(get_all_fields_include_users(user_id=current_user.id))
 
     user_template_ = get_user_template_by_id(template_id=template_id, user_id=current_user.id)
 

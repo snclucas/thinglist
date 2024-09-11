@@ -74,14 +74,23 @@
                 <div class="row">
                     <div class="col-12">
                         <label for="form_item_{{ field.field }}" class="form-label">{{ field.field }}</label>
-                         {% if field.type == "input" %}
-                        <input type="text" class="form-control" name="{{ field.id }}"
-                               id="form_item_{{ field.field }}"
-                               placeholder=""
-                               value="{{ item_field.value }}">
-                         {% else %}
-                    <textarea  class="form-control" name="{{ field.id }}" id="form_item_{{ field.field }}" rows="4" cols="50">{{ field.value }}</textarea>
+
+
+                               {% if field.type == "input" %}
+                    <input type="text" class="form-control" name="{{ field.id }}" id="form_item_{{ field.id }}"
+                           placeholder=""
+                           value="{{ item_field.value }}">
+                {% elif field.type == "textarea"  %}
+                        <textarea  class="form-control" name="{{ field.id }}" id="form_item_{{ field.id }}" rows="4" cols="50">{{ item_field.value }}</textarea>
+                {% elif field.type == "bool"  %}
+                    <select class="form-select" name="{{ field.id }}" id="form_item_{{ field.id }}">
+                        <option value=1 {% if item_field.value == "1" %}     selected {% endif %}>True</option>
+                        <option value=0 {% if item_field.value == "0" %}     selected {% endif %}>False</option>
+                    </select>
                 {% endif %}
+
+
+
                     </div>
                 </div>
             {% endfor %}

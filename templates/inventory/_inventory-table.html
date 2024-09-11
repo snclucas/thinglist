@@ -52,7 +52,7 @@
                         {% if inventory_data['userinventory_access_level'] == __PRIVATE__ %}
 
                             <td>
-                            <span class="fas fa-edit fa-2x" data-bs-toggle="collapse"
+                            <span class="fas fa-edit fa" data-bs-toggle="collapse"
                                   id="inventoryEdit-{{ inventory_data['inventory_id'] }}"
                                   href="#collapseInventoryEdit"
                                   data-inventory-id="{{ inventory_data['inventory_id'] }}"
@@ -62,10 +62,8 @@
                                   data-inventory-public="{{ inventory_data['inventory_access_level'] }}"
                                   data-inventory-type="{{ inventory_data['inventory_type'] }}"
 
-
                                   data-toggle="tooltip" data-placement="top" title="Edit list"
                                   style="display: inline-block; margin-right: 20px;"></span>
-
                             </td>
 
                         {% endif %}
@@ -77,8 +75,6 @@
                                        id="selected-item-{{  inventory_data['inventory_id'] }}">
                             </div>
                         </td>
-
-
 
                     {% endif %}
                 </tr>

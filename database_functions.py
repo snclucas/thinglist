@@ -3013,7 +3013,7 @@ def get_all_fields():
 
 def get_all_fields_include_users(user_id: int):
     with app.app_context():
-        q_ = db.session.query(Field.field).filter(or_(Field.user_id == user_id, Field.user_id == None))
+        q_ = db.session.query(Field).filter(or_(Field.user_id == user_id, Field.user_id == None))
         res_ = db.session.execute(q_).all()
         return res_
 
@@ -3139,13 +3139,25 @@ def update_item_fields(data, item_id: int):
 
 
 
-def add_field(field_name:str, user_id:int):
+def add_field(field_name:str, field_type:str, user_id:int):
     with app.app_context():
         slug = slugify(field_name)
-        return get_or_create(model=Field, field=field_name, user_id=user_id, slug=slug, type="input")
+        return get_or_create(model=Field, field=field_name, type=field_type,
+                             user_id=user_id, slug=slug)
 
 
-def delete_field_by_field_name(field_name:str, user_id:int):
+def edit_field_by_id(field_id: int, field_name:str, field_type:str, user_id:int):
+    with app.app_context():
+        field_ = Field.query.filter_by(id=field_id, user_id=user_id).one_or_none()
+        if field_ is not None:
+            field_.field = field_name
+            field_.type = field_type
+            db.session.commit()
+            return True
+
+        return False
+
+def delete_field_by_field_name(field_name:str, user_id:int) -> bool:
     with app.app_context():
         field_ = Field.query.filter_by(field=field_name, user_id=user_id).one_or_none()
         if field_ is not None:

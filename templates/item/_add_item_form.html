@@ -63,12 +63,18 @@
             <div class="col-12">
 
                 <label for="form_item_{{ field.field }}" class="form-label">{{ field.field }}</label>
+
                 {% if field.type == "input" %}
-                <input type="text" class="form-control" name="{{ field.field }}" id="form_item_{{ field.field }}"
-                       placeholder=""
-                       value="{{ field.value }}">
-                    {% else %}
-                    <textarea  class="form-control" name="{{ field.field }}" id="form_item_{{ field.field }}" rows="4" cols="50">{{ field.value }}</textarea>
+                    <input type="text" class="form-control" name="{{ field.field }}" id="form_item_{{ field.field }}"
+                           placeholder=""
+                           value="{{ field.value }}">
+                {% elif field.type == "textarea"  %}
+                        <textarea  class="form-control" name="{{ field.field }}" id="form_item_{{ field.field }}" rows="4" cols="50">{{ field.value }}</textarea>
+                {% elif field.type == "bool"  %}
+                    <select class="form-select" name="{{ field.field }}" id="form_item_{{ field.field }}">
+                        <option value=1 selected>True</option>
+                        <option value=0>False</option>
+                    </select>
                 {% endif %}
 
             </div>

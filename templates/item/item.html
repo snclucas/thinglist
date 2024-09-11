@@ -143,6 +143,13 @@
 
                                                 {% if field.type|lower == 'url' %}
                                                     <a href="{{ item_field.value }}">{{ item_field.value }}</a>
+
+                                                {% elif field.type|lower == 'bool' %}
+                                                    {% if item_field.value == "1" %}
+                                                        True
+                                                    {% else %}
+                                                        False
+                                                    {% endif %}
                                                 {% else %}
                                                     {{ item_field.value }}
                                                 {% endif %}

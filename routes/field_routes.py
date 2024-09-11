@@ -8,7 +8,8 @@ from flask_login import login_required, current_user
 from database_functions import find_template, add_new_template, update_template_by_id, get_user_templates, \
     get_all_fields, save_template_fields, get_user_template_by_id, delete_templates_from_db, \
     set_template_fields_orders, \
-    get_template_fields_by_id, get_all_fields_include_users, get_all_user_fields, delete_fields_from_db, add_field
+    get_template_fields_by_id, get_all_fields_include_users, get_all_user_fields, delete_fields_from_db, add_field, \
+    edit_field_by_id
 from models import FieldTemplate
 
 field_routes = Blueprint('field', __name__)
@@ -42,7 +43,33 @@ def add_new_field():
     if request.method == 'POST':
         field_name = request.form.get("field_name")
         field_name = bleach.clean(field_name)
-        field, success = add_field(field_name=field_name, user_id=current_user.id)
+        field_type = request.form.get("field_type")
+        field_type = bleach.clean(field_type)
+
+        if field_type not in ['text', 'textarea', 'bool', 'url']:
+            field_type = "input"
+
+        field, success = add_field(field_name=field_name, field_type=field_type, user_id=current_user.id)
         if not success:
             flash("Failed to add new field")
+        return redirect(url_for('field.fields'))
+
+@field_routes.route('/fields/edit', methods=['POST'])
+@login_required
+def edit_existing_field():
+    if request.method == 'POST':
+        field_id = request.form.get("field_id")
+        field_id = int(bleach.clean(str(field_id)))
+        field_name = request.form.get("field_name")
+        field_name = bleach.clean(field_name)
+        field_type = request.form.get("field_type")
+        field_type = bleach.clean(field_type)
+
+        if field_type not in ['text', 'textarea', 'bool', 'url']:
+            field_type = "input"
+
+        success = edit_field_by_id(field_id=field_id,
+                                          field_name=field_name, field_type=field_type, user_id=current_user.id)
+        if not success:
+            flash("Failed to edit field")
         return redirect(url_for('field.fields'))

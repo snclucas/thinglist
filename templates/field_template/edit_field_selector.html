@@ -11,21 +11,21 @@
                 </tr>
                 </thead>
                 <tbody>
-                {% for item_field_name, field in all_fields.items() %}
+                {% for field in all_fields %}
                     <tr>
-                        <td>{{ item_field_name }}</td>
+                        <td>{{ field[0].field }}</td>
                         <td>
-                            <input type='hidden' name='selected_fields[{{ item_field_name }}]' value='good'/>
+                            <input type='hidden' name='selected_fields[{{ field[0].field }}]' value='good'/>
 
-                            {% if field.id in selected_field_ids %}
-                                <input class="form-check-input" type="checkbox" value="{{ item_field_name }}"
-                                       id="selected-field-{{ field.id }}"
-                                       data-itemfield-id="{{ field.id }}"
+                            {% if field[0].id in selected_field_ids %}
+                                <input class="form-check-input" type="checkbox" value="{{ field[0].field }}"
+                                       id="selected-field-{{ field[0].id }}"
+                                       data-itemfield-id="{{ field[0].id }}"
                                        checked>
                             {% else %}
-                                <input class="form-check-input" type="checkbox" value="{{ item_field_name }}"
-                                       id="selected-field-{{ field.id }}"
-                                       data-itemfield-id="{{ field.id }}">
+                                <input class="form-check-input" type="checkbox" value="{{ field[0].field }}"
+                                       id="selected-field-{{ field[0].id }}"
+                                       data-itemfield-id="{{ field[0].id }}">
 
                             {% endif %}
                         </td>

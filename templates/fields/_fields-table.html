@@ -7,6 +7,8 @@
         <tr>
             <th></th>
             <th></th>
+            <th></th>
+            <th></th>
         </tr>
 
         </thead>
@@ -17,6 +19,23 @@
                 <td>
                      {{ field[0].field }}
                 </td>
+                <td>
+                     {{ field[0].type }}
+                </td>
+
+                <td>
+                            <span class="fas fa-edit fa" data-bs-toggle="collapse"
+                                  id="fieldEdit-{{ field[0].id }}"
+                                  href="#collapseFieldEdit"
+                                  data-field-id="{{ field[0].id }}"
+                                  data-field-name="{{ field[0].field }}"
+                                  data-field-type="{{ field[0].type }}"
+
+                                  data-toggle="tooltip" data-placement="top" title="Edit field"
+                                  style="display: inline-block; margin-right: 20px;"></span>
+
+                            </td>
+
 
             <td>
                 <div class="form-check">

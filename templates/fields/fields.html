@@ -37,7 +37,22 @@
                                               href="#collapseFieldHelp"
                                               style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
 
+
+
+
+
                                     </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-12">
+                                     <div class="collapse" id="collapseFieldEdit" aria-expanded="false">
+                                            <div class="card card-body">
+                                                <h5>Edit field:</h5>
+                                                {% include 'fields/_edit_field_form.html' %}
+                                            </div>
+                                        </div>
                                 </div>
                             </div>
 
@@ -102,6 +117,19 @@
                 rowReorder: true,
                 info: true
             });
+        });
+
+        $('[id^=fieldEdit]').click(function () {
+            let field_id = $(this).attr('data-field-id');
+            let field_name = $(this).attr('data-field-name');
+            let field_type = $(this).attr('data-field-type');
+
+            $('#edit_form_field_id').val(field_id)
+            $('#edit_form_field_name').val(field_name)
+
+            $("div.field_type select").val(field_type);
+
+
         });
 
         $('input:checkbox[id^="selected-item-"]').on("click", function (e) {
