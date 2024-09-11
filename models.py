@@ -247,6 +247,8 @@ class ItemTag(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     item_id = db.Column(db.Integer, db.ForeignKey('items.id', ondelete='CASCADE'))
     tag_id = db.Column(db.Integer, db.ForeignKey('tags.id', ondelete='CASCADE'))
+    __table_args__ = (UniqueConstraint('tag_id', 'item_id', name='_item_tag_uc'),
+                      )
 
 
 class InventoryTag(db.Model):

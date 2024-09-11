@@ -1,3 +1,4 @@
+import bleach
 from flask import Blueprint, render_template, request, redirect, url_for, send_file
 from flask_login import login_required, current_user
 
@@ -26,9 +27,11 @@ def index():
 
 @app.context_processor
 def utility_processor():
-    def get_image_url(image_id):
+    def get_image_url(user_id, image_id):
+        user_id = bleach.clean(str(user_id))
+        image_id = bleach.clean(str(image_id))
         base_url = app.config['USER_IMAGES_BASE_URL']
-        image = f"{base_url}/{image_id}"
+        image = f"{base_url}/{user_id}/{image_id}"
         return image
     return dict(get_image_url=get_image_url)
 
@@ -37,17 +40,13 @@ def utility_processor():
 def testimages(image_id):
     return render_template('testimages.html', image_id=image_id)
 
-@main.route('/images/<string:image_id>')
-def images(image_id):
+@main.route('/images/<int:user_id>/<string:image_id>')
+def images(user_id, image_id):
+    user_id = bleach.clean(str(user_id))
+    image_id = bleach.clean(str(image_id))
     base_url = app.config['IMAGES_BASE_URL']
-    image = f"{base_url}/{image_id}"
+    image = f"{base_url}/{user_id}/{image_id}"
     return image
-    #return send_file(image, mimetype='image/gif')
-    # return send_file(
-    #     io.BytesIO(image_binary),
-    #     mimetype='image/jpeg',
-    #     as_attachment=True,
-    #     download_name='%s.jpg' % pid)
 
 @main.route('/about')
 def about():

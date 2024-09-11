@@ -119,7 +119,7 @@
 
                                 <div class="col-md-4">
                                     {% if item.main_image is not none %}
-                                        {% set image_url = get_image_url(item.main_image) %}
+                                        {% set image_url = get_image_url(inventory_owner_id, item.main_image) %}
                                         <img src="{{ image_url }}" class="rounded float-end img-thumbnail" alt="...">
                                     {% endif %}
                                 </div>
@@ -247,6 +247,13 @@
     </script>
 
     <script>
+    $('#item-field-table').DataTable({
+                "searching": true,
+                paging: false,
+                ordering: true,
+                info: true,
+                "pageLength": -1,
+            });
         $(document).ready(function () {
 
 
@@ -267,13 +274,7 @@
                 });
             });
 
-            $('#item-field-table').DataTable({
-                "searching": true,
-                paging: false,
-                ordering: true,
-                info: true,
-                "pageLength": -1,
-            });
+
 
         });
 

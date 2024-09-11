@@ -62,6 +62,10 @@ def post_user_add_hook(new_user: User):
                                 to_user_id=new_user.id)
         add_new_user_itemtype(name=_NONE_, user_id=new_user.id)
 
+        # create folder for user uploads
+        user_upload_folder = os.path.join(app.config['USER_IMAGES_BASE_PATH'], str(new_user.id))
+        if not os.path.exists(user_upload_folder):
+            os.makedirs(user_upload_folder)
 
 
     # add default locations, types
@@ -1822,12 +1826,12 @@ def delete_item_images(item_: Item) -> (bool, str):
             return False, "Error deleting item images"
 
 
-def get_related_items(item_):
-    if item_ is None:
+def get_related_items(item_id: int):
+    if item_id is None:
         app.logger.error("Item cannot be None")
         return []
     return Relateditems.query.filter(
-        or_(Relateditems.item_id == item_.id, Relateditems.related_item_id == item_.id)).all()
+        or_(Relateditems.item_id == item_id, Relateditems.related_item_id == item_id)).all()
 
 
 def get_items_to_delete(user: User, item_ids: list):
@@ -1904,7 +1908,7 @@ def delete_items(item_ids: list, user: User, inventory_id: int = None):
                 else:
 
                     # remove related item relationships
-                    related_items = get_related_items(item_)
+                    related_items = get_related_items(item_.id)
                     for related_item in related_items:
                         db.session.delete(related_item)
 
@@ -2291,7 +2295,8 @@ def add_item_to_inventory(item_id=None, item_name=None, item_desc=None, item_typ
                     if not instance:
                         instance = Tag(tag=tag, user_id=user_id)
 
-                    new_item.tags.append(instance)
+                    if instance not in new_item.tags:
+                        new_item.tags.append(instance)
 
             if inventory_id is None or inventory_id == '':
                 default_user_inventory_ = get_user_default_inventory(user_id=user_id)
@@ -3133,6 +3138,7 @@ def update_item_fields(data, item_id: int):
 
         try:
             db.session.commit()
+            db.session.flush()
         except Exception as e:
             db.session.rollback()
             raise e

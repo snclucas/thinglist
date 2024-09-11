@@ -25,7 +25,7 @@
                 <div class="item">
                     <img width="{{ config['ITEM_MASONARY_IMAGE_SIZE'] }}"
                          class="image-checkbox rounded float-end img-thumbnail"
-                         src="{{ get_image_url(img.image_filename) }}"
+                         src="{{ get_image_url(inventory_owner_id, img.image_filename) }}"
                          data-image-url="{{ img.image_filename }}"
                          id="{{ img.image_filename }}"
                          alt="">

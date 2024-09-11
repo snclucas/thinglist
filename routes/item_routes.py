@@ -142,7 +142,7 @@ def item_with_username_and_inventory(username: str, inventory_slug: str, item_sl
 
     all_item_types_ = get_all_item_types()
 
-    return render_template('item/item.html', name=username, item_fields=item_fields, all_item_fields=all_item_fields,
+    return render_template('item/item.html', name=username, inventory_owner_id=inventory_owner_id, item_fields=item_fields, all_item_fields=all_item_fields,
                            all_fields=all_fields, inventory_slug=inventory_.slug, inventory=inventory_,
                            item=item_, username=username, item_type=item_type_string,
                            all_item_types=all_item_types_,

@@ -26,7 +26,8 @@ from database_functions import get_all_user_locations, \
     get_users_for_inventory, get_user_inventory_by_id, get_or_add_new_location, edit_items_locations, \
     change_item_access_level, link_items, copy_items, commit, find_items_new, __PUBLIC__, __PRIVATE__, \
     find_user_by_username, add_images_to_item, set_item_main_image, get_user_inventories, add_user_inventory, \
-    save_template_fields, get_item_fields, save_inventory_fieldtemplate, find_template_by_id, save_user_inventory_view
+    save_template_fields, get_item_fields, save_inventory_fieldtemplate, find_template_by_id, save_user_inventory_view, \
+    get_related_items
 from models import FieldTemplate
 
 from utils import generate_item_image_filename
@@ -213,20 +214,20 @@ def items_load():
                                             set_item_main_image(main_image_url=img_filename, item_id=item_id,
                                                                 user=current_user)
 
-                                        img_filepath = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'],
-                                                                    img_filename)
+                                        img_filepath = os.path.join(app.root_path, app.config['USER_IMAGES_BASE_PATH'],
+                                                                    str(current_user.id), img_filename)
 
                                         import base64
                                         imgdata = base64.b64decode(img_data)
 
                                         raw = img_data.encode('utf-8')
-                                        key = 'SOME_SECRET_KEY'.encode('utf-8')
+                                        key = app.config['IMAGE_SECRET_KEY'].encode('utf-8')
                                         hashed = hmac.new(key, raw, hashlib.sha1)
                                         img_hmac_hash = base64.encodebytes(hashed.digest()).decode('utf-8')
 
                                         if img_hash == img_hmac_hash:
-                                            with open(img_filepath, 'wb') as f:
-                                                f.write(imgdata)
+                                            with open(img_filepath, 'wb') as img_file:
+                                                img_file.write(imgdata)
                                                 item_image_filename.append(img_filename)
 
                                     add_images_to_item(new_item_['item']['id'], item_image_filename, user=current_user)
@@ -531,6 +532,8 @@ def items_save():
             dv_lower = [x.lower() for x in list(dv.keys())]
             field_set.update(dv_lower)
 
+
+
         headers_ = ["id", "name", "description", "tags", "type", "location", "specific location", "quantity"]
         headers_.extend(field_set)
 
@@ -554,6 +557,12 @@ def items_save():
             item_ = row["item"]
             item_custom_fields_ = get_item_fields(item_id=item_.id)
 
+            related_items_ = get_related_items(item_id=item_.id)
+            related_items_dict = {}
+            if len(related_items_) > 0:
+                for related_item in related_items_:
+                    related_items_dict[related_item.item_id] = related_item.related_item_id
+
             ddd = {}
             for field_data in item_custom_fields_:
                 field_ = field_data[0]
@@ -571,7 +580,8 @@ def items_save():
                 "specific_location": item_.specific_location,
                 "quantity": item_.quantity,
                 "is_link": row["item_is_link"],
-                "custom_fields": ddd
+                "custom_fields": ddd,
+                "related_items": related_items_dict
             }
 
             item_images = []
