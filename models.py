@@ -86,7 +86,7 @@ class Field(db.Model):
     __tablename__ = "fields"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     field = db.Column(db.String(255), nullable=True, unique=False)
-    slug = db.Column(db.String(2000), nullable=True, unique=False)
+    slug = db.Column(db.String(2000), nullable=True, unique=True)
     type = db.Column(db.String(255), nullable=True, unique=False)
     data = db.Column(db.String(255), nullable=True, unique=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))

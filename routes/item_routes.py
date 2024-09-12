@@ -392,20 +392,31 @@ def set_main_image():
                             inventory_slug=inventory_slug,
                             item_slug=item_slug))
 
-
+@login_required
 @item_routes.route("/item/images/upload", methods=["POST"])
 def upload():
     new_filename_list = []
 
     username = request.form.get("username")
     item_id = request.form.get("item_id")
+    item_slug = request.form.get("item_slug")
+    inventory_slug = request.form.get("inventory_slug")
+
+    username = bleach.clean(username)
+    item_id = bleach.clean(str(item_id))
+    item_slug = bleach.clean(item_slug)
+    inventory_slug = bleach.clean(inventory_slug)
+
+    if username != current_user.username:
+        return redirect(url_for('item.item_with_username_and_inventory',
+                                username=username,
+                                inventory_slug=inventory_slug,
+                                item_slug=item_slug))
+
     try:
         item_id = int(item_id)
     except ValueError:
         pass # for now
-
-    item_slug = request.form.get("item_slug")
-    inventory_slug = request.form.get("inventory_slug")
 
     uploaded_files = request.files.getlist("file[]")
     for file in uploaded_files:
@@ -424,7 +435,9 @@ def upload():
         image.save(in_mem_file, format="JPEG")
         in_mem_file.seek(0)
 
-        pathlib.Path(os.path.join(app.config['USER_IMAGES_BASE_PATH'], new_filename)).write_bytes(
+        user_id = str(current_user.id)
+
+        pathlib.Path(os.path.join(app.config['USER_IMAGES_BASE_PATH'], user_id, new_filename)).write_bytes(
             in_mem_file.getbuffer().tobytes())
 
     add_images_to_item(item_id=item_id, filenames=new_filename_list, user=current_user)

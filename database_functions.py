@@ -618,16 +618,20 @@ def get_item_custom_field_data(user_id: int, item_list=None):
 
         slugs = []
         sdsd = {}
+        sdsd2 = {}
         for row in item_field_data_:
+            _t = {"name": row[1], "value": row[2], "slug": row[3]}
             if row[0] in sdsd:
                 sdsd[row[0]][row[1]] = row[2]
+                sdsd2[row[0]].append(_t)
             else:
                 sdsd[row[0]] = {row[1]: row[2]}
+                sdsd2[row[0]] = [_t]
 
             if row[3] not in slugs:
                 slugs.append(row[3])
 
-        return sdsd, slugs
+        return sdsd, slugs, sdsd2
 
 
 def delete_itemtypes_from_db(itemtype_ids, user_id: int) -> (bool, str):
@@ -1777,7 +1781,7 @@ def update_item_by_id(item_data: dict, item_id: int, user: User) -> (bool, str):
         return item_result[0].slug
 
 
-def delete_item_images_by_item_id(item_id: int, user: User):
+def delete_item_images_by_item_id(item_id: int, user_id: str):
     """
 
     Delete Item Images by Item ID
@@ -1790,11 +1794,12 @@ def delete_item_images_by_item_id(item_id: int, user: User):
 
     """
     with app.app_context():
-        item_ = find_item(item_id=item_id, user_id=user.id)
+        item_ = find_item(item_id=item_id, user_id=user_id)
         if item_ is not None:
             for image_ in item_.images:
                 try:
-                    os.remove(os.path.join(app.root_path, app.config['UPLOAD_FOLDER'], image_.image_filename))
+                    os.remove(os.path.join(app.root_path, app.config['USER_IMAGES_BASE_PATH'], user_id,
+                                           image_.image_filename))
                 except OSError as er:
                     pass
 
@@ -1803,7 +1808,7 @@ def delete_item_images_by_item_id(item_id: int, user: User):
             db.session.commit()
 
 
-def delete_item_images(item_: Item) -> (bool, str):
+def delete_item_images(item_: Item, user_id: str) -> (bool, str):
 
     if item_ is None:
         return False, "Item ID cannot be None"
@@ -1811,7 +1816,8 @@ def delete_item_images(item_: Item) -> (bool, str):
     with app.app_context():
         for image_ in item_.images:
             try:
-                os.remove(os.path.join(app.root_path, app.config['UPLOAD_FOLDER'], image_.image_filename))
+                os.remove(os.path.join(app.root_path, app.config['USER_IMAGES_BASE_PATH'], str(user_id),
+                                       image_.image_filename))
             except OSError as er:
                 app.logger.error(f"Error deleting image file: {image_.image_filename}")
                 return False, f"Error deleting image file: {image_.image_filename}"
@@ -1913,7 +1919,7 @@ def delete_items(item_ids: list, user: User, inventory_id: int = None):
                         db.session.delete(related_item)
 
                     # remove item images
-                    delete_item_images(item_)
+                    delete_item_images(item_, user.id)
 
                     db.session.delete(item_)
                     number_items_deleted += 1
@@ -3192,7 +3198,7 @@ def add_new_item_field(item: Item, custom_fields: dict, user_id: int, app_contex
 
         for field_name, field_value in custom_fields.items():
 
-            field_ = Field.query.filter_by(field=field_name).one_or_none()
+            field_ = Field.query.filter_by(slug=field_name).one_or_none()
             if field_ is None:
                 field_slug = slugify(field_name)
                 field_ = Field(field=field_name, slug=field_slug)
@@ -3200,7 +3206,8 @@ def add_new_item_field(item: Item, custom_fields: dict, user_id: int, app_contex
                 db.session.flush()
 
             field_id = field_.id
-            field_.items.append(item)
+            if item not in field_.items:
+                field_.items.append(item)
 
             db.session.commit()
 

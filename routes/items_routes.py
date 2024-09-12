@@ -236,6 +236,10 @@ def items_load():
                                     flash("Sorry, there was an error importing these things.")
                                     return profile(username=username)
 
+                        # set up related items
+                        d = 4
+
+
             except Exception as e:
                 print(traceback.format_exc())
 
@@ -518,7 +522,7 @@ def items_save():
         data_dict, item_id_list = find_items_query(current_user.username,
                                                    current_user, inventory_id, request_params=request_params)
 
-        dd, slugs = get_item_custom_field_data(user_id=current_user.id, item_list=item_id_list)
+        dd, slugs, newdd = get_item_custom_field_data(user_id=current_user.id, item_list=item_id_list)
 
         # save the json items with a flag stating if they are just links to other items in the inventroy
         if inventory_default_fields is not None:
@@ -527,11 +531,18 @@ def items_save():
             inventory_field_template_name = None
 
         field_set = set()
+        field_set2 = list()
 
         for dn, dv in dd.items():
             dv_lower = [x.lower() for x in list(dv.keys())]
             field_set.update(dv_lower)
 
+        wewe = {}
+        for dfdf, dvvv in newdd.items():
+
+            for df in dvvv:
+                wewe[df['slug']] = df
+                d = 3
 
 
         headers_ = ["id", "name", "description", "tags", "type", "location", "specific location", "quantity"]
@@ -541,6 +552,7 @@ def items_save():
             json_output = {
                 "inventory": {"id": inventory_id, "name": inventory_.name, "description": inventory_.description,
                               "slug": inv_slug,
+                              "custom_field_set": wewe,
                               "std_fields": headers_,
                               "field_set": {
                                   "name": inventory_field_template_name,
@@ -598,7 +610,7 @@ def items_save():
                     tmp_img_dict["image_data"] = raw
 
                 raw = raw.encode("utf-8")
-                key = 'SOME_SECRET_KEY'.encode('utf-8')
+                key = app.config['IMAGE_SECRET_KEY'].encode('utf-8')
                 hashed = hmac.new(key, raw, hashlib.sha1)
                 img_hmac_hash = base64.encodebytes(hashed.digest()).decode('utf-8')
                 tmp_img_dict["image_hash"] = img_hmac_hash
@@ -753,6 +765,7 @@ def items_with_username_and_inventory(username=None, inventory_slug=None):
                            inventory_id=inventory_id,
                            current_username=current_username,
                            username=username,
+                           inventory_owner_id=inventory_owner_id,
                            inventory=inventory_,
                            data_dict=data_dict,
                            item_types=item_types_,
@@ -907,14 +920,16 @@ def del_items():
 
     if request.json and all(key in request.json for key in ('item_ids', 'username')):
         json_data = request.json
+        username = json_data.get('username')
         item_ids = json_data.get('item_ids')
 
-        username = json_data.get('username')
+        # sanitize inputs
         username = bleach.clean(username)
+        item_ids = [bleach.clean(x) for x in item_ids]
 
         # create redirect_url and ensure it has an '@' symbol before the user
         redirect_url = url_for(endpoint='items.items_with_username',
-                               username=username).replace(__old='%40', __new='@')
+                               username=username).replace('%40', '@')
 
         inventory_id = json_data.get('inventory_id')
         if inventory_id == '':
