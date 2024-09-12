@@ -1840,13 +1840,13 @@ def get_related_items(item_id: int):
         or_(Relateditems.item_id == item_id, Relateditems.related_item_id == item_id)).all()
 
 
-def get_items_to_delete(user: User, item_ids: list):
+def get_items_to_delete(user_id: str, item_ids: list):
     """
 
     Method: get_items_to_delete
 
     Parameters:
-    - user: User - The user for whom to get the items to be deleted.
+    - user_id: User ID - The user ID for whom to get the items to be deleted.
     - item_ids: list - A list of item IDs to be deleted.
 
     Return Type:
@@ -1858,17 +1858,17 @@ def get_items_to_delete(user: User, item_ids: list):
     *, it executes the statement and returns a list of items.
 
     """
-    if not item_ids or user is None:
+    if not item_ids or user_id is None:
         return 0
 
     if len(item_ids) == 0:
         return 0
 
-    stmt = select(Item).where(user.id == Item.user_id, Item.id.in_(item_ids))
+    stmt = select(Item).where(user_id == Item.user_id, Item.id.in_(item_ids))
     return db.session.execute(stmt).all()
 
 
-def delete_items(item_ids: list, user: User, inventory_id: int = None):
+def delete_items(item_ids: list, user_id: str, inventory_id: int = None) -> int:
     """
 
     Delete Items
@@ -1877,7 +1877,7 @@ def delete_items(item_ids: list, user: User, inventory_id: int = None):
 
     Parameters:
     - item_ids (list): A list of item IDs to be deleted.
-    - user (User): The user performing the deletion.
+    - user_id (str): The user ID performing the deletion.
 
     Returns:
     - int: The number of items deleted.
@@ -1888,14 +1888,14 @@ def delete_items(item_ids: list, user: User, inventory_id: int = None):
     - Related item relationships and item images associated with each item will also be deleted.
 
     """
-    if not item_ids or user is None:
+    if not item_ids or user_id is None:
         return 0
 
     if len(item_ids) == 0:
         return 0
 
     with app.app_context():
-        items_to_delete = get_items_to_delete(user, item_ids)
+        items_to_delete = get_items_to_delete(user_id, item_ids)
         number_items_deleted = 0
 
         for item_ in items_to_delete:
@@ -1919,7 +1919,7 @@ def delete_items(item_ids: list, user: User, inventory_id: int = None):
                         db.session.delete(related_item)
 
                     # remove item images
-                    delete_item_images(item_, user.id)
+                    delete_item_images(item_, user_id)
 
                     db.session.delete(item_)
                     number_items_deleted += 1

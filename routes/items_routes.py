@@ -938,7 +938,7 @@ def del_items():
             inventory_id = int(bleach.clean(str(json_data.get('inventory_id'))))
 
         if item_ids is not None and username is not None:
-            delete_items(item_ids=item_ids, user=current_user, inventory_id=inventory_id)
+            delete_items(item_ids=item_ids, user_id=current_user.id, inventory_id=inventory_id)
         else:
             flash("There was a problem deleting your things!")
             current_app.logger.error("Error deleting items - missing item_ids or username")
