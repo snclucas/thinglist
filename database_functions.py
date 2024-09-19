@@ -897,6 +897,26 @@ def find_all_my_items(logged_in_user: User):
         return results_
 
 
+def _find_my_items_using_select(logged_in_user: User, inventory_id, query_params):
+    with app.app_context():
+        if inventory_id is not None and inventory_id != '':
+            d = select(Item, ItemType, Location, InventoryItem, UserInventory) \
+            .join(ItemType, ItemType.id == Item.item_type) \
+            .join(Location, Location.id == Item.location_id) \
+            .join(InventoryItem, InventoryItem.item_id == Item.id) \
+            .where(InventoryItem.inventory_id == inventory_id)
+
+            start = query_params.get("start", 0)
+            length = query_params.get("length", 50)
+
+            page = int((int(start) / int(length)) + 1)
+            # page = query_params.get("page", 1)
+            per_page = int(query_params.get("length", 50))
+
+            page_data = db.paginate(d, page=page, per_page=per_page)
+
+            d = 3
+
 
 def _find_my_items(logged_in_user: User, inventory_id, query_params):
     with app.app_context():
@@ -921,6 +941,38 @@ def _find_my_items(logged_in_user: User, inventory_id, query_params):
         query = query.filter(Item.user_id == logged_in_user.id)
 
         query = _find_query_parameters(query_=query, query_params=query_params)
+
+        start = query_params.get("start", 0)
+        length = query_params.get("length", 50)
+
+        order_0 = query_params.get("order_0", None)
+        dir_0 = query_params.get("dir_0", None)
+
+        if order_0 is not None and dir_0 is not None:
+            if order_0 == '0':
+                if dir_0 == 'asc':
+                    query = query.order_by(Item.name.asc())
+                else:
+                    query = query.order_by(Item.name.desc())
+            elif order_0 == '1':
+                if dir_0 == 'asc':
+                    query = query.order_by(ItemType.name.asc())
+                else:
+                    query = query.order_by(ItemType.name.desc())
+            elif order_0 == '2':
+                if dir_0 == 'asc':
+                    query = query.order_by(Location.name.asc())
+                else:
+                    query = query.order_by(Location.name.desc())
+
+        page = int((int(start) / int(length)) )
+        # page = query_params.get("page", 1)
+        per_page = int(query_params.get("length", 50))
+
+        if length is not None:
+            query = query.limit(per_page)
+        if page is not None:
+            query = query.offset(page * per_page)
 
         results_ = query.all()
 

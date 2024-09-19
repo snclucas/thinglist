@@ -174,12 +174,14 @@
                             <div class="row">
                                 <div class="col-md-6 show-big">
 
-                                  <a href="{{ url_for('items.items_with_username_and_inventory', username = username, inventory_slug = inventory_slug, view = 'list') }}">
-                                      <span class="fas fa-bars fa-2x" data-bs-toggle="collapse" style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-                                  </a>
+                                    <a href="{{ url_for('items.items_with_username_and_inventory', username = username, inventory_slug = inventory_slug, view = 'list') }}">
+                                        <span class="fas fa-bars fa-2x" data-bs-toggle="collapse"
+                                              style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+                                    </a>
 
                                     <a href="{{ url_for('items.items_with_username_and_inventory', username = username, inventory_slug = inventory_slug, view = 'grid') }}">
-                                    <span class="fas fa-th-large fa-2x" data-bs-toggle="collapse" style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+                                        <span class="fas fa-th-large fa-2x" data-bs-toggle="collapse"
+                                              style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
                                     </a>
 
                                 </div>
@@ -241,6 +243,9 @@
 
     <script>
         $(document).ready(function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const user_items_url = {{ url_for('api.items', username=current_user.username, inventory_slug=inventory_slug)  |  tojson|safe}} + "?" + urlParams.toString()
+
             const table = new DataTable('#items-table', {
                 "searching": true,
                 paging: true,
@@ -251,13 +256,75 @@
                     details: false
                 },
                 stateSave: false,
+                "serverSide": true,
                 "pageLength": 50,
                 columnDefs: [
-                    {target: 0, searchable: true},
-                    {target: 1, searchable: true, visible: false},
-                    {target: 2, searchable: true},
-                    {target: 3, searchable: true}
-                ]
+                    { // Item name
+                        target: 0,
+                        searchable: true,
+                        "render": function (item) {
+                            let item_url = {{ url_for('item.item_with_username_and_inventory', username=current_user.username, inventory_slug=inventory_slug, item_slug='ITEMSSLUG')  |  tojson}}.replace("ITEMSSLUG", item["slug"])
+                            let return_string = "<a href=\"" + item_url + "\">" + item["name"] + "</a>";
+                            return return_string;
+                        }
+                    },
+                    { // Item type
+                        target: 1, searchable: true
+                    },
+                    {% if user_is_authenticated %}
+                        { // Item location
+                            target: 2, searchable: true,
+                            "render": function (location_dict) {
+                                if (location_dict["specific_location"] !== "None") {
+                                    return location_dict["location"] + "<br>" + location_dict["specific_location"];
+                                } else {
+                                    return location_dict["location"];
+                                }
+                            }
+                        },
+                    {% endif %}
+                    {   // Item tags
+                        target: 3,
+                        searchable: true, //name, name2, slug, description, tags, location, type, id
+                        "render": function (tag_array) {
+                            let return_string = "";
+                            $.each(tag_array, function (tag_index, tag_text) {
+                                return_string += "<a href=\"" + "{{ url_for('items.items_with_username_and_inventory', username=username, inventory_slug=inventory_slug) | replace('%40', '@') }}?tags=" + tag_text + "\"  >  <span class=\"tag_list\">" + tag_text + "</span>  </a>";
+                            });
+                            return return_string;
+                        }
+                    },
+
+                    {% if user_is_authenticated %}
+                        {% if is_inventory_owner or inventory_access_level == 1 %}
+                            { // Checkbox
+                                target: 4,
+                                sortable: false,
+                                "render": function (id) {
+                                    return "<input class=\"form-check-input\" type=\"checkbox\" data-item-id=\"" + id + "\" id=\"selected-item-" + id + "\">";
+                                }
+                            }
+                        {% endif %}
+                    {% endif %}
+                ],
+                processing: true,
+                serverSide: true,
+                columns: [
+                    {data: 'name'},
+                    {data: 'type'},
+                    {data: 'location'},
+                    {data: 'tags'},
+                    {data: 'id'}
+                ],
+                ajax: {
+                    //url: "/api/items/@{{ username }}/{{ inventory_slug }}",
+                    url: user_items_url,
+                    type: 'GET',
+                    data: function (d) {
+                        d.view = "{{ view }}";
+                    }
+                },
+
             });
 
             $('#item-field-table').DataTable({
@@ -286,9 +353,8 @@
                 });
             });
 
-            var urlParams = new URLSearchParams(window.location.search)
-            let filter_items_span_selector = $('#filter-items-span');
 
+            let filter_items_span_selector = $('#filter-items-span');
 
             if (urlParams.size > 0) {
 

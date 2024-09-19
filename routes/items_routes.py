@@ -69,6 +69,8 @@ def items_load():
     if request.method == 'POST':
         inventory_slug_from_form = request.form.get("inventory_slug")
         inventory_slug_from_form = bleach.clean(inventory_slug_from_form)
+        overwrite_or_not_from_form = request.form.get("overwrite_or_not")
+        overwrite_or_not_from_form = bleach.clean(str(overwrite_or_not_from_form))
 
         if request.files:
             uploaded_file = request.files['file']  # This line uses the same variable and worked fine
@@ -155,6 +157,8 @@ def items_load():
                         if "items" in inventory_data:
                             for item in inventory_data["items"]:
                                 item_id = int(bleach.clean(str(item.get("id"))))
+                                if overwrite_or_not_from_form == 'None':
+                                    item_id = None
                                 item_name = bleach.clean(item.get("name"))
                                 item_description = bleach.clean(item.get("description"))
                                 item_type = item.get("types", "none")
@@ -596,11 +600,14 @@ def items_save():
                 "related_items": related_items_dict
             }
 
+            current_user_id = str(current_user.id)
             item_images = []
             # save images
             for img in item_.images:
                 tmp_img_dict = {"is_main": False}
-                img_path = os.path.join(app.config['USER_IMAGES_BASE_PATH'], img.image_filename)
+                img_path = os.path.join(app.config['USER_IMAGES_BASE_PATH'],
+                                        current_user_id,
+                                        img.image_filename)
 
                 import base64
 
@@ -648,6 +655,8 @@ def items_with_username(username=None):
 
 @items_routes.route('/@<string:username>/<inventory_slug>')
 def items_with_username_and_inventory(username=None, inventory_slug=None):
+    if request.method == 'POST':
+        d = 3
     inventory_owner_username = bleach.clean(username)
     inventory_owner = None
     inventory_owner_id = None
@@ -747,10 +756,10 @@ def items_with_username_and_inventory(username=None, inventory_slug=None):
     all_fields = dict(get_all_fields())
 
 
-    data_dict, item_id_list = find_items_query(requested_username=requested_username, logged_in_user=logged_in_user,
-                                               inventory_id=inventory_id,
-                                               request_params=request_params)
-
+    # data_dict, item_id_list = find_items_query(requested_username=requested_username, logged_in_user=logged_in_user,
+    #                                            inventory_id=inventory_id,
+    #                                            request_params=request_params)
+    data_dict = {}
     inventory_id = -1
     if inventory_ is not None:
         inventory_id = inventory_.id
@@ -819,12 +828,17 @@ def _get_inventory(inventory_slug: str, logged_in_user_id: int, inventory_owner_
     return inventory_id, inventory_, field_template_
 
 
+
+
+
+
 def find_items_query(requested_username: str, logged_in_user, inventory_id: int, request_params):
     query_params = {
         'item_type': request_params["requested_item_type_id"],
         'item_location': request_params["requested_item_location_id"],
         'item_specific_location': request_params["requested_item_specific_location"],
         'item_tags': request_params["requested_tag_strings"],
+        'page': request_params.get("page", 1),
     }
 
     items_ = find_items_new(inventory_id=inventory_id,
