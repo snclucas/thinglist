@@ -15,7 +15,10 @@
                 <th>Tags</th>
                 {% if user_is_authenticated %}
                     {% if is_inventory_owner or inventory_access_level == 1 %}
-                        <th><input class="form-check-input" type="checkbox" value="" id="all-selected-items"></th>
+                        <th>
+                            <input class="form-check-input" type="checkbox" value="" id="all-selected-items"> All on page |
+                            <input class="form-check-input" type="checkbox" value="" id="total-all-selected-items"> All
+                        </th>
                     {% endif %}
                 {% endif %}
             </tr>

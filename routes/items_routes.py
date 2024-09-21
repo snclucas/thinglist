@@ -27,7 +27,7 @@ from database_functions import get_all_user_locations, \
     change_item_access_level, link_items, copy_items, commit, find_items_new, __PUBLIC__, __PRIVATE__, \
     find_user_by_username, add_images_to_item, set_item_main_image, get_user_inventories, add_user_inventory, \
     save_template_fields, get_item_fields, save_inventory_fieldtemplate, find_template_by_id, save_user_inventory_view, \
-    get_related_items
+    get_related_items, get_all_item_ids_in_inventory
 from models import FieldTemplate
 
 from utils import generate_item_image_filename
@@ -396,12 +396,22 @@ def items_move():
         item_ids = json_data['item_ids']
         username = json_data['username']
         to_inventory_id = json_data['to_inventory_id']
+        from_inventory_id = json_data['inventory_id']
         move_type = int(json_data['move_type'])
+
+        username = bleach.clean(username)
+        to_inventory_id = int(bleach.clean(str(to_inventory_id)))
+        from_inventory_id = int(bleach.clean(str(from_inventory_id)))
+        move_type = int(bleach.clean(str(move_type)))
+        item_ids = [int(bleach.clean(str(x))) for x in item_ids]
+
         """
         link - just add new line in ItemInventory
         move - change inventory id in ItemInventory
         copy - duplicate item, add new line in ItemInventory
         """
+        if len(item_ids) == 1 and item_ids[0] == -1:
+            item_ids = get_all_item_ids_in_inventory(user_id = current_user.id, inventory_id = from_inventory_id)
 
         if move_type == 0:
             result = move_items(item_ids=item_ids, user=current_user, inventory_id=int(to_inventory_id))
@@ -939,11 +949,7 @@ def del_items():
 
         # sanitize inputs
         username = bleach.clean(username)
-        item_ids = [bleach.clean(x) for x in item_ids]
-
-        # create redirect_url and ensure it has an '@' symbol before the user
-        redirect_url = url_for(endpoint='items.items_with_username',
-                               username=username).replace('%40', '@')
+        item_ids = [int(bleach.clean(str(x))) for x in item_ids]
 
         inventory_id = json_data.get('inventory_id')
         if inventory_id == '':
@@ -957,4 +963,7 @@ def del_items():
             flash("There was a problem deleting your things!")
             current_app.logger.error("Error deleting items - missing item_ids or username")
 
+        # create redirect_url and ensure it has an '@' symbol before the user
+        redirect_url = url_for(endpoint='items.items_with_username',
+                               username=username).replace('%40', '@')
         return redirect(redirect_url)

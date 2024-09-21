@@ -138,8 +138,7 @@ def add_inventory():
     if new_inventory_data is None:
         return redirect(url_for('inv.inventories'))
 
-    return redirect(url_for(endpoint='items.items_with_username_and_inventory', username=current_user.username,
-                            inventory_slug=new_inventory_data["slug"]))
+    return redirect(url_for(endpoint='inv.inventories_for_username', username=current_user.username))
 
 
 @inv.route(rule='/list/delete', methods=['POST'])

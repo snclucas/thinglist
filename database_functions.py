@@ -1079,8 +1079,36 @@ def find_items_new(logged_in_user=None, requested_username=None, inventory_id=No
                                                      query_params=query_params)
 
 
+def get_all_item_ids_in_inventory(user_id: int, inventory_id: int):
+    with app.app_context():
+        stmt = select(Item.id).join(InventoryItem, InventoryItem.item_id == Item.id
+                                 ).where(user_id == Item.user_id
+                                         ).where(InventoryItem.inventory_id == inventory_id)
+
+        results_ = db.session.execute(stmt).all()
+        return [x[0] for x in results_]
 
 
+def count_all_item_ids_in_inventory(user_id: int, inventory_id: int) -> int:
+    with app.app_context():
+        stmt = select(Item.id).join(InventoryItem, InventoryItem.item_id == Item.id
+                                 ).where(user_id == Item.user_id
+                                         ).where(InventoryItem.inventory_id == inventory_id)
+
+        results_ = db.session.execute(stmt).all()
+        return len(results_)
+
+
+def delete_all_items_in_inventory(user_id: int, inventory_id: int):
+    with app.app_context():
+        query = db.session.query(Item, InventoryItem) \
+            .join(InventoryItem, InventoryItem.item_id == Item.id)
+
+        query = query.filter(InventoryItem.inventory_id == inventory_id)
+        query = query.filter(Item.user_id == user_id)
+
+        results_ = query.all()
+        return results_
 
 
 def find_items(inventory_id=None, item_type=None,
@@ -1860,7 +1888,7 @@ def delete_item_images_by_item_id(item_id: int, user_id: str):
             db.session.commit()
 
 
-def delete_item_images(item_: Item, user_id: str) -> (bool, str):
+def delete_item_images(item_: Item, user_id: int) -> (bool, str):
 
     if item_ is None:
         return False, "Item ID cannot be None"
@@ -1892,7 +1920,7 @@ def get_related_items(item_id: int):
         or_(Relateditems.item_id == item_id, Relateditems.related_item_id == item_id)).all()
 
 
-def get_items_to_delete(user_id: str, item_ids: list):
+def get_items_to_delete(user_id: int, item_ids: list):
     """
 
     Method: get_items_to_delete
@@ -1920,7 +1948,7 @@ def get_items_to_delete(user_id: str, item_ids: list):
     return db.session.execute(stmt).all()
 
 
-def delete_items(item_ids: list, user_id: str, inventory_id: int = None) -> int:
+def delete_items(item_ids: list, user_id: int, inventory_id: int = None) -> int:
     """
 
     Delete Items
@@ -1929,13 +1957,14 @@ def delete_items(item_ids: list, user_id: str, inventory_id: int = None) -> int:
 
     Parameters:
     - item_ids (list): A list of item IDs to be deleted.
-    - user_id (str): The user ID performing the deletion.
+    - user_id (int): The user ID performing the deletion.
 
     Returns:
     - int: The number of items deleted.
 
     Note:
     - If the item_ids list is empty or the user is None, the function will return 0.
+    - If the item_ids list -s [-1] then all items are deleted.
     - If no item IDs are provided, the function will return 0.
     - Related item relationships and item images associated with each item will also be deleted.
 
@@ -1947,7 +1976,13 @@ def delete_items(item_ids: list, user_id: str, inventory_id: int = None) -> int:
         return 0
 
     with app.app_context():
-        items_to_delete = get_items_to_delete(user_id, item_ids)
+        # if item IDs = [-1] then delete all items
+        if len(item_ids) == 1 and item_ids[0] == -1:
+            item_ids = get_all_item_ids_in_inventory(user_id=user_id, inventory_id=inventory_id)
+            items_to_delete = get_items_to_delete(user_id=user_id, item_ids=item_ids)
+        else:
+            items_to_delete = get_items_to_delete(user_id=user_id, item_ids=item_ids)
+
         number_items_deleted = 0
 
         for item_ in items_to_delete:
@@ -1961,22 +1996,30 @@ def delete_items(item_ids: list, user_id: str, inventory_id: int = None) -> int:
                         if itinv.id == inventory_id:
                             item_.inventories.remove(itinv)
 
-                    db.session.commit()
-                    number_items_deleted = 1
-                else:
+                    try:
+                        db.session.commit()
+                    except SQLAlchemyError as e:
+                        d = 3
 
-                    # remove related item relationships
-                    related_items = get_related_items(item_.id)
-                    for related_item in related_items:
-                        db.session.delete(related_item)
-
-                    # remove item images
-                    delete_item_images(item_, user_id)
-
-                    db.session.delete(item_)
                     number_items_deleted += 1
 
+                # remove related item relationships
+                related_items = get_related_items(item_.id)
+                for related_item in related_items:
+                    db.session.delete(related_item)
+
+                # remove item images
+                delete_item_images(item_, user_id)
+
+                db.session.delete(item_)
+                number_items_deleted += 1
+
         db.session.commit()
+        try:
+            db.session.commit()
+            return number_items_deleted
+        except SQLAlchemyError as e:
+            db.session.rollback()
 
     return number_items_deleted
 

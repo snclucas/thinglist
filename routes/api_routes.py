@@ -3,7 +3,8 @@ from flask import Blueprint
 from flask_login import login_required, current_user
 from flask import request
 from database_functions import get_all_itemtypes_for_user, get_all_user_locations, get_all_user_tags, \
-    get_all_item_types, find_items_new, find_all_my_items, find_user_by_username
+    get_all_item_types, find_items_new, find_all_my_items, find_user_by_username, \
+    count_all_item_ids_in_inventory
 from routes.items_routes import _get_inventory, _process_url_query
 
 api_routes = Blueprint('api', __name__)
@@ -91,6 +92,8 @@ def items(username=None, inventory_slug=None):
                             requested_username=current_user.username,
                             logged_in_user=current_user)
 
+    num_items_in_inventory = count_all_item_ids_in_inventory(user_id=current_user.id, inventory_id=inventory_id)
+
     ret_items = []
     for row in items_:
         item_ = row[0]
@@ -114,7 +117,11 @@ def items(username=None, inventory_slug=None):
             "id": item_.id
         })
 
-    return {"data": ret_items}
+    return {
+        "data": ret_items,
+        "recordTotals": num_items_in_inventory,
+        "recordsFiltered": num_items_in_inventory #len(ret_items)
+    }
 
 
 @api_routes.route('/api/locations', methods=['GET'])
