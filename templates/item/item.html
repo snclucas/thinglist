@@ -80,24 +80,6 @@
                                 </div>
                             </div>
 
-
-                            <div class="row">
-                                <div class="col-md-6 order-sm-first order-last">
-                                    <h6><strong>Location:</strong> {{ item_location['name'] }}</h6>
-                                </div>
-                                <div class="col-md-6 order-sm-first order-last">
-                                    {% if item_access_level == 0 %}
-                                        <h6><strong>Location:</strong> {{ item_location['name'] }}</h6>
-
-                                        {% if item.specific_location is not none %}
-                                            <h6><strong>Specific location #:</strong> {{ item.specific_location }}</h6>
-                                        {% else %}
-                                            <h6><strong>Specific location #:</strong> Not set</h6>
-                                        {% endif %}
-                                    {% endif %}
-                                </div>
-                            </div>
-
                             <div class="row">
 
                                 <div class="col-md-8 order-sm-first order-last">
@@ -105,7 +87,12 @@
                                     <h6><strong>Type:</strong> {{ item_type }}</h6>
 
                                     {% if item_access_level == 0 %}
-                                        <h6><strong>Location:</strong> {{ item_location['name'] }}</h6>
+                                        <h6>
+                                            <strong>Location:</strong>
+                                            <a href="{{ url_for('items.items_with_username_and_inventory', username=current_user.username, inventory_slug="all", location=item_location['name'])}}">{{ item_location['name'] }}</a>
+                                        </h6>
+
+
 
                                         {% if item.specific_location is not none %}
                                             <h6><strong>Specific location #:</strong> {{ item.specific_location }}</h6>
@@ -255,7 +242,7 @@
                 "pageLength": -1
             });
 
-    
+
         $(document).ready(function () {
 
 

@@ -942,6 +942,12 @@ def _find_my_items(logged_in_user: User, inventory_id, query_params):
 
         query = _find_query_parameters(query_=query, query_params=query_params)
 
+        search = query_params.get("search", None)
+
+        if search is not None:
+            if search != "":
+                query = query.filter(Item.name.contains(search))
+
         start = query_params.get("start", 0)
         length = query_params.get("length", 50)
 
@@ -1160,79 +1166,6 @@ def find_items(inventory_id=None, item_type=None,
                     d = d.filter(Item.user_id == request_user_id)
 
         d = _find_query_parameters(d, item_type, item_location, item_specific_location, item_tags)
-
-    sd = d.all()
-
-    return sd
-
-
-def find_items_orig(inventory_id=None, item_type=None,
-               item_tags=None, item_specific_location=None,
-               item_location=None, logged_in_user=None,
-               request_user=None):
-    if logged_in_user is None:
-        logged_in_user_id = None
-    else:
-        logged_in_user_id = logged_in_user.id
-
-    if request_user is None:
-        request_user_id = None
-    else:
-        request_user_id = request_user.id
-
-    with app.app_context():
-
-        if inventory_id is not None and inventory_id != '':
-            d = db.session.query(Item, ItemType.name, Location.name, InventoryItem.access_level) \
-                .join(ItemType, ItemType.id == Item.item_type) \
-                .join(Location, Location.id == Item.location_id)
-
-            d = d.join(InventoryItem, InventoryItem.item_id == Item.id)
-            d = d.join(Inventory, Inventory.id == InventoryItem.inventory_id)
-            d = d.filter(InventoryItem.inventory_id == inventory_id)
-        else:
-            d = db.session.query(Item, ItemType.name, Location.name, InventoryItem.access_level) \
-                .join(ItemType, ItemType.id == Item.item_type) \
-                .join(Location, Location.id == Item.location_id)
-
-            d = d.join(InventoryItem, InventoryItem.item_id == Item.id)
-
-        if logged_in_user_id is None:
-            if request_user_id is None:
-                d = d.filter(InventoryItem.access_level == 2)
-            else:
-                d = d.filter(Item.user_id == request_user_id)
-                d = d.filter(InventoryItem.access_level == 2)
-
-        else:
-            if request_user_id is None:
-                d = d.filter(Item.user_id == logged_in_user_id)
-            else:
-                if request_user_id != logged_in_user_id:
-                    d = d.filter(Item.user_id == request_user_id)
-                    d = d.filter(InventoryItem.access_level == 2)
-                else:
-                    d = d.filter(Item.user_id == request_user_id)
-
-        if item_type is not None and item_type != '':
-            d = d.filter(Item.item_type == item_type)
-
-        if item_location is not None and item_location != '':
-            d = d.filter(Location.id == item_location)
-
-        if item_specific_location is not None and item_specific_location != '':
-            d = d.filter(Item.specific_location == item_specific_location)
-
-        if item_tags is not None and item_tags != "":
-            item_tags = item_tags.split(",")
-
-            for tag_ in item_tags:
-                tag_ = tag_.strip()
-                tag_ = tag_.replace(" ", "@#$")
-                t_ = find_tag(tag=tag_)
-
-                if t_ is not None:
-                    d = d.filter(Item.tags.contains(t_))
 
     sd = d.all()
 

@@ -76,6 +76,12 @@ def items(username=None, inventory_slug=None):
                                                                         logged_in_user_id=logged_in_user_id)
 
     request_params = _process_url_query(req_=request, inventory_user=requested_user)
+
+    search_query = request.args.get("search[value]", None)
+    if search_query is not None:
+        if len(search_query) < 3:
+            search_query = None
+
     query_params = {
         'item_location': request_params.get("requested_item_location_id", None),
         'item_specific_location': request_params.get("item_specific_location", None),
@@ -85,6 +91,7 @@ def items(username=None, inventory_slug=None):
         'length': request.args.get("length", 50),
         'order_0': request.args.get("order[0][column]", None),
         'dir_0': request.args.get("order[0][dir]", None),
+        'search': search_query,
     }
 
     items_ = find_items_new(inventory_id=inventory_id,
