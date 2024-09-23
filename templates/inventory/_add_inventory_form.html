@@ -26,13 +26,14 @@
 
     <div class="row">
         <div class="col-sm-2">
-        <label>Visibility</label>
+            <label>Visibility</label>
         </div>
         <div class="col-sm-10">
             <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" id="inventory_public" name="inventory_public">
                 <label class="form-check-label" for="inventory_public">Public list</label>
-             <div id="emailHelp" class="form-text">Items in public lists will be visible by anyone but not editable </div>
+                <div id="emailHelp" class="form-text">Items in public lists will be visible by anyone but not editable
+                </div>
             </div>
         </div>
     </div>
@@ -41,17 +42,59 @@
     <div class="row">
         <div class="col-sm-2">
             <label>Type
-        </label>
+            </label>
         </div>
         <div class="col-sm-10">
-            <select class=" form-select"  id="inventory_type" name="inventory_type" aria-label="Default select example">
-                <option  value="1" selected>Inventory</option>
+            <select class=" form-select" id="inventory_type" name="inventory_type" aria-label="Default select example">
+                <option value="1" selected>Inventory</option>
                 <option value="2">List</option>
             </select>
-             <div id="emailHelp" class="form-text">Physical inventory or simple list of things</div>
+            <div id="emailHelp" class="form-text">Physical inventory or simple list of things</div>
         </div>
     </div>
     <hr>
+
+    <div class="row">
+        <div class="col-sm-2">
+            <label>Default fields</label>
+        </div>
+        <div class="col-sm-10">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="hide_default_fields" name="hide_default_fields">
+                <label class="form-check-label" for="inventory_show_default_fields">Hide</label>
+                <div id="show_default_fields_help" class="form-text">Default fields include Type, Location etc</div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="row">
+        <div class="col-sm-2">
+            <label>Show default fields</label>
+        </div>
+        <div class="col-sm-10">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="show_item_images" name="show_item_images" checked>
+                <label class="form-check-label" for="show_item_images">Images</label>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="show_item_type" name="show_item_type" checked>
+                <label class="form-check-label" for="show_item_type">Type</label>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="show_item_location" name="show_item_location"  checked>
+                <label class="form-check-label" for="show_item_location">Location</label>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="show_item_tags" name="show_item_tags" checked >
+                <label class="form-check-label" for="show_item_tags">Tags</label>
+            </div>
+        </div>
+    </div>
+
+
+    <hr>
+
 
     <div class="row">
         <hr>

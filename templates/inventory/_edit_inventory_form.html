@@ -48,13 +48,51 @@
         </div>
     </div>
 
-
-    <br>
-
     <br>
 
     <div class="row">
-        <hr>
+        <div class="col-sm-2">
+        <label>Default fields</label>
+        </div>
+        <div class="col-sm-10">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="edit_form_hide_default_fields" name="edit_form_hide_default_fields">
+                <label class="form-check-label" for="hide_default_fields">Hide</label>
+             <div id="show_default_fields_help" class="form-text">Default fields include Type, Location etc </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-sm-2">
+            <label>Show default fields</label>
+        </div>
+        <div class="col-sm-10">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="edit_form_show_item_images" name="show_item_images" checked>
+                <label class="form-check-label" for="show_item_images">Images</label>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="edit_form_show_item_type" name="show_item_type" checked>
+                <label class="form-check-label" for="show_item_type">Type</label>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="edit_form_show_item_location" name="show_item_location"  checked>
+                <label class="form-check-label" for="show_item_location">Location</label>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="edit_form_show_item_tags" name="show_item_tags" checked >
+                <label class="form-check-label" for="show_item_tags">Tags</label>
+            </div>
+        </div>
+    </div>
+
+
+    <br>
+
+
+    <div class="row">
+
 
         <div class="col-12">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

@@ -131,9 +131,39 @@ def add_inventory():
     if "inventory_public" in request.form:
         access_level_ = __PUBLIC__
 
-    new_inventory_data, msg = add_user_inventory(name=inventory_name_, description=inventory_description_,
+    show_default_fields = 1
+    if "hide_default_fields" in request.form:
+        show_default_fields = 0
+
+
+    show_item_images = 1
+    if "show_item_images" not in request.form:
+        show_item_images = 0
+
+    show_item_type = 1
+    if "show_item_type" not in request.form:
+        show_item_type = 0
+
+    show_item_location = 1
+    if "show_item_location" not in request.form:
+        show_item_location = 0
+
+    show_item_tags = 1
+    if "show_item_tags" not in request.form:
+        show_item_tags = 0
+
+
+
+    new_inventory_data, msg = add_user_inventory(name=inventory_name_,
+                                                 description=inventory_description_,
                                                  inventory_type=inventory_type_,
-                                                 access_level=access_level_, user_id=current_user.id)
+                                                 show_default_fields=show_default_fields,
+                                                 show_item_images=show_item_images,
+                                                 show_item_type=show_item_type,
+                                                 show_item_location=show_item_location,
+                                                 show_item_tags=show_item_tags,
+                                                 access_level=access_level_,
+                                                 user_id=current_user.id)
 
     if new_inventory_data is None:
         return redirect(url_for('inv.inventories'))
@@ -165,8 +195,35 @@ def edit_inventory():
         if "inventory_public" in request.form:
             access_level_ = __PUBLIC__
 
-        edit_inventory_data(user_id=current_user.id, inventory_id=int(inventory_id), name=inventory_name,
-                            description=inventory_description, inventory_type=inventory_type,
+        show_default_fields = 1
+        if "edit_form_hide_default_fields" in request.form:
+            show_default_fields = 0
+
+        show_item_images = 1
+        if "show_item_images" not in request.form:
+            show_item_images = 0
+
+        show_item_type = 1
+        if "show_item_type" not in request.form:
+            show_item_type = 0
+
+        show_item_location = 1
+        if "show_item_location" not in request.form:
+            show_item_location = 0
+
+        show_item_tags = 1
+        if "show_item_tags" not in request.form:
+            show_item_tags = 0
+
+        edit_inventory_data(user_id=current_user.id, inventory_id=int(inventory_id),
+                            name=inventory_name,
+                            description=inventory_description,
+                            inventory_type=inventory_type,
+                            show_default_fields=show_default_fields,
+                            show_item_images=show_item_images,
+                            show_item_type=show_item_type,
+                            show_item_location=show_item_location,
+                            show_item_tags=show_item_tags,
                             access_level=int(access_level_))
 
         return redirect(url_for('inv.inventories'))

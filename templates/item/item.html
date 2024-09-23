@@ -20,96 +20,103 @@
 {% block content %}
 
     <div class="content">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-11">
-                                    <h5>{{ item.name }} | {{ item.quantity }} </h5>
-                                </div>
-                                <div class="col-md-1">
-                                    {% if item_access_level == 0 %}
-                                        <div class="text-end">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-11">
+                                <h5>{{ item.name }} | {{ item.quantity }} </h5>
+                            </div>
+                            <div class="col-md-1">
+                                {% if item_access_level == 0 %}
+                                    <div class="text-end">
                                             <span class="fas fa-ellipsis-v fa-2x" data-bs-toggle="collapse"
                                                   href="#collapseButtonBar"
                                                   style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-                                        </div>
-                                    {% endif %}
-                                </div>
+                                    </div>
+                                {% endif %}
                             </div>
-                            <hr>
-                            {% if item_access_level == 0 %}
-                                <div class="collapse" id="collapseButtonBar" aria-expanded="false">
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            {% include 'item/_item_button_bar.html' %}
-                                            <hr>
-                                        </div>
+                        </div>
+                        <hr>
+                        {% if item_access_level == 0 %}
+                            <div class="collapse" id="collapseButtonBar" aria-expanded="false">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        {% include 'item/_item_button_bar.html' %}
+                                        <hr>
                                     </div>
                                 </div>
-                            {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="card-body">
+
+                        {% if item_access_level == 0 %}
+                            <div class="row">
+
+                                <div class="col-md-12">
+
+                                    <div class="collapse" id="collapseExample" aria-expanded="false">
+                                        <div class="card card-body">
+                                            {% include 'item/_edit_item_form.html' %}
+                                        </div>
+                                    </div>
+
+                                    <div class="collapse" id="collapseImagesEdit" aria-expanded="false">
+                                        {% include 'item/_item_images_upload.html' %}
+                                    </div>
+
+                                </div>
+
+                            </div>
+                        {% endif %}
+
+                        <div class="row">
+                            <div class="col-12">
+                                {% include '_flash_messages.html' %}
+                            </div>
                         </div>
 
-                        <div class="card-body">
-
-                            {% if item_access_level == 0 %}
-                                <div class="row">
-
-                                    <div class="col-md-12">
-
-                                        <div class="collapse" id="collapseExample" aria-expanded="false">
-                                            <div class="card card-body">
-                                                {% include 'item/_edit_item_form.html' %}
-                                            </div>
-                                        </div>
-
-                                        <div class="collapse" id="collapseImagesEdit" aria-expanded="false">
-                                            {% include 'item/_item_images_upload.html' %}
-                                        </div>
-
-                                    </div>
-
-                                </div>
+                        <div class="row">
+                            {% if inventory.show_item_images == True %}
+                                <div class="col-md-8 order-sm-first order-last">
+                            {% else %}
+                                <div class="col-md-12 order-sm-first order-last">
                             {% endif %}
 
-                            <div class="row">
-                                <div class="col-12">
-                                    {% include '_flash_messages.html' %}
-                                </div>
+
+                            <p class="card-text">{{ item.description | safe }}</p>
+
+                        {% if inventory.show_item_type == True %}
+                            <h6><strong>Type:</strong> {{ item_type }}</h6>
+ {% endif %}
+
+                            {% if item_access_level == 0 %}
+                                <h6>
+                                    <strong>Location:</strong>
+                                    <a href="{{ url_for('items.items_with_username_and_inventory', username=current_user.username, inventory_slug="all", location=item_location['name']) }}">{{ item_location['name'] }}</a>
+                                </h6>
+
+                                {% if item.specific_location is not none %}
+                                    <h6><strong>Specific location #:</strong> {{ item.specific_location }}</h6>
+                                {% else %}
+                                    <h6><strong>Specific location #:</strong> Not set</h6>
+                                {% endif %}
+                            {% endif %}
+
                             </div>
 
-                            <div class="row">
-
-                                <div class="col-md-8 order-sm-first order-last">
-                                    <p class="card-text">{{ item.description | safe }}</p>
-                                    <h6><strong>Type:</strong> {{ item_type }}</h6>
-
-                                    {% if item_access_level == 0 %}
-                                        <h6>
-                                            <strong>Location:</strong>
-                                            <a href="{{ url_for('items.items_with_username_and_inventory', username=current_user.username, inventory_slug="all", location=item_location['name'])}}">{{ item_location['name'] }}</a>
-                                        </h6>
-
-
-
-                                        {% if item.specific_location is not none %}
-                                            <h6><strong>Specific location #:</strong> {{ item.specific_location }}</h6>
-                                        {% else %}
-                                            <h6><strong>Specific location #:</strong> Not set</h6>
-                                        {% endif %}
-                                    {% endif %}
-
-                                </div>
-
-
+                            {% if inventory.show_item_images == True %}
                                 <div class="col-md-4">
                                     {% if item.main_image is not none %}
                                         {% set image_url = get_image_url(inventory_owner_id, item.main_image) %}
                                         <img src="{{ image_url }}" class="rounded float-end img-thumbnail" alt="...">
                                     {% endif %}
                                 </div>
+                            {% endif %}
 
                             </div>
 
@@ -149,15 +156,15 @@
                             {% endif %}
 
                             <hr>
-
-                            <div id="item-tags">
-                                {% for tag in item.tags %}
-                                    <a href="{{ url_for('items.items') }}?tags={{ tag.tag }}">
-                                        <button type="button" class="btn btn-sm btn-primary">{{ tag.tag }}</button>
-                                    </a>
-                                {% endfor %}
-                            </div>
-
+                            {% if inventory.show_item_tags == True %}
+                                <div id="item-tags">
+                                    {% for tag in item.tags %}
+                                        <a href="{{ url_for('items.items') }}?tags={{ tag.tag }}">
+                                            <button type="button" class="btn btn-sm btn-primary">{{ tag.tag }}</button>
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                             <hr>
 
                             <div class="row">
@@ -186,8 +193,9 @@
                             </div>
 
                             <hr>
-
-                            {% include 'item/_item_masonary_images.html' %}
+                            {% if inventory.show_item_images == True %}
+                                {% include 'item/_item_masonary_images.html' %}
+                            {% endif %}
 
                             <div class="text-center">
                                 <img src="{{ qrcode(url_for(request.endpoint, **request.view_args) | replace('%40', '@'), box_size=6 ) }}">
@@ -234,17 +242,16 @@
     </script>
 
     <script>
-    $('#item-field-table').DataTable({
-                "searching": true,
-                paging: false,
-                ordering: true,
-                info: true,
-                "pageLength": -1
-            });
+        $('#item-field-table').DataTable({
+            "searching": true,
+            paging: false,
+            ordering: true,
+            info: true,
+            "pageLength": -1
+        });
 
 
         $(document).ready(function () {
-
 
 
             $("#search-box").keyup(function () {
@@ -262,7 +269,6 @@
                     }
                 });
             });
-
 
 
         });
@@ -420,7 +426,6 @@
                 }
             });
         });
-
 
 
         const autoCompleteJS = new autoComplete({

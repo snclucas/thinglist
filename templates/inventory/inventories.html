@@ -179,7 +179,13 @@
             let inventory_name = $(this).attr('data-inventory-name');
             let inventory_desc = $(this).attr('data-inventory-description');
             let inventory_type = $(this).attr('data-inventory-type');
+            let inventory_show_def_fields = $(this).attr('data-inventory-show-default-fields');
             let inventory_public = $(this).attr('data-inventory-public');
+
+            let inventory_show_item_images = $(this).attr('data-inventory-show-item-images');
+            let inventory_show_item_type = $(this).attr('data-inventory-show-item-type');
+            let inventory_show_item_location = $(this).attr('data-inventory-show-item-locatio');
+            let inventory_show_item_tags = $(this).attr('data-inventory-show-item-tags');
 
             $('#edit_form_inventory_id').val(inventory_id)
             $('#edit_form_inventory_name').val(inventory_name)
@@ -188,8 +194,21 @@
             $("div.inv_type select").val(inventory_type);
 
             let inventory_public_is_checked = (inventory_public === "1")
+            let inventory_show_def_fields_is_checked = (inventory_show_def_fields === "0")
+
+            let inventory_show_item_images_is_checked = (inventory_show_item_images === "1")
+            let inventory_show_item_type_is_checked = (inventory_show_item_type === "1")
+            let inventory_show_item_location_is_checked = (inventory_show_item_location === "1")
+            let inventory_show_item_tags_is_checked = (inventory_show_item_tags === "1")
 
             $('#edit_form_inventory_public').prop('checked', inventory_public_is_checked);
+            $('#edit_form_hide_default_fields').prop('checked', inventory_show_def_fields_is_checked);
+
+
+            $('#edit_form_show_item_images').prop('checked', inventory_show_item_images_is_checked);
+            $('#edit_form_show_item_type').prop('checked', inventory_show_item_type_is_checked);
+            $('#edit_form_show_item_location').prop('checked', inventory_show_item_location_is_checked);
+            $('#edit_form_show_item_tags').prop('checked', inventory_show_item_tags_is_checked);
 
         });
 

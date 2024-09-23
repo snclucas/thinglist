@@ -27,6 +27,7 @@ __PUBLIC__ = 3
 
 __INVENTORY__ = 1
 __LIST__ = 2
+__URL_LIST__ = 3
 
 
 def drop_then_create():
@@ -441,7 +442,14 @@ def backup_to_json():
 
 
 
-def create_inventory(name: str, description: str, slug: str, inventory_type: int, to_user, access_level):
+def create_inventory(name: str, description: str, slug: str,
+                     inventory_type: int,
+                     show_default_fields: int,
+                        show_item_images: int,
+                         show_item_type: int,
+                         show_item_location: int,
+                         show_item_tags: int,
+                     to_user, access_level):
     """
     Create a new inventory.
 
@@ -458,7 +466,13 @@ def create_inventory(name: str, description: str, slug: str, inventory_type: int
     """
     inventory_token = uuid.uuid4().hex
     new_inventory = Inventory(name=name, description=description, token=inventory_token,
-                              slug=slug, owner=to_user, type=inventory_type, access_level=access_level)
+                              slug=slug, owner=to_user, type=inventory_type,
+                              show_default_fields=show_default_fields,
+                              show_item_images=show_item_images,
+                              show_item_type=show_item_type,
+                              show_item_location=show_item_location,
+                              show_item_tags=show_item_tags,
+                              access_level=access_level)
     db.session.expire_on_commit = False
     db.session.add(new_inventory)
     db.session.flush()
@@ -469,28 +483,15 @@ def create_inventory(name: str, description: str, slug: str, inventory_type: int
     return new_inventory, new_inventory_id
 
 
-def add_user_inventory(name: str, description: str, inventory_type: int, slug: str = None,
+def add_user_inventory(name: str, description: str, inventory_type: int,
+                       show_default_fields: int = True,
+                        show_item_images: int = True,
+                         show_item_type: int = True,
+                         show_item_location: int = True,
+                         show_item_tags: int = True,
+                       slug: str = None,
                        access_level: int = 1, user_id: int = None) -> Tuple[Optional[dict], str]:
-    """
-    Add a new inventory to a user.
 
-    Args:
-        name (str): The name of the inventory.
-        description (str): The description of the inventory.
-        inventory_type (int): The type of the inventory.
-        access_level (int): The access level of the inventory.
-        user_id (int): The ID of the user.
-
-    Returns:
-        Tuple[Optional[dict], str]: A tuple containing the result dictionary and a status message. The result dictionary
-        contains the ID, name, description, slug, and access_level of the new inventory. The status message indicates the
-        success or failure of the operation.
-
-        If the name is empty, returns (None, "Name cannot be empty").
-        If the user is not found, returns (None, "User not found").
-        If an error occurs while adding the inventory, returns (None, "Could not add inventory").
-        If the inventory is successfully added, returns the result dictionary and "success".
-    """
     if name == "":
         return None, "Name cannot be empty"
 
@@ -506,6 +507,11 @@ def add_user_inventory(name: str, description: str, inventory_type: int, slug: s
 
             new_inventory, new_inventory_id = create_inventory(name=name, description=description,
                                                                inventory_type=inventory_type,
+                                                               show_default_fields=show_default_fields,
+                                                               show_item_images=show_item_images,
+                                                               show_item_type=show_item_type,
+                                                               show_item_location=show_item_location,
+                                                               show_item_tags=show_item_tags,
                                                                slug=slug, to_user=to_user, access_level=access_level)
 
             result_return_value = {
@@ -1115,61 +1121,6 @@ def delete_all_items_in_inventory(user_id: int, inventory_id: int):
 
         results_ = query.all()
         return results_
-
-
-def find_items(inventory_id=None, item_type=None,
-               item_tags=None, item_specific_location=None,
-               item_location=None, logged_in_user=None,
-               request_user=None):
-    if logged_in_user is None:
-        logged_in_user_id = None
-    else:
-        logged_in_user_id = logged_in_user.id
-
-    if request_user is None:
-        request_user_id = None
-    else:
-        request_user_id = request_user.id
-
-    with app.app_context():
-
-        if inventory_id is not None and inventory_id != '':
-            d = db.session.query(Item, ItemType.name, Location.name, InventoryItem.access_level, UserInventory) \
-                .join(ItemType, ItemType.id == Item.item_type) \
-                .join(Location, Location.id == Item.location_id)
-
-            d = d.join(InventoryItem, InventoryItem.item_id == Item.id)
-            d = d.join(Inventory, Inventory.id == InventoryItem.inventory_id)
-            d = d.filter(InventoryItem.inventory_id == inventory_id)
-        else:
-            d = db.session.query(Item, ItemType.name, Location.name, InventoryItem.access_level) \
-                .join(ItemType, ItemType.id == Item.item_type) \
-                .join(Location, Location.id == Item.location_id)
-
-            d = d.join(InventoryItem, InventoryItem.item_id == Item.id)
-
-        if logged_in_user_id is None:
-            if request_user_id is None:
-                d = d.filter(InventoryItem.access_level == 2)
-            else:
-                d = d.filter(Item.user_id == request_user_id)
-                d = d.filter(InventoryItem.access_level == 2)
-
-        else:
-            if request_user_id is None:
-                d = d.filter(Item.user_id == logged_in_user_id)
-            else:
-                if request_user_id != logged_in_user_id:
-                    d = d.filter(Item.user_id == request_user_id)
-                    d = d.filter(InventoryItem.access_level == 2)
-                else:
-                    d = d.filter(Item.user_id == request_user_id)
-
-        d = _find_query_parameters(d, item_type, item_location, item_specific_location, item_tags)
-
-    sd = d.all()
-
-    return sd
 
 
 def change_item_access_level(item_ids: int, access_level: int, user_id: int):
@@ -1833,6 +1784,7 @@ def delete_item_images(item_: Item, user_id: int) -> (bool, str):
                                        image_.image_filename))
             except OSError as er:
                 app.logger.error(f"Error deleting image file: {image_.image_filename}")
+                app.logger.error(f"Error message: {er}")
                 return False, f"Error deleting image file: {image_.image_filename}"
 
         item_.images = []
@@ -2686,7 +2638,13 @@ def delete_item_from_inventory(user: User, inventory_id: int, item_id: int) -> N
 
 
 def edit_inventory_data(user_id: int, inventory_id: int, name: str,
-                        description: str, inventory_type: int, access_level: int) -> None:
+                        description: str, inventory_type: int,
+                        show_default_fields: int,
+                        show_item_images: int,
+                         show_item_type: int,
+                         show_item_location: int,
+                         show_item_tags: int,
+                        access_level: int) -> None:
     session = db.session
 
     stmt = select(UserInventory, Inventory).join(Inventory) \
@@ -2699,6 +2657,13 @@ def edit_inventory_data(user_id: int, inventory_id: int, name: str,
         results_[1].name = name
         results_[1].description = description
         results_[1].type = inventory_type
+        results_[1].show_default_fields = show_default_fields
+
+        results_[1].show_item_images = show_item_images
+        results_[1].show_item_type = show_item_type
+        results_[1].show_item_location = show_item_location
+        results_[1].show_item_tags = show_item_tags
+
         results_[1].access_level = access_level
         db.session.commit()
 
@@ -2823,7 +2788,7 @@ def get_user_inventories(current_user_id: int, requesting_user_id: int, access_l
     if not isinstance(requesting_user_id, int) and requesting_user_id is not None:
         raise TypeError("requesting_user_id must be an integer")
 
-    with (((app.app_context()))):
+    with app.app_context():
 
         # stmt = db.session.query(Inventory, UserInventory).join(UserInventory).filter(UserInventory.user_id==1).all()
         stmt = db.session.query(Inventory, UserInventory).join(UserInventory)
@@ -2862,6 +2827,12 @@ def get_user_inventories(current_user_id: int, requesting_user_id: int, access_l
                 "inventory_owner": inv.owner.username,
                 "inventory_item_count": len(inv.items),
                 "inventory_type": inv.type,
+                "inventory_show_default_fields": 1 if inv.show_default_fields else 0,
+
+                "inventory_show_item_images": 1 if inv.show_item_images else 0,
+                "inventory_show_item_type": 1 if inv.show_item_type else 0,
+                "inventory_show_item_location": 1 if inv.show_item_location else 0,
+                "inventory_show_item_tags": 1 if inv.show_item_tags else 0,
                 "userinventory_access_level": user_inv.access_level
             }
             ret_results.append(d)
@@ -3045,10 +3016,17 @@ def get_all_item_fields(item_id: int):
 
 
 def get_all_fields():
+    """
+    Returns a list of all fields from the database.
+
+    Returns:
+        A list of all fields from the database.
+
+    """
     with app.app_context():
         stmt = select(Field.field, Field)
-        ddd = db.session.execute(stmt).all()
-        return ddd
+        res = db.session.execute(stmt).all()
+        return res
 
 def get_all_fields_include_users(user_id: int):
     with app.app_context():

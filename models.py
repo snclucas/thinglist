@@ -120,6 +120,11 @@ class Inventory(db.Model):
     token = db.Column(db.String(255), nullable=False, unique=False)
     short_code = db.Column(db.String(255), nullable=True, unique=True)
     type = db.Column(db.Integer, nullable=True, unique=False, default=1)
+    show_default_fields = db.Column(db.Boolean(), nullable=False, unique=False, default=True)
+    show_item_images = db.Column(db.Boolean(), nullable=False, unique=False, default=True)
+    show_item_location = db.Column(db.Boolean(), nullable=False, unique=False, default=True)
+    show_item_type = db.Column(db.Boolean(), nullable=False, unique=False, default=True)
+    show_item_tags = db.Column(db.Boolean(), nullable=False, unique=False, default=True)
     invtags = db.relationship('Invtag', secondary='inventory_tags', back_populates='inventories', lazy='subquery')
 
 
