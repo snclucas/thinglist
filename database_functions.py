@@ -237,7 +237,11 @@ def save_new_user(user_: User) -> Tuple[bool, str, Optional[User]]:
             return False, "Email taken", None
 
         db.session.add(user_)
-        db.session.commit()
+
+        try:
+            db.session.commit()
+        except SQLAlchemyError as err:
+            app.logger.error(f"Error saving new user: {str(err)}")
 
         post_user_add_hook(new_user=user_)
         return True, "success", user_
@@ -262,8 +266,7 @@ def find_inventory(inventory_id: int) -> Optional[Inventory]:
     try:
         inventory_ = Inventory.query.filter_by(id=inventory_id).first()
     except (NoResultFound, InvalidRequestError, SQLAlchemyError) as e:
-        err_msg = f"Error finding inventory: {str(e)}"
-        app.logger.error(err_msg)
+        app.logger.error(f"Error finding inventory: {str(e)}")
         return None
     return inventory_
 
@@ -419,7 +422,7 @@ def find_all_user_inventories(user_id: int) -> list:
         result = db.session.execute(select_query).all()
         return result
     except Exception as ex:
-        print('An error occurred:', ex)
+        app.logger.error(f"Error finding all user inventories: {str(ex)}")
         return []
 
 

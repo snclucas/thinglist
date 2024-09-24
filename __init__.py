@@ -12,12 +12,12 @@ __VIEWER = 2
 __PUBLIC = 3
 
 
-if not app.debug:
+if app.debug:
     # ...
 
-    if not os.path.exists('logs'):
-        os.mkdir('logs')
-    file_handler = RotatingFileHandler('logs/microblog.log', maxBytes=10240,
+    if not os.path.exists('c:\\logs'):
+        os.mkdir('c:\\logs')
+    file_handler = RotatingFileHandler('c:\\logs\\microblog.log', maxBytes=10240,
                                        backupCount=10)
     file_handler.setFormatter(logging.Formatter(
         '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))

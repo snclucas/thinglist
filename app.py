@@ -1,4 +1,6 @@
+import logging
 import os
+from logging.handlers import RotatingFileHandler
 
 from flask_qrcode import QRcode
 from flask_sqlalchemy import SQLAlchemy
@@ -27,6 +29,7 @@ app = Flask(import_name="ThingList", static_url_path="", static_folder="static")
 
 
 
+
 app.config['RESIZE_URL'] = os.environ.get('RESIZE_URL', '')
 app.config['RESIZE_ROOT'] = os.environ.get('RESIZE_ROOT', '/tmp')
 
@@ -34,7 +37,7 @@ resize = flask_resize.Resize(app)
 
 ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL')
 
-
+app.config['LOG_DIRECTORY'] = os.environ.get('LOG_DIRECTORY', '')
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', '')
 app.config['IMAGE_SECRET_KEY'] = os.environ.get('IMAGE_SECRET_KEY', '')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -70,6 +73,24 @@ app.config['ITEM_DESCRIPTION_CHAR_LIMIT'] = os.environ.get('ITEM_DESCRIPTION_CHA
 app.config['USER_IMAGES_BASE_URL'] = os.environ.get('USER_IMAGES_BASE_URL', '')
 app.config['USER_IMAGES_BASE_PATH'] = os.environ.get('USER_IMAGES_BASE_PATH', '')
 app.config['ITEM_MASONARY_IMAGE_SIZE'] = os.environ.get('ITEM_MASONARY_IMAGE_SIZE', 200)
+
+
+
+# Configure Flask logging
+if not os.path.exists(app.config['LOG_DIRECTORY']):
+    os.mkdir(app.config['LOG_DIRECTORY'])
+
+error_log_file_handler = RotatingFileHandler(filename=os.path.join(app.config['LOG_DIRECTORY'], 'thinglist_error.txt'), maxBytes=10240,
+                                             backupCount=10)
+error_log_file_handler.setFormatter(logging.Formatter(
+    '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
+error_log_file_handler.setLevel(logging.INFO)
+app.logger.addHandler(error_log_file_handler)
+
+app.logger.setLevel(logging.INFO)
+app.logger.info('ThingList startup')
+
+
 
 csrf = CSRFProtect(app)
 
