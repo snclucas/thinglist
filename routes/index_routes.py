@@ -44,7 +44,7 @@ def testimages(image_id):
 def images(user_id, image_id):
     user_id = bleach.clean(str(user_id))
     image_id = bleach.clean(str(image_id))
-    base_url = app.config['IMAGES_BASE_URL']
+    base_url = app.config['USER_IMAGES_BASE_URL']
     image = f"{base_url}/{user_id}/{image_id}"
     return image
 
