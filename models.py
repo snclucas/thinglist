@@ -217,6 +217,7 @@ class InventoryItem(db.Model):
     item_id = db.Column(db.Integer, db.ForeignKey('items.id'))
     access_level = db.Column(db.Integer, default=0)
     is_link = db.Column(db.Boolean(), default=False)
+    __table_args__ = (UniqueConstraint('item_id', 'inventory_id', name='_item_id_inventory_id_uc'),)
 
 
 class ItemType(db.Model):

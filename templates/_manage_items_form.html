@@ -1,4 +1,4 @@
-<form method="POST" action="{{ url_for("items.items_manage") }}" id="load-items-form"
+<form method="POST" action="{{ url_for("items.items_manage") }}" id="manage-items-form"
       enctype="multipart/form-data">
 
 
@@ -48,10 +48,11 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <br>
-    <div class="form-check form-switch text-left">
-  <input class="form-check-input" type="checkbox" name="overwrite_or_not" id="flexSwitchCheckDefault" checked>
-  <label class="form-check-label" for="flexSwitchCheckDefault">Update / overwite existing items with the same IDs</label>
-</div>
+        <div class="form-check form-switch text-left">
+            <input class="form-check-input" type="checkbox" name="overwrite_or_not" id="flexSwitchCheckDefault" checked>
+            <label class="form-check-label" for="flexSwitchCheckDefault">Update / overwite existing items with the same
+                IDs</label>
+        </div>
 
         <br>
         <button type="submit" class="btn btn-primary" id="import-items-btn" name="import-items-btn">

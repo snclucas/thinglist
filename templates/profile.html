@@ -68,9 +68,6 @@
                     </div>
 
 
-
-
-
                 </div>
 
             </div>
@@ -132,10 +129,10 @@
             <hr>
 
             <div class="row">
-                                <div class="col-12">
-                                    {% include '_flash_messages.html' %}
-                                </div>
-                            </div>
+                <div class="col-12">
+                    {% include '_flash_messages.html' %}
+                </div>
+            </div>
 
 
             <div class="row">
@@ -147,7 +144,6 @@
                                role="button" aria-expanded="false" aria-controls="moveInventory">
                                 <h5>Manage your data (import / export)</h5>
                             </a>
-
 
 
                             <div class="collapse" id="collapseManageData" aria-expanded="false">
@@ -242,34 +238,43 @@
 
         });
 
-
-        $('[id^=confirmNotificationDeleteBtn]').on("click", function (e) {
-            e.preventDefault();
-
-            let notification_id = $(this).attr('data-notification-id');
-
-            $.ajax({
-                type: "POST",
-                url: "{{ url_for('main.del_notification')}}",
-                contentType: 'application/json;charset=UTF-8',
-                headers: {
-                    "X-CSRFToken": "{{ csrf_token() }}",
-                },
-                data: JSON.stringify(
-                    {
-                        'notification_id': notification_id,
-                        'username': "{{ username }}",
-                    }
-                ),
-                success: function () {
-                    location.reload();
-                },
-                error: function () {
-                    location.reload();
-                }
-            });
-
+        $("#import-items-btn").click(function () {
+            // disable button
+            $(this).prop("disabled", true);
+            // add spinner to button
+            $(this).html(
+                `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Loading...`
+            );
+            $("#manage-items-form").submit();
         });
+
+            $('[id^=confirmNotificationDeleteBtn]').on("click", function (e) {
+                e.preventDefault();
+
+                let notification_id = $(this).attr('data-notification-id');
+
+                $.ajax({
+                    type: "POST",
+                    url: "{{ url_for('main.del_notification')}}",
+                    contentType: 'application/json;charset=UTF-8',
+                    headers: {
+                        "X-CSRFToken": "{{ csrf_token() }}",
+                    },
+                    data: JSON.stringify(
+                        {
+                            'notification_id': notification_id,
+                            'username': "{{ username }}",
+                        }
+                    ),
+                    success: function () {
+                        location.reload();
+                    },
+                    error: function () {
+                        location.reload();
+                    }
+                });
+
+            });
 
 
     </script>
