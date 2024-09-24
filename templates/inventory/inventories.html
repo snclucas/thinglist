@@ -5,11 +5,11 @@
     <div class="content">
         <div class="container">
 
-        <div class="row">
-            <div class="col-12">
-                {% include '_flash_messages.html' %}
+            <div class="row">
+                <div class="col-12">
+                    {% include '_flash_messages.html' %}
+                </div>
             </div>
-        </div>
 
             <div class="row">
 
@@ -28,22 +28,21 @@
                                                   data-bs-toggle="collapse"
                                                   href="#collapseInventoryAdd"
                                                   style="display: inline-block; margin-right: 20px;"></span>
+
+                                            <a id="delete-inventories-btn-collapse" data-bs-toggle="collapse"
+                                               href="#collapseDeleteInventories"
+                                               role="button" aria-expanded="false"
+                                               data-toggle="tooltip" data-placement="top" title="Delete list"
+                                               aria-controls="confirmInventoryDelete">
+                                                <span id="delete-inventories-span" class="fas fa-minus fa-2x"
+                                                      style="color:lightgray; display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+                                            </a>
+
                                             <span class="fas fa-info fa-2x"
                                                   data-toggle="tooltip" data-placement="top" title="Basic help"
                                                   data-bs-toggle="collapse"
                                                   href="#collapseInventoryHelp"
                                                   style="display: inline-block; margin-right: 20px;"></span>
-
-
-
-                                            <a id="delete-inventories-btn-collapse" data-bs-toggle="collapse"
-                                           href="#collapseDeleteInventories"
-                                           role="button" aria-expanded="false"
-                                           data-toggle="tooltip" data-placement="top" title="Delete list"
-                                           aria-controls="confirmInventoryDelete">
-                                                <span id="delete-inventories-span" class="fas fa-minus fa-2x"
-                                                      style="color:lightgray; display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-                                        </a>
 
 
 
@@ -79,8 +78,7 @@
                                     </div>
 
 
-
-                                <div class="collapse" id="collapseDeleteInventories" aria-expanded="false">
+                                    <div class="collapse" id="collapseDeleteInventories" aria-expanded="false">
                                         <div class="text-center">
                                             <p>Do you really want to delete? This process cannot be
                                                 undone.</p>
@@ -93,8 +91,6 @@
                                             <hr>
                                         </div>
                                     </div>
-
-
 
 
                                     {% include 'inventory/_inventory-table.html' %}
@@ -139,7 +135,7 @@
 
         });
 
-         $("#cancel-delete-inventories-btn").on("click", function (e) {
+        $("#cancel-delete-inventories-btn").on("click", function (e) {
             deselect_all_checkboxes("selected-item-")
             $("#collapseDeleteInventories").collapse("hide");
         });
@@ -148,7 +144,7 @@
             check_checkboxes();
         });
 
-         function check_checkboxes() {
+        function check_checkboxes() {
             let number_selected = checkbox_count("selected-item-")
 
             let delete_collapse_btn_selector = $('#delete-inventories-btn-collapse');
@@ -179,7 +175,7 @@
             let inventory_name = $(this).attr('data-inventory-name');
             let inventory_desc = $(this).attr('data-inventory-description');
             let inventory_type = $(this).attr('data-inventory-type');
-            let inventory_show_def_fields = $(this).attr('data-inventory-show-default-fields');
+            //let inventory_show_def_fields = $(this).attr('data-inventory-show-default-fields');
             let inventory_public = $(this).attr('data-inventory-public');
 
             let inventory_show_item_images = $(this).attr('data-inventory-show-item-images');
@@ -194,7 +190,7 @@
             $("div.inv_type select").val(inventory_type);
 
             let inventory_public_is_checked = (inventory_public === "1")
-            let inventory_show_def_fields_is_checked = (inventory_show_def_fields === "0")
+            //let inventory_show_def_fields_is_checked = (inventory_show_def_fields === "0")
 
             let inventory_show_item_images_is_checked = (inventory_show_item_images === "1")
             let inventory_show_item_type_is_checked = (inventory_show_item_type === "1")
@@ -202,7 +198,7 @@
             let inventory_show_item_tags_is_checked = (inventory_show_item_tags === "1")
 
             $('#edit_form_inventory_public').prop('checked', inventory_public_is_checked);
-            $('#edit_form_hide_default_fields').prop('checked', inventory_show_def_fields_is_checked);
+            //$('#edit_form_hide_default_fields').prop('checked', inventory_show_def_fields_is_checked);
 
 
             $('#edit_form_show_item_images').prop('checked', inventory_show_item_images_is_checked);
@@ -212,7 +208,7 @@
 
         });
 
-         $("#confirm-delete-inventories-btn").on("click", function (e) {
+        $("#confirm-delete-inventories-btn").on("click", function (e) {
             e.preventDefault();
 
             let selected_list = get_selected_checkbox_ids("selected-item-", "data-inventory-id")

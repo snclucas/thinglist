@@ -90,9 +90,9 @@
 
                             <p class="card-text">{{ item.description | safe }}</p>
 
-                        {% if inventory.show_item_type == True %}
-                            <h6><strong>Type:</strong> {{ item_type }}</h6>
- {% endif %}
+                            {% if inventory.show_item_type == True %}
+                                <h6><strong>Type:</strong> {{ item_type }}</h6>
+                            {% endif %}
 
                             {% if item_access_level == 0 %}
                                 <h6>
