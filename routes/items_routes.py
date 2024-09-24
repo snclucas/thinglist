@@ -244,8 +244,8 @@ def items_load():
                         d = 4
 
 
-            except Exception as e:
-                print(traceback.format_exc())
+            except Exception as ex:
+                app.logger.error(f"Error importing items: {str(ex)}")
 
         return profile(username=username)
 
@@ -665,8 +665,7 @@ def items_with_username(username=None):
 
 @items_routes.route('/@<string:username>/<inventory_slug>')
 def items_with_username_and_inventory(username=None, inventory_slug=None):
-    if request.method == 'POST':
-        d = 3
+
     inventory_owner_username = bleach.clean(username)
     inventory_owner = None
     inventory_owner_id = None
@@ -765,10 +764,6 @@ def items_with_username_and_inventory(username=None, inventory_slug=None):
     item_types_ = get_all_item_types()
     all_fields = dict(get_all_fields())
 
-
-    # data_dict, item_id_list = find_items_query(requested_username=requested_username, logged_in_user=logged_in_user,
-    #                                            inventory_id=inventory_id,
-    #                                            request_params=request_params)
     data_dict = {}
     inventory_id = -1
     if inventory_ is not None:
