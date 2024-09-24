@@ -99,7 +99,7 @@ QRcode(app)
 app.jinja_env.trim_blocks = True
 app.jinja_env.lstrip_blocks = True
 
-SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'mysql://{0}:{1}@{2}/{3}'.format(app.config['MYSQL_USER'],
+SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'mysql://{0}:{1}@{2}/{3}?charset=utf8mb4'.format(app.config['MYSQL_USER'],
                                                                                      app.config['MYSQL_PASSWORD'],
                                                                                      app.config['MYSQL_HOST'],
                                                                                      app.config['MYSQL_DB']))
