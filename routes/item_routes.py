@@ -332,22 +332,33 @@ def unrelate_items():
         return json.dumps({'success': False}), 200, {'ContentType': 'application/json'}
 
 
-@item_routes.route("/item/images/remove", methods=["POST"])
+@item_routes.route(rule="/item/images/remove", methods=["POST"])
 def delete_images():
-    if request.method == 'POST':
-        json_data = request.json
-        item_id = json_data['item_id']
-        item_slug = json_data['item_slug']
-        inventory_slug = json_data['inventory_slug']
-        username = json_data['username']
-        image_list = json_data['image_id_list']
+    json_data = request.json
+    item_id = json_data['item_id']
+    item_id = int(bleach.clean(str(item_id)))
 
-        delete_images_from_item(item_id=item_id, image_ids=image_list, user=current_user)
+    item_slug = json_data['item_slug']
+    item_slug = bleach.clean(str(item_slug))
 
-        return redirect(url_for('item.item_with_username_and_inventory',
-                                username=username,
-                                inventory_slug=inventory_slug,
-                                item_slug=item_slug))
+    inventory_slug = json_data['inventory_slug']
+    inventory_slug = bleach.clean(str(inventory_slug))
+
+    username = json_data['username']
+    username = bleach.clean(str(username))
+
+    image_list = json_data['image_id_list']
+    image_list = [bleach.clean(str(x)) for x in image_list]
+
+    status, message = delete_images_from_item(item_id=item_id, image_ids=image_list, user=current_user)
+
+    if not status:
+        flash(message=f"There was a problem deleting the images")
+
+    return redirect(url_for('item.item_with_username_and_inventory',
+                            username=username,
+                            inventory_slug=inventory_slug,
+                            item_slug=item_slug))
 
 
 @item_routes.route("/item/images/setmainimage", methods=["POST"])

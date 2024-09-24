@@ -1486,8 +1486,22 @@ def find_image_by_filename(image_filename: str, user: User) -> Optional[Image]:
 
 
 
-def delete_images_from_item(item_id: int, image_ids, user: User) -> (bool, str):
+def delete_images_from_item(item_id: int, image_ids: List[str], user: User) -> (bool, str):
+    """
+    Deletes images from an item.
 
+    Args:
+        item_id (int): ID of the item.
+        image_ids (List[str]): List of image IDs to be deleted.
+        user (User): User object representing the owner of the images.
+
+    Returns:
+        tuple: A tuple containing a boolean value indicating the success of the operation and a string message providing information about the result. The boolean value is True if the images
+    * were successfully deleted, and False otherwise. The string message contains additional details about the result.
+
+    Example:
+        delete_images_from_item(1, ['image1.jpg', 'image2.jpg'], user_obj)
+    """
     if item_id is None:
         return False, "Item ID cannot be None"
 
@@ -1510,9 +1524,14 @@ def delete_images_from_item(item_id: int, image_ids, user: User) -> (bool, str):
                 item_.images.remove(image_)
 
                 try:
-                    os.remove(os.path.join(app.root_path, app.config['USER_IMAGES_BASE_PATH'], image_.image_filename))
+                    os.remove(os.path.join(app.root_path,
+                                           app.config['USER_IMAGES_BASE_PATH'],
+                                           str(user.id),
+                                           image_.image_filename))
                 except OSError as er:
-                    return False, f"Could not delete image with id {image_id} for user {user.username}"
+                    err_msg = f"Could not delete image with id {image_id} for user {user.username}: {er}"
+                    app.logger.error(err_msg)
+                    return False, err_msg
 
         if item_.main_image is None:
             if len(item_.images) == 0:
@@ -1523,9 +1542,11 @@ def delete_images_from_item(item_id: int, image_ids, user: User) -> (bool, str):
         try:
             db.session.commit()
             return True, "Images deleted successfully"
-        except SQLAlchemyError:
+        except SQLAlchemyError as ex:
+            err_msg = f"Could not delete images: {ex}"
+            app.logger.error(err_msg)
             db.session.rollback()
-            return False, "Could not delete images"
+            return False, err_msg
 
 
 def update_template_by_id(template_data: dict, user: User) -> (bool, str):
