@@ -1174,14 +1174,33 @@ def get_item_types(item_id=None, user_id=None) -> list:
     return item_types_.all()
 
 
-def add_new_user_itemtype(name: str, user_id: int):
+def add_new_user_itemtype(name: str, user_id: int) -> (bool, str):
     with app.app_context():
+        if name is None or name == "":
+            app.logger.error(f"System tried to add user item with name {name} for user {user_id}")
+            return False, f"Item type name cannot be None or blank"
+
+        if user_id is None:
+            app.logger.error(f"System tried to add user item with user_id {user_id} for user {user_id}")
+            return False, f"User ID cannot be None"
+
+        # convert to lower case
+        name = name.lower().strip()
+
         item_type_ = find_type_by_text(type_text=name, user_id=user_id)
 
         if item_type_ is None:
             new_item_type_ = ItemType(name=name.lower(), user_id=user_id)
             db.session.add(new_item_type_)
-            db.session.commit()
+
+            try:
+                db.session.commit()
+                return True, f"Item type {name} added for user {user_id}"
+            except SQLAlchemyError as ex:
+                app.logger.error(f"Could not add new item type {name} for user {user_id}: [{str(ex)}]")
+                return False, f"Could not add new item type {name} for user {user_id}"
+
+        return True, f"Item type {name} exists for {user_id}"
 
 
 
@@ -2933,27 +2952,21 @@ def set_template_fields_orders(field_data, template_id: int, user_id: int):
         return
 
 
-def save_inventory_fieldtemplate(inventory_id: int , inventory_template: int, user_id: int):
+def save_inventory_fieldtemplate(inventory_id: int , inventory_template: int, user_id: int) -> (bool, str):
     """
-
-    Save Inventory Field Template
-
-    This method is used to save the field template for a specific inventory.
-
-    Parameters:
-    - inventory_id (int): The ID of the inventory to save the field template for.
-    - inventory_template (int): The ID of the field template to assign to the inventory.
-    - user_id (int): The ID of the user who owns the inventory.
+    Args:
+        inventory_id: An integer representing the ID of the inventory.
+        inventory_template: An integer representing the ID of the field template.
+        user_id: An integer representing the ID of the user.
 
     Returns:
-    - bool: True if the field template is saved successfully, False otherwise.
-
+        A tuple containing a boolean value indicating the success of the operation and a string message indicating the result of the operation.
     """
     with app.app_context():
         inventory_, user_inventory_ = find_inventory_by_id(inventory_id=inventory_id, user_id=user_id)
         if inventory_ is None or user_inventory_ is None:
-            app.logger.error(f"Failed to find inventory with ID: {inventory_id}")
-            return False
+            app.logger.error(f"System failed to find inventory with ID: {inventory_id}")
+            return False, "Failed to find inventory"
 
         if user_inventory_.access_level == 0:
             inventory_.field_template = inventory_template
@@ -2969,16 +2982,16 @@ def save_inventory_fieldtemplate(inventory_id: int , inventory_template: int, us
                     set_field_status(item_id=item.id, field_ids=field_ids)
             else:
                 app.logger.error(f"Failed to find template with ID: {inventory_template}")
-                return False
+                return False, "Failed to find template"
 
         try:
             db.session.commit()
         except Exception as e:
             app.logger.error(f"Failed to save inventory field template: {str(e)}")
             db.session.rollback()
-            return False
+            return False, "Failed to save inventory field template"
 
-    return True
+    return True, ""
 
 
 def get_user_locations(user_id: int) -> List[dict]:

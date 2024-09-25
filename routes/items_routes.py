@@ -64,6 +64,7 @@ def _find_list_index(list_, value):
 @items_routes.route('/items/load', methods=['POST'])
 @login_required
 def items_load():
+    load_log = ""
     username = current_user.username
 
     if request.method == 'POST':
@@ -104,6 +105,7 @@ def items_load():
                                                                           viewing_user_id=current_user.id)
 
                         if found_inv is None:
+                            load_log += f"<p>Inventory {inventory_slug_} not found. Creating it...</p>"
                             inventory_name = bleach.clean(inventory_data.get("name"))
                             inventory_description = bleach.clean(inventory_data.get("description"))
                             inventory_type = int(bleach.clean(str(inventory_data.get("type", 1))))
@@ -116,9 +118,11 @@ def items_load():
                                                                    access_level=inventory_access_level,
                                                                    user_id=current_user.id)
                             if status != "success":
+                                load_log += f"Error creating inventory {inventory_slug_}.<br>"
                                 continue
 
                         else:
+                            load_log += f"Inventory {found_inv.name} found...<br>"
                             found_inv = {
                                 "id": found_inv.id,
                                 "name": found_inv.name,
@@ -141,9 +145,13 @@ def items_load():
                                     field_template_id_ = save_template_fields(template_name=template_name_,
                                                                               fields=template_slugs_, user=current_user)
 
-                                    result = save_inventory_fieldtemplate(inventory_id=found_inv["id"],
+                                    status, save_inv_fieldtemplate_msg = save_inventory_fieldtemplate(inventory_id=found_inv["id"],
                                                                           inventory_template=field_template_id_,
                                                                           user_id=current_user.id)
+                                    if status:
+                                        load_log += f"&nbsp;&nbsp;&nbsp;&nbsp;... created field template {template_name_}.<br>"
+                                    else:
+                                        load_log += f"&nbsp;&nbsp;&nbsp;&nbsp;... could no create field template {template_name_}.<br>"
 
                                     d = 5
 
@@ -154,6 +162,7 @@ def items_load():
 
                         inventory_id = found_inv["id"]
 
+                        item_count = 0
                         if "items" in inventory_data:
                             for item in inventory_data["items"]:
                                 item_id = int(bleach.clean(str(item.get("id"))))
@@ -161,7 +170,7 @@ def items_load():
                                     item_id = None
                                 item_name = bleach.clean(item.get("name"))
                                 item_description = bleach.clean(item.get("description"))
-                                item_type = item.get("types", "none")
+                                item_type = item.get("type", "none")
                                 if item_type is not None:
                                     item_type = bleach.clean(item_type)
                                 item_quantity = int(bleach.clean(str(item.get("quantity"))))
@@ -170,7 +179,9 @@ def items_load():
                                 item_specific_location = bleach.clean(item.get("specific_location"))
 
                                 # add item types
-                                add_new_user_itemtype(name=item_type, user_id=current_user.id)
+                                if item_type is not None and item_type != 'none':
+                                    status, add_item_type_msg = add_new_user_itemtype(name=item_type,
+                                                                                      user_id=current_user.id)
 
                                 location_id = None
                                 if item_location is not None:
@@ -240,6 +251,9 @@ def items_load():
                                     flash("Sorry, there was an error importing these things.")
                                     return profile(username=username)
 
+                            item_count += 1
+                            load_log += f"&nbsp;&nbsp;&nbsp;&nbsp;... imported {item_count} items into inventory {inventory_slug_}.<br>"
+
                         # set up related items
                         d = 4
 
@@ -247,6 +261,7 @@ def items_load():
             except Exception as ex:
                 app.logger.error(f"Error importing items: {str(ex)}")
 
+        flash(message=load_log)
         return profile(username=username)
 
 
