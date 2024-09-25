@@ -1,15 +1,15 @@
 {% if data_dict | length >= 0 %}
     <hr>
     <div>
-        <table class="table collapse show  display compact" style="width:100%" id="items-table">
+        <table class="table collapse show display responsive nowrap compact" style="width:100%" id="items-table">
             <thead>
             <tr>
                 <th data-priority="1">Name</th>
-                <th>Type</th>
+                <th class="min-phone-l">Type</th>
                 {% if user_is_authenticated %}
-                    <th>Location</th>
+                    <th class="min-phone-l">Location</th>
                 {% endif %}
-                <th>Tags</th>
+                <th class="min-phone-l">Tags</th>
                 {% if user_is_authenticated %}
                     {% if is_inventory_owner or inventory_access_level == 1 %}
                         <th>
