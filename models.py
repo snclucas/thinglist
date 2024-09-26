@@ -208,6 +208,7 @@ class UserInventory(db.Model):
     inventory_id = db.Column(db.Integer, db.ForeignKey('inventories.id'))
     access_level = db.Column(db.Integer, default=0)
     view = db.Column(db.Integer, default=0)
+    __table_args__ = (UniqueConstraint('user_id', 'inventory_id', name='_user_id_inventory_id_uc'),)
 
 
 class InventoryItem(db.Model):

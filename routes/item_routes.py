@@ -223,7 +223,8 @@ def edit_item(item_id):
             "item_tags": item_tags
         }
 
-        new_item_slug = update_item_by_id(item_data=new_item_data, item_id=int(item_id), user=current_user)
+        new_item_ = update_item_by_id(item_data=new_item_data, item_id=int(item_id), user=current_user)
+        new_item_slug = new_item_['slug']
         return redirect(url_for('item.item_with_username_and_inventory',
                                 username=username,
                                 inventory_slug=inventory_slug,

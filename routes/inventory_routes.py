@@ -177,6 +177,7 @@ def del_inventory():
     if request.method == 'POST':
         json_data = request.json
         inventory_ids = json_data['inventory_ids']
+        inventory_ids = [int(bleach.clean(str(x))) for x in inventory_ids]
         delete_inventory_by_id(inventory_ids=inventory_ids, user_id=current_user.id)
 
         return redirect(url_for('inv.inventories'))

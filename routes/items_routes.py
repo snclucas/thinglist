@@ -27,7 +27,7 @@ from database_functions import get_all_user_locations, \
     change_item_access_level, link_items, copy_items, commit, find_items_new, __PUBLIC__, __PRIVATE__, \
     find_user_by_username, add_images_to_item, set_item_main_image, get_user_inventories, add_user_inventory, \
     save_template_fields, get_item_fields, save_inventory_fieldtemplate, find_template_by_id, save_user_inventory_view, \
-    get_related_items, get_all_item_ids_in_inventory
+    get_related_items, get_all_item_ids_in_inventory, find_item_by_id, update_item_by_id, find_item_by_slug
 from models import FieldTemplate
 
 from utils import generate_item_image_filename
@@ -67,202 +67,249 @@ def items_load():
     load_log = ""
     username = current_user.username
 
-    if request.method == 'POST':
-        inventory_slug_from_form = request.form.get("inventory_slug")
-        inventory_slug_from_form = bleach.clean(inventory_slug_from_form)
-        overwrite_or_not_from_form = request.form.get("overwrite_or_not")
-        overwrite_or_not_from_form = bleach.clean(str(overwrite_or_not_from_form))
+    try:
+        if request.method == 'POST':
+            inventory_slug_from_form = request.form.get("inventory_slug")
+            inventory_slug_from_form = bleach.clean(inventory_slug_from_form)
+            overwrite_or_not_from_form = bleach.clean(str(request.form.get("overwrite_or_not")))
+            overwrite_or_not_from_form = True if overwrite_or_not_from_form == "on" else False
 
-        if request.files:
-            uploaded_file = request.files['file']  # This line uses the same variable and worked fine
-            filepath = os.path.join(app.config['FILE_UPLOADS'], uploaded_file.filename)
-            uploaded_file.save(filepath)
+            if request.files:
+                uploaded_file = request.files['file']  # This line uses the same variable and worked fine
+                filepath = os.path.join(app.config['FILE_UPLOADS'], uploaded_file.filename)
+                try:
+                    uploaded_file.save(filepath)
+                except FileNotFoundError as fnfe:
+                    app.logger.error(f"Error saving uploaded file: {str(fnfe)} for user {current_user.username}")
+                    flash(message="Sorry, there was an error saving the uploaded file.")
 
-            import mimetypes
-            import_file_mimetype = mimetypes.MimeTypes().guess_type(filepath)[0]
-            if "application/json" not in import_file_mimetype:
-                flash("Uploaded file does not seem to be a JSON file.")
-                return profile(username=username)
+                import mimetypes
+                import_file_mimetype = mimetypes.MimeTypes().guess_type(filepath)[0]
+                if "application/json" not in import_file_mimetype:
+                    flash("Uploaded file does not seem to be a JSON file.")
+                    return profile(username=username)
 
-            try:
-                with open(filepath, 'r') as f:
-                    try:
-                        data = json.load(f)
-                    except JSONDecodeError as e:
-                        flash("Uploaded file does not seem to be a valid JSON file.")
-                        return profile(username=username)
+                try:
+                    with open(filepath, 'r') as f:
+                        try:
+                            data = json.load(f)
+                        except JSONDecodeError as e:
+                            flash("Uploaded file does not seem to be a valid JSON file.")
+                            return profile(username=username)
 
-                    for inventory_ in data:
-                        inventory_data = inventory_.get("inventory", None)
-                        if inventory_data is None:
-                            break
+                        for inventory_ in data:
+                            inventory_data = inventory_.get("inventory", None)
+                            if inventory_data is None:
+                                break
 
-                        inventory_slug_ = inventory_data.get("slug", None)
-                        inventory_slug_ = bleach.clean(inventory_slug_)
+                            inventory_slug_ = inventory_data.get("slug", None)
+                            inventory_slug_ = bleach.clean(inventory_slug_)
 
-                        found_inv, found_userinv = find_inventory_by_slug(inventory_slug=inventory_slug_,
-                                                                          inventory_owner_id=current_user.id,
-                                                                          viewing_user_id=current_user.id)
+                            found_inv, found_userinv = find_inventory_by_slug(inventory_slug=inventory_slug_,
+                                                                              inventory_owner_id=current_user.id,
+                                                                              viewing_user_id=current_user.id)
 
-                        if found_inv is None:
-                            load_log += f"<p>Inventory {inventory_slug_} not found. Creating it...</p>"
-                            inventory_name = bleach.clean(inventory_data.get("name"))
-                            inventory_description = bleach.clean(inventory_data.get("description"))
-                            inventory_type = int(bleach.clean(str(inventory_data.get("type", 1))))
-                            inventory_access_level = int(bleach.clean(str(inventory_data.get("access_level", 1))))
+                            if found_inv is None:
+                                load_log += f"<br>Inventory {inventory_slug_} not found. Creating it...<br>"
+                                inventory_name = bleach.clean(inventory_data.get("name"))
+                                inventory_description = bleach.clean(inventory_data.get("description"))
+                                inventory_type = int(bleach.clean(str(inventory_data.get("type", 1))))
+                                inventory_access_level = int(bleach.clean(str(inventory_data.get("access_level", 1))))
 
-                            found_inv, status = add_user_inventory(name=inventory_name,
-                                                                   description=inventory_description,
-                                                                   inventory_type=inventory_type,
-                                                                   slug=inventory_slug_,
-                                                                   access_level=inventory_access_level,
-                                                                   user_id=current_user.id)
-                            if status != "success":
-                                load_log += f"Error creating inventory {inventory_slug_}.<br>"
-                                continue
+                                found_inv, status = add_user_inventory(name=inventory_name,
+                                                                       description=inventory_description,
+                                                                       inventory_type=inventory_type,
+                                                                       slug=inventory_slug_,
+                                                                       access_level=inventory_access_level,
+                                                                       user_id=current_user.id)
+                                if status != "success":
+                                    load_log += f"Error creating inventory {inventory_slug_}.<br>"
+                                    continue
 
-                        else:
-                            load_log += f"Inventory {found_inv.name} found...<br>"
-                            found_inv = {
-                                "id": found_inv.id,
-                                "name": found_inv.name,
-                                "description": found_inv.description,
-                                "slug": found_inv.slug,
-                                "type": found_inv.type,
-                                "access_level": found_inv.access_level,
-                                "owner_id": found_inv.owner_id
-                            }
+                            else:
+                                load_log += f"<br>Inventory {found_inv.name} found...<br>"
+                                found_inv = {
+                                    "id": found_inv.id,
+                                    "name": found_inv.name,
+                                    "description": found_inv.description,
+                                    "slug": found_inv.slug,
+                                    "type": found_inv.type,
+                                    "access_level": found_inv.access_level,
+                                    "owner_id": found_inv.owner_id
+                                }
 
-                        # lets sort the field template out
-                        field_set_ = inventory_data.get("field_set", None)
-                        if field_set_ is not None:
-                            template_name_ = bleach.clean(inventory_data.get("name"))
+                            # lets sort the field template out
+                            field_set_ = inventory_data.get("field_set", None)
+                            if field_set_ is not None:
+                                template_name_ = bleach.clean(inventory_data.get("name"))
 
-                            if template_name_ is not None:
-                                template_slugs_ = field_set_.get("slugs", [])
-                                if len(template_slugs_) > 0:
-                                    template_slugs_ = [bleach.clean(str(x)) for x in template_slugs_]
-                                    field_template_id_ = save_template_fields(template_name=template_name_,
-                                                                              fields=template_slugs_, user=current_user)
+                                if template_name_ is not None:
+                                    template_slugs_ = field_set_.get("slugs", [])
+                                    if len(template_slugs_) > 0:
+                                        template_slugs_ = [bleach.clean(str(x)) for x in template_slugs_]
+                                        field_template_id_ = save_template_fields(template_name=template_name_,
+                                                                                  fields=template_slugs_, user=current_user)
 
-                                    status, save_inv_fieldtemplate_msg = save_inventory_fieldtemplate(inventory_id=found_inv["id"],
-                                                                          inventory_template=field_template_id_,
-                                                                          user_id=current_user.id)
-                                    if status:
-                                        load_log += f"&nbsp;&nbsp;&nbsp;&nbsp;... created field template {template_name_}.<br>"
+                                        status, save_inv_fieldtemplate_msg = save_inventory_fieldtemplate(inventory_id=found_inv["id"],
+                                                                              inventory_template=field_template_id_,
+                                                                              user_id=current_user.id)
+                                        if status:
+                                            load_log += f"&nbsp;&nbsp;&nbsp;&nbsp;... created field template {template_name_}.<br>"
+                                        else:
+                                            load_log += f"&nbsp;&nbsp;&nbsp;&nbsp;... could no create field template {template_name_}.<br>"
+
+                                else:
+                                    load_log += f"&nbsp;&nbsp;&nbsp;&nbsp;... no field template found/used.<br>"
+
+
+                            # If we are importing into a specific inventory, only import into that inventory
+                            if inventory_slug_from_form != "all":
+                                if inventory_slug_ != inventory_slug_from_form:
+                                    continue
+
+                            inventory_id = found_inv["id"]
+
+                            item_count = 0
+                            if "items" in inventory_data:
+                                for item in inventory_data["items"]:
+                                    item_id = int(bleach.clean(str(item.get("id"))))
+                                    if not overwrite_or_not_from_form:
+                                        item_id = None
+                                    item_name = bleach.clean(item.get("name"))
+                                    item_slug = bleach.clean(item.get("slug"))
+                                    item_description = bleach.clean(item.get("description"))
+                                    item_type = item.get("type", "none")
+                                    if item_type is not None:
+                                        item_type = bleach.clean(item_type)
+                                    item_quantity = int(bleach.clean(str(item.get("quantity"))))
+                                    item_tags = [bleach.clean(str(x)) for x in item.get("tags")]
+                                    item_location = bleach.clean(item.get("location"))
+                                    item_specific_location = bleach.clean(item.get("specific_location"))
+
+                                    # add item types
+                                    if item_type is not None and item_type != 'none':
+                                        status, add_item_type_msg = add_new_user_itemtype(name=item_type,
+                                                                                          user_id=current_user.id)
+
+                                    location_id = None
+                                    if item_location is not None:
+                                        if item_location.strip() != "":
+                                            location_data_ = get_or_add_new_location(location_name=item_location,
+                                                                                     location_description=item_location,
+                                                                                     to_user_id=current_user.id)
+
+                                            if location_data_["status"] and location_data_["new"]:
+                                                load_log += f"&nbsp;&nbsp;&nbsp;&nbsp;... created location {item_location}.<br>"
+
+                                            if not location_data_["status"]:
+                                                load_log += f"&nbsp;&nbsp;&nbsp;&nbsp;... could not create location {item_location}.<br>"
+
+                                            location_id = location_data_.get("id")
+
+                                    tag_array = item_tags
+
+                                    if isinstance(tag_array, list):
+                                        for t in range(len(tag_array)):
+                                            tag_array[t] = tag_array[t].strip()
+                                            tag_array[t] = tag_array[t].replace(" ", "@#$")
+
+                                    custom_fields = item.get("custom_fields", {})
+
+                                    if overwrite_or_not_from_form:
+                                        potential_item = find_item_by_slug(item_slug=item_slug, user_id=current_user.id)
+                                        if potential_item is None:
+                                            new_item_ = add_item_to_inventory(item_id=item_id, item_name=item_name,
+                                                                              item_desc=item_description,
+                                                                              item_type=item_type,
+                                                                              item_quantity=item_quantity,
+                                                                              item_tags=tag_array,
+                                                                              inventory_id=inventory_id,
+                                                                              item_location_id=location_id,
+                                                                              item_specific_location=item_specific_location,
+                                                                              user_id=current_user.id,
+                                                                              custom_fields=custom_fields)
+                                            item_count += 1
+                                        else:
+                                            new_item_data = {
+                                                "id": item_id,
+                                                "name": item_name,
+                                                "description": item_description,
+                                                "item_type": item_type,
+                                                "item_quantity": item_quantity,
+                                                "item_location": item_location,
+                                                "item_specific_location": item_specific_location,
+                                                "item_tags": item_tags
+                                            }
+                                            new_item_ = update_item_by_id(item_data=new_item_data, item_id=int(item_id),
+                                                                              user=current_user)
+                                            load_log += f"&nbsp;&nbsp;&nbsp;&nbsp;... item {item_name} found and updated if different.<br>"
                                     else:
-                                        load_log += f"&nbsp;&nbsp;&nbsp;&nbsp;... could no create field template {template_name_}.<br>"
+                                        new_item_ = add_item_to_inventory(item_id=item_id, item_name=item_name,
+                                                                          item_desc=item_description,
+                                                                          item_type=item_type, item_quantity=item_quantity,
+                                                                          item_tags=tag_array, inventory_id=inventory_id,
+                                                                          item_location_id=location_id,
+                                                                          item_specific_location=item_specific_location,
+                                                                          user_id=current_user.id,
+                                                                          custom_fields=custom_fields)
+                                        item_count += 1
 
-                                    d = 5
+                                    if new_item_["status"] != "error":
+                                        # save images
+                                        item_image_filename = []
+                                        for img in item["images"]:
+                                            img_filename = img.get("image_filename", None)
 
-                        # If we are importing into a specific inventory, only import into that inventory
-                        if inventory_slug_from_form != "all":
-                            if inventory_slug_ != inventory_slug_from_form:
-                                continue
+                                            item_slug = f"{str(new_item_['item']['id'])}-{slugify(new_item_['item']['name'])}"
 
-                        inventory_id = found_inv["id"]
+                                            if img_filename is None:
+                                                img_filename = generate_item_image_filename(item_slug=item_slug,
+                                                                                            item_id=item_id, img_type="jpg")
 
-                        item_count = 0
-                        if "items" in inventory_data:
-                            for item in inventory_data["items"]:
-                                item_id = int(bleach.clean(str(item.get("id"))))
-                                if overwrite_or_not_from_form == 'None':
-                                    item_id = None
-                                item_name = bleach.clean(item.get("name"))
-                                item_description = bleach.clean(item.get("description"))
-                                item_type = item.get("type", "none")
-                                if item_type is not None:
-                                    item_type = bleach.clean(item_type)
-                                item_quantity = int(bleach.clean(str(item.get("quantity"))))
-                                item_tags = [bleach.clean(str(x)) for x in item.get("tags")]
-                                item_location = bleach.clean(item.get("location"))
-                                item_specific_location = bleach.clean(item.get("specific_location"))
+                                            img_is_main = img.get("is_main", "false")
+                                            img_data = img.get("image_data", None)
+                                            img_hash = img.get("image_hash", None)
 
-                                # add item types
-                                if item_type is not None and item_type != 'none':
-                                    status, add_item_type_msg = add_new_user_itemtype(name=item_type,
-                                                                                      user_id=current_user.id)
+                                            if img_is_main == "true":
+                                                set_item_main_image(main_image_url=img_filename, item_id=item_id,
+                                                                    user=current_user)
 
-                                location_id = None
-                                if item_location is not None:
-                                    if item_location.strip() != "":
-                                        location_data_ = get_or_add_new_location(location_name=item_location,
-                                                                                 location_description=item_location,
-                                                                                 to_user_id=current_user.id)
-                                        location_id = location_data_.get("id")
+                                            img_filepath = os.path.join(app.root_path, app.config['USER_IMAGES_BASE_PATH'],
+                                                                        str(current_user.id), img_filename)
 
-                                tag_array = item_tags
+                                            import base64
+                                            imgdata = base64.b64decode(img_data)
 
-                                for t in range(len(tag_array)):
-                                    tag_array[t] = tag_array[t].strip()
-                                    tag_array[t] = tag_array[t].replace(" ", "@#$")
+                                            raw = img_data.encode('utf-8')
+                                            key = app.config['IMAGE_SECRET_KEY'].encode('utf-8')
+                                            hashed = hmac.new(key, raw, hashlib.sha1)
+                                            img_hmac_hash = base64.encodebytes(hashed.digest()).decode('utf-8')
 
-                                custom_fields = item.get("custom_fields", {})
+                                            if img_hash == img_hmac_hash:
+                                                with open(img_filepath, 'wb') as img_file:
+                                                    img_file.write(imgdata)
+                                                    item_image_filename.append(img_filename)
 
-                                new_item_ = add_item_to_inventory(item_id=item_id, item_name=item_name,
-                                                                  item_desc=item_description,
-                                                                  item_type=item_type, item_quantity=item_quantity,
-                                                                  item_tags=tag_array, inventory_id=inventory_id,
-                                                                  item_location_id=location_id,
-                                                                  item_specific_location=item_specific_location,
-                                                                  user_id=current_user.id, custom_fields=custom_fields)
+                                        add_images_to_item(new_item_['item']['id'], item_image_filename, user=current_user)
 
-                                commit()
+                                    if new_item_["status"] == "error":
+                                        flash("Sorry, there was an error importing these things.")
+                                        return profile(username=username)
 
-                                if new_item_["status"] != "error":
-                                    # save images
-                                    item_image_filename = []
-                                    for img in item["images"]:
-                                        img_filename = img.get("image_filename", None)
 
-                                        item_slug = f"{str(new_item_['item']['id'])}-{slugify(new_item_['item']['name'])}"
-
-                                        if img_filename is None:
-                                            img_filename = generate_item_image_filename(item_slug=item_slug,
-                                                                                        item_id=item_id, img_type="jpg")
-
-                                        img_is_main = img.get("is_main", "false")
-                                        img_data = img.get("image_data", None)
-                                        img_hash = img.get("image_hash", None)
-
-                                        if img_is_main == "true":
-                                            set_item_main_image(main_image_url=img_filename, item_id=item_id,
-                                                                user=current_user)
-
-                                        img_filepath = os.path.join(app.root_path, app.config['USER_IMAGES_BASE_PATH'],
-                                                                    str(current_user.id), img_filename)
-
-                                        import base64
-                                        imgdata = base64.b64decode(img_data)
-
-                                        raw = img_data.encode('utf-8')
-                                        key = app.config['IMAGE_SECRET_KEY'].encode('utf-8')
-                                        hashed = hmac.new(key, raw, hashlib.sha1)
-                                        img_hmac_hash = base64.encodebytes(hashed.digest()).decode('utf-8')
-
-                                        if img_hash == img_hmac_hash:
-                                            with open(img_filepath, 'wb') as img_file:
-                                                img_file.write(imgdata)
-                                                item_image_filename.append(img_filename)
-
-                                    add_images_to_item(new_item_['item']['id'], item_image_filename, user=current_user)
-
-                                if new_item_["status"] == "error":
-                                    flash("Sorry, there was an error importing these things.")
-                                    return profile(username=username)
-
-                            item_count += 1
                             load_log += f"&nbsp;&nbsp;&nbsp;&nbsp;... imported {item_count} items into inventory {inventory_slug_}.<br>"
 
-                        # set up related items
-                        d = 4
+                            # set up related items
+                            d = 4
 
 
-            except Exception as ex:
-                app.logger.error(f"Error importing items: {str(ex)}")
+                except Exception as ex:
+                    app.logger.error(f"Error importing items: {str(ex)}")
+    except Exception as e:
+        traceback.print_exc()
 
-        flash(message=load_log)
-        return profile(username=username)
+    flash(message=load_log)
+    return profile(username=username)
 
 
 @items_routes.route('/items/load', methods=['POST'])
@@ -614,6 +661,7 @@ def items_save():
             tmp_json = {
                 "id": item_.id,
                 "name": item_.name,
+                "slug": item_.slug,
                 "description": item_.description,
                 "tags": [x.tag.replace("@#$", " ") for x in item_.tags],
                 "type": row["types"],
