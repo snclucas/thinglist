@@ -223,8 +223,14 @@ def edit_item(item_id):
             "item_tags": item_tags
         }
 
-        new_item_ = update_item_by_id(item_data=new_item_data, item_id=int(item_id), user=current_user)
-        new_item_slug = new_item_['slug']
+        new_item_slug = None
+        update_result = update_item_by_id(item_data=new_item_data, item_id=int(item_id), user=current_user)
+        if update_result["status"] == "success":
+            item_dict = update_result["item"]
+            new_item_slug = item_dict['slug']
+        else:
+            flash("Error updating item")
+
         return redirect(url_for('item.item_with_username_and_inventory',
                                 username=username,
                                 inventory_slug=inventory_slug,
@@ -399,7 +405,7 @@ def set_main_image():
 
     main_image = main_image.replace('/uploads/', '')
 
-    set_item_main_image(main_image_url=main_image, item_id=item_id, user=current_user)
+    set_item_main_image(main_image_url=main_image, item_id=item_id, user_id=current_user.id)
 
     return redirect(url_for(endpoint='item.item_with_username_and_inventory',
                             username=username,

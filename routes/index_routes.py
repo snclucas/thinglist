@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, send_f
 from flask_login import login_required, current_user
 
 from app import app
-from database_functions import get_user_inventories, get_user_item_count, get_user_templates, get_user_locations, \
+from database_functions import get_user_inventories, get_user_item_count, get_user_templates, \
     get_all_itemtypes_for_user, find_user_by_username, delete_notification_by_id, get_number_user_locations, \
     get_all_user_fields
 

@@ -531,7 +531,19 @@ def get_user_default_inventory(user_id: int):
         return user_default_inventory_
 
 
-def delete_inventory_by_id(inventory_ids: List[int], user_id: int) -> (bool, str):
+
+def delete_all_user_lists(user_id: int):
+    _user_inventories = get_user_inventories(current_user_id=user_id, requesting_user_id=user_id)
+
+    list_ids_ = []
+    for list_ in _user_inventories:
+        if "__default__" not in list_["inventory_name"]:
+            list_ids_.append(list_["inventory_id"])
+
+    delete_list_by_id(inventory_ids = list_ids_, user_id = user_id)
+
+
+def delete_list_by_id(inventory_ids: List[int], user_id: int) -> (bool, str):
     """
     If the User has Items within the Inventory - re-link Items to Users default Inventory via the ItemInventory table
     Delete the UserInventory for the user
@@ -702,12 +714,12 @@ def search_items(query: str, user_id: int):
         # see if there is a search modifier
         if ':' in query:
             search_modifier = query.split(':')[0]
-            query = query.split(':')[1]
+            query = query.split(':')[1].strip()
 
             if search_modifier.lower() == 'location':
                 locations_ = Location.query \
                     .filter(Location.user_id == user_id) \
-                    .filter(Location.name.like(query)).all()
+                    .filter(Location.name.ilike(query)).all()
 
                 for location in locations_:
                     loc_id_ = location.id
@@ -730,7 +742,7 @@ def search_items(query: str, user_id: int):
                     for item in items_:
                         items_arr.append(item.__dict__)
 
-            elif search_modifier.lower() == 'tags':
+            elif search_modifier.lower() == 'tags' or search_modifier.lower() == 'tag':
                 query = query.split(",")
                 q_ = Item.query
 
@@ -1081,6 +1093,13 @@ def get_all_item_ids_in_inventory(user_id: int, inventory_id: int):
         return [x[0] for x in results_]
 
 
+def count_all_user_items(user_id: int) -> int:
+    with app.app_context():
+        stmt = select(Item.id).where(user_id == Item.user_id)
+        results_ = db.session.execute(stmt).all()
+        return len(results_)
+
+
 def count_all_item_ids_in_inventory(user_id: int, inventory_id: int) -> int:
     with app.app_context():
         stmt = select(Item.id).join(InventoryItem, InventoryItem.item_id == Item.id
@@ -1126,6 +1145,13 @@ def get_all_user_locations(user_id: int) -> Optional[list[Location]]:
     user_locations_ = Location.query.filter_by(user_id=user_id).all()
     return user_locations_
 
+
+def get_all_user_item_ids(user_id: int) -> list[Item]:
+    with app.app_context():
+        _query = db.session.query(Item.id).filter(Item.user_id == user_id)
+        _ids = [x.id for x in _query.distinct()]
+
+    return _ids
 
 def get_all_user_tags(user_id: int) -> list[Tag]:
     with app.app_context():
@@ -1358,14 +1384,14 @@ def relate_items_by_id(item1_id: int, item2_id: int) -> (bool, str):
 #         db.session.commit()
 
 
-def set_item_main_image(main_image_url: str, item_id: int, user: User):
+def set_item_main_image(main_image_url: str, item_id: int, user_id: int) -> bool:
     """
     Sets the main image URL for an item.
 
     Parameters:
     - main_image_url (str): The URL of the main image for the item.
     - item_id (int): The ID of the item.
-    - user (User): The user object associated with the item.
+    - user_id (int): The user id associated with the item.
 
     Returns:
     - bool: Returns True if the main image URL is successfully set for the item, False otherwise.
@@ -1374,14 +1400,14 @@ def set_item_main_image(main_image_url: str, item_id: int, user: User):
         return False
     if item_id is None:
         return False
-    if user is None:
+    if user_id is None:
         return False
 
     with app.app_context():
-        item_ = find_item_by_id(item_id=item_id, user_id=user.id)
+        item_ = find_item_by_id(item_id=item_id, user_id=user_id)
 
         if item_ is None:
-            app.logger.error(f'No item with id {item_id} found for user id {user.id}')
+            app.logger.error(f'No item with id {item_id} found for user id {user_id}')
             return False
 
         item_.main_image = main_image_url
@@ -1389,7 +1415,8 @@ def set_item_main_image(main_image_url: str, item_id: int, user: User):
         try:
             db.session.commit()
             return True
-        except SQLAlchemyError:
+        except SQLAlchemyError as ex:
+            app.logger.error(f"Could not set main image for item with id {item_id}: {ex}")
             db.session.rollback()
             return False
 
@@ -1431,10 +1458,11 @@ def add_images_to_item(item_id: int, filenames: list[str], user: User) -> (bool,
 
         try:
             db.session.commit()
-            return True
-        except SQLAlchemyError:
+            return True, ""
+        except SQLAlchemyError as ex:
+            app.logger.error(f"Could not add images to item with id {item_id}: {ex}")
             db.session.rollback()
-            return False
+            return False, f"Could not add images to item with id {item_id}: {ex}"
 
 
 def find_image_by_filename(image_filename: str, user: User) -> Optional[Image]:
@@ -1635,17 +1663,6 @@ def update_location_by_id(location_data: dict, user: User) -> (bool, str):
             return False, msg
 
 
-def _populate_item_fields(item_result: dict, item_data: dict, user: User):
-    with app.app_context():
-        item_result[0].name = item_data['name']
-        item_result[0].slug = f"{str(item_result[0].id)}-{slugify(item_data['name'])}"
-        item_result[0].description = item_data['description']
-        item_result[0].quantity = item_data['item_quantity']
-        item_result[0].location_id = item_data['item_location']
-        item_result[0].specific_location = item_data['item_specific_location']
-        item_result[0].tags = _parse_tags(item_data['item_tags'], user)
-
-
 def _parse_tags(item_tags: List[str], user: User) -> List[Tag]:
     """
 
@@ -1661,17 +1678,18 @@ def _parse_tags(item_tags: List[str], user: User) -> List[Tag]:
     - tags_objects (List[Tag]): The list of Tag objects corresponding to the parsed tags.
 
     """
-    tags_objects = []
-    if not isinstance(item_tags, list):
-        item_tags = item_tags.strip().replace(" ", "@#$").split(",")
+    with app.app_context():
+        tags_objects = []
+        if not isinstance(item_tags, list):
+            item_tags = item_tags.strip().replace(" ", "@#$").split(",")
 
-    for tag in item_tags:
-        instance = db.session.query(Tag).filter_by(tag=tag).one_or_none()
-        if not instance:
-            instance = Tag(tag=tag, user_id=user.id)
-        tags_objects.append(instance)
+        for tag in item_tags:
+            instance = db.session.query(Tag).filter_by(tag=tag).one_or_none()
+            if not instance:
+                instance = Tag(tag=tag, user_id=user.id)
+            tags_objects.append(instance)
 
-    return tags_objects
+        return tags_objects
 
 
 def _get_selected_item(user_id: int, item_id: int):
@@ -1754,15 +1772,36 @@ def update_item_by_id(item_data: dict, item_id: int, user: User) -> Dict[str, Un
     with app.app_context():
         db.session.expire_on_commit = False
 
-        item_result = _get_selected_item(user.id, item_id)
-        _populate_item_fields(item_result, item_data, user)
+        select_statement = select(Item).where(Item.id == item_id).where(Item.user_id == user.id)
 
+        item_result = db.session.execute(select_statement).first()
+
+        item_result[0].name = item_data['name']
+        item_result[0].slug = f"{str(item_result[0].id)}-{slugify(item_data['name'])}"
+        item_result[0].description = item_data['description']
+        item_result[0].quantity = item_data['item_quantity']
+        item_result[0].location_id = item_data['item_location']
+        item_result[0].specific_location = item_data['item_specific_location']
+
+        item_tags = item_data['item_tags']
+        tags_objects = []
+        if not isinstance(item_data['item_tags'], list):
+            item_tags = item_data['item_tags'].strip().replace(" ", "@#$").split(",")
+
+        for tag in item_tags:
+            instance = db.session.query(Tag).filter_by(tag=tag).one_or_none()
+            if not instance:
+                instance = Tag(tag=tag, user_id=user.id)
+            tags_objects.append(instance)
+
+        item_result[0].tags = tags_objects
         item_result[0].item_type = _get_itemtype_id(item_data, user)
 
         try:
             db.session.commit()
             return_data = {
                 "status": "success",
+                "message": "",
                 "item": {
                     "id": item_result[0].id,
                     "name": item_result[0].name,
@@ -1777,6 +1816,7 @@ def update_item_by_id(item_data: dict, item_id: int, user: User) -> Dict[str, Un
             app.logger.error(f"Could not update item with id {item_id} for user {user.username} : {str(ex)}")
             return_data = {
                 "status": "error",
+                "message": "",
                 "item": {
                     "id": None,
                     "name": None,
@@ -1873,6 +1913,17 @@ def get_items_to_delete(user_id: int, item_ids: list):
 
     stmt = select(Item).where(user_id == Item.user_id, Item.id.in_(item_ids))
     return db.session.execute(stmt).all()
+
+
+def delete_all_user_items(user_id: int):
+    if user_id is None:
+        return 0
+
+    with app.app_context():
+        item_ids_to_delete = get_all_user_item_ids(user_id=user_id)
+
+        number_items_deleted = delete_items(item_ids=item_ids_to_delete, user_id=user_id)
+        return number_items_deleted
 
 
 def delete_items(item_ids: list, user_id: int, inventory_id: int = None) -> int:

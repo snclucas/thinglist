@@ -1,10 +1,10 @@
 import bleach
-from flask import Blueprint
+from flask import Blueprint, jsonify
 from flask_login import login_required, current_user
 from flask import request
 from database_functions import get_all_itemtypes_for_user, get_all_user_locations, get_all_user_tags, \
     get_all_item_types, find_items_new, find_all_my_items, find_user_by_username, \
-    count_all_item_ids_in_inventory
+    count_all_item_ids_in_inventory, count_all_user_items
 from routes.items_routes import _get_inventory, _process_url_query
 
 api_routes = Blueprint('api', __name__)
@@ -71,9 +71,12 @@ def items(username=None, inventory_slug=None):
     if requested_user is None:
         requested_user = current_user
 
-    inventory_id, inventory_, inventory_field_template = _get_inventory(inventory_slug=inventory_slug,
-                                                                        inventory_owner_id=inventory_owner_id,
-                                                                        logged_in_user_id=logged_in_user_id)
+    if inventory_slug != 'all':
+        inventory_id, inventory_, inventory_field_template = _get_inventory(inventory_slug=inventory_slug,
+                                                                            inventory_owner_id=inventory_owner_id,
+                                                                            logged_in_user_id=logged_in_user_id)
+    else:
+        inventory_id, inventory_ = None, None
 
     request_params = _process_url_query(req_=request, inventory_user=requested_user)
 
@@ -99,7 +102,10 @@ def items(username=None, inventory_slug=None):
                             requested_username=current_user.username,
                             logged_in_user=current_user)
 
-    num_items_in_inventory = count_all_item_ids_in_inventory(user_id=current_user.id, inventory_id=inventory_id)
+    if inventory_slug != 'all':
+        num_items_in_inventory = count_all_item_ids_in_inventory(user_id=current_user.id, inventory_id=inventory_id)
+    else:
+        num_items_in_inventory = count_all_user_items(user_id=current_user.id)
 
     ret_items = []
     for row in items_:
@@ -116,35 +122,40 @@ def items(username=None, inventory_slug=None):
 
         ret_items.append({
             "name": {"name": item_.name, "slug": item_.slug},
-            "slug": item_.slug,
-            "description": item_.description,
+            #"slug": item_.slug,
+            #"description": item_.description,
             "tags": tag_arr,
             "location": location,
             "type": row[1],
-            "id": item_.id
+            #"id": item_.id
         })
 
-    return {
+    return jsonify({
         "data": ret_items,
-        "recordTotals": num_items_in_inventory,
+        "recordsTotal": num_items_in_inventory,
         "recordsFiltered": num_items_in_inventory #len(ret_items)
-    }
+    }, 200, 'application/json').json[0]
 
 
 @api_routes.route('/api/locations', methods=['GET'])
 @login_required
 def locations():
+    new_ret = []
     locations_ = get_all_user_locations(user_id=current_user.id)
     loc_array = []
     for loc_ in locations_:
-        loc_array.append(f"location:{loc_.name.lower()}")
+        loc_array.append(f"location: {loc_.name.lower()}")
+        new_ret.append({"location": loc_.name.lower()})
 
     tags_ = get_all_user_tags(user_id=current_user.id)
     for tag_ in tags_:
-        loc_array.append(f"tags:{tag_.tag.lower()}")
+        loc_array.append(f"tag: {tag_.tag.lower()}")
+        new_ret.append({"tag": tag_.tag.lower()})
 
     item_types_ = get_all_item_types()
     for item_type_ in item_types_:
-        loc_array.append(f"type:{item_type_.name.lower()}")
+        loc_array.append(f"type: {item_type_.name.lower()}")
+        new_ret.append({"type": item_type_.name.lower()})
 
+    #return new_ret
     return loc_array

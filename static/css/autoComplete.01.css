@@ -71,9 +71,11 @@
 }
 
 .autoComplete_wrapper > ul > li mark {
-  background-color: transparent;
-  color: rgba(255, 122, 122, 1);
+  #background-color: transparent;
+  color: rgb(69, 103, 205);
   font-weight: bold;
+  padding: 0em;
+  background-color: rgb(255, 255, 255);
 }
 
 .autoComplete_wrapper > ul > li mark::selection {

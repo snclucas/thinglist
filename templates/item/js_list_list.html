@@ -56,7 +56,7 @@
             processing: true,
             serverSide: true,
             columns: [
-                {data: 'name',  width: '30px'},
+                {data: 'name.name',  width: '30px'},
                 {data: 'type',  width: '30px'},
                 {data: 'tags',  width: '30px'},
                 {data: 'id',  width: '10px'}
@@ -64,6 +64,7 @@
             ajax: {
                 url: user_items_url,
                 type: 'GET',
+                dataSrc: 'data',
                 data: function (d) {
                     d.view = "{{ view }}";
                 }

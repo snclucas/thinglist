@@ -27,8 +27,7 @@ from database_functions import get_all_user_locations, \
     change_item_access_level, link_items, copy_items, commit, find_items_new, __PUBLIC__, __PRIVATE__, \
     find_user_by_username, add_images_to_item, set_item_main_image, get_user_inventories, add_user_inventory, \
     save_template_fields, get_item_fields, save_inventory_fieldtemplate, find_template_by_id, save_user_inventory_view, \
-    get_related_items, get_all_item_ids_in_inventory, find_item_by_id, update_item_by_id, find_item_by_slug
-from models import FieldTemplate
+    get_related_items, get_all_item_ids_in_inventory, update_item_by_id, find_item_by_slug
 
 from utils import generate_item_image_filename
 
@@ -272,7 +271,7 @@ def items_load():
 
                                             if img_is_main == "true":
                                                 set_item_main_image(main_image_url=img_filename, item_id=item_id,
-                                                                    user=current_user)
+                                                                    user_id=current_user.id)
 
                                             img_filepath = os.path.join(app.root_path, app.config['USER_IMAGES_BASE_PATH'],
                                                                         str(current_user.id), img_filename)
@@ -286,9 +285,13 @@ def items_load():
                                             img_hmac_hash = base64.encodebytes(hashed.digest()).decode('utf-8')
 
                                             if img_hash == img_hmac_hash:
-                                                with open(img_filepath, 'wb') as img_file:
-                                                    img_file.write(imgdata)
-                                                    item_image_filename.append(img_filename)
+                                                try:
+                                                    with open(img_filepath, 'wb') as img_file:
+                                                        img_file.write(imgdata)
+                                                        item_image_filename.append(img_filename)
+                                                except Exception as ex:
+                                                    app.logger.error(f"Error saving image: {str(ex)}")
+
 
                                         add_images_to_item(new_item_['item']['id'], item_image_filename, user=current_user)
 
@@ -817,7 +820,7 @@ def items_with_username_and_inventory(username=None, inventory_slug=None):
                                                  inventory_id=inventory_id, view=_new_view)
 
             else:
-                return render_template('404.html', message="No inventory or no permissions to view inventory"), 404
+                return render_template(template_name_or_list='404.html', message="No inventory or no permissions to view inventory"), 404
 
             is_inventory_owner = (inventory_.owner_id == logged_in_user_id) or inventory_access_level == 0
         else:
@@ -836,6 +839,9 @@ def items_with_username_and_inventory(username=None, inventory_slug=None):
         current_username = current_user.username
     else:
         current_username = None
+
+    if view is None:
+        view = "list"
 
 
     return render_template(template_name_or_list='item/items.html',
@@ -983,6 +989,7 @@ def _process_url_query(req_, inventory_user):
         "requested_item_specific_location": requested_item_specific_location,
         "view": view
     }
+
 
 
 @items_routes.route(rule='/item/delete', methods=['POST'])

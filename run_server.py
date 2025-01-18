@@ -18,6 +18,7 @@ from routes.items_routes import items_routes
 from routes.api_routes import api_routes
 from routes.search_routes import search_routes
 from routes.field_routes import field_routes
+from routes.user_admin_routes import user_admin_routes
 
 
 # Register Blueprints
@@ -32,6 +33,7 @@ app.register_blueprint(items_routes)
 app.register_blueprint(api_routes)
 app.register_blueprint(search_routes)
 app.register_blueprint(field_routes)
+app.register_blueprint(user_admin_routes)
 
 
 mimetypes.add_type('application/javascript', '.js')

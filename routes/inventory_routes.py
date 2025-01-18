@@ -9,7 +9,7 @@ from database_functions import get_user_inventories, delete_item_from_inventory,
     add_item_to_inventory, \
     get_items_for_inventory, find_inventory, get_all_item_types, find_inventory_by_slug, \
     find_user_by_username, edit_inventory_data, get_all_user_locations, \
-    delete_inventory_by_id, add_user_to_inventory, delete_user_to_inventory, find_inventory_by_id, add_user_inventory, \
+    delete_list_by_id, add_user_to_inventory, delete_user_to_inventory, find_inventory_by_id, add_user_inventory, \
     send_inventory_invite, regenerate_inventory_token, find_inventory_by_access_token, add_user_to_inventory_from_token, \
     __PRIVATE__, __PUBLIC__, get_user_public_lists, __VIEWER__
 from email_utils import send_email
@@ -101,7 +101,7 @@ def inventories_for_username(username):
 
 @inv.route('/list/<int:inventory_id>')
 @login_required
-def inventory(inventory_id: int):
+def list_by_id(inventory_id: int):
     inventory_ = find_inventory(inventory_id=inventory_id)
     if inventory_ is not None:
         if inventory_.owner_id == current_user.id:
@@ -178,7 +178,7 @@ def del_inventory():
         json_data = request.json
         inventory_ids = json_data['inventory_ids']
         inventory_ids = [int(bleach.clean(str(x))) for x in inventory_ids]
-        delete_inventory_by_id(inventory_ids=inventory_ids, user_id=current_user.id)
+        delete_list_by_id(inventory_ids=inventory_ids, user_id=current_user.id)
 
         return redirect(url_for('inv.inventories'))
 
