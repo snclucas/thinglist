@@ -453,16 +453,27 @@ def items_load_orig():
                                 username=username, inventory_slug=inventory_slug).replace('%40', '@'))
 
 
+_MOVE_ = 0
+_COPY_ = 1
+_LINK_ = 2
+
 @items_routes.route(rule='/items/move', methods=['POST'])
 @login_required
 def items_move():
     if request.method == 'POST':
         json_data = request.json
-        item_ids = json_data['item_ids']
-        username = json_data['username']
-        to_inventory_id = json_data['to_inventory_id']
-        from_inventory_id = json_data['inventory_id']
-        move_type = int(json_data['move_type'])
+
+        item_ids = json_data.get('item_ids', None)
+        username = json_data.get('username', None)
+        to_inventory_id = json_data.get('to_inventory_id', None)
+        from_inventory_id = json_data.get('inventory_id', None)
+        move_type = json_data.get('move_type', None)
+
+        if not all(v is not None for v in [item_ids, username, to_inventory_id, from_inventory_id, move_type]):
+            flash("There was a problem moving your things!")
+            return redirect(url_for('item.items_with_username', username=username).replace('%40', '@'))
+
+        move_type = int(move_type)
 
         username = bleach.clean(username)
         to_inventory_id = int(bleach.clean(str(to_inventory_id)))
@@ -478,11 +489,11 @@ def items_move():
         if len(item_ids) == 1 and item_ids[0] == -1:
             item_ids = get_all_item_ids_in_inventory(user_id = current_user.id, inventory_id = from_inventory_id)
 
-        if move_type == 0:
+        if move_type == _MOVE_:
             result = move_items(item_ids=item_ids, user=current_user, inventory_id=int(to_inventory_id))
             if result["status"] == "error":
                 flash("There was a problem moving your things!")
-        elif move_type == 1:
+        elif move_type == _COPY_:
             result = copy_items(item_ids=item_ids, user=current_user, inventory_id=int(to_inventory_id))
             if result["status"] == "error":
                 flash("There was a problem copying your things!")

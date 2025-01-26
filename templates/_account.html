@@ -44,40 +44,41 @@
 
     <div class="list-group-item">
         <form action="{{ url_for('user_admin.wipe') }}" method="POST">
-        <div class="row align-items-center">
-            <div class="col">
-                <strong class="mb-0">Wipe all data</strong>
-                <p class="text-muted mb-0">Please export your lists as this cannot be undone.</p>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-sm-2">
-                <label>Choice:</label>
-            </div>
-            <div class="col-sm-10">
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="wipe_items" name="wipe_items">
-                    <label class="form-check-label" for="wipe_items">Items</label>
-                </div>
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="wipe_lists" name="wipe_lists">
-                    <label class="form-check-label" for="wipe_lists">Lists</label>
-                </div>
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="wipe_locations" name="wipe_locations">
-                    <label class="form-check-label" for="wipe_locations">Locations</label>
-                </div>
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="wipe_templates" name="wipe_templates">
-                    <label class="form-check-label" for="wipe_templates">Field templates</label>
+            <div class="row align-items-center">
+                <div class="col">
+                    <strong class="mb-0">Wipe all data</strong>
+                    <p class="text-muted mb-0">Please export your lists as this cannot be undone.</p>
                 </div>
             </div>
-        </div>
-        <br>
+            <div class="row">
+                <div class="col-sm-2">
+                    <label>Choice:</label>
+                </div>
+                <div class="col-sm-10">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="wipe_items" name="wipe_items">
+                        <label class="form-check-label" for="wipe_items">Items</label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="wipe_lists" name="wipe_lists">
+                        <label class="form-check-label" for="wipe_lists">Lists</label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="wipe_locations" name="wipe_locations">
+                        <label class="form-check-label" for="wipe_locations">Locations</label>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="wipe_templates" name="wipe_templates">
+                        <label class="form-check-label" for="wipe_templates">Field templates</label>
+                    </div>
+                </div>
+            </div>
+            <br>
 
             <div class="form-group">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit" class="btn btn-primary" id="user-admin-wipe" name="user-admin-wipe-btn">Wipe</button>
+                <button type="submit" class="btn btn-primary" id="user-admin-wipe" name="user-admin-wipe-btn">Wipe
+                </button>
             </div>
         </form>
         <br>

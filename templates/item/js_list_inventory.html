@@ -65,8 +65,8 @@
                             target: 4,
                             sortable: false,
                             className: 'dt-body-right',
-                            "render": function (id) {
-                                return "<input class=\"form-check-input\" type=\"checkbox\" data-item-id=\"" + id + "\" id=\"selected-item-" + id + "\">";
+                            "render": function (item_id) {
+                                return "<input class=\"form-check-input\" type=\"checkbox\" data-item-id=\"" + item_id + "\" id=\"selected-item-" + item_id + "\">";
                             }
                         }
                     {% endif %}

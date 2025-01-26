@@ -121,13 +121,13 @@ def items(username=None, inventory_slug=None):
                 location["specific_location"] = item_.specific_location
 
         ret_items.append({
-            "name": {"name": item_.name, "slug": item_.slug},
+            "name": {"name": item_.name, "slug": item_.slug, "id": item_.id},
             #"slug": item_.slug,
             #"description": item_.description,
             "tags": tag_arr,
             "location": location,
             "type": row[1],
-            #"id": item_.id
+            "id": item_.id
         })
 
     return jsonify({

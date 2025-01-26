@@ -11,7 +11,7 @@ from database_functions import get_user_inventories, delete_item_from_inventory,
     find_user_by_username, edit_inventory_data, get_all_user_locations, \
     delete_list_by_id, add_user_to_inventory, delete_user_to_inventory, find_inventory_by_id, add_user_inventory, \
     send_inventory_invite, regenerate_inventory_token, find_inventory_by_access_token, add_user_to_inventory_from_token, \
-    __PRIVATE__, __PUBLIC__, get_user_public_lists, __VIEWER__
+    __PRIVATE__, __PUBLIC__, get_user_public_lists, __VIEWER__, get_user_unlisted_item_count
 from email_utils import send_email
 
 inv = Blueprint('inv', __name__)
@@ -33,7 +33,7 @@ def my_utility_processor():
 @login_required
 def inventories():
     """
-    Flask route to retrieve the inventories.
+    Route to retrieve the inventories.
 
     Returns:
         The rendered HTML template with the following variables:
@@ -47,10 +47,14 @@ def inventories():
                                      requesting_user_id=current_user.id, access_level=-1)
 
     number_inventories = len(user_invs) - 1  # -1 to count for the 'hidden' default inventory
+    unlisted_item_count = get_user_unlisted_item_count(user_id=current_user.id)
 
-    return render_template(template_name_or_list='inventory/inventories.html', username=current_user.username,
+    return render_template(template_name_or_list='inventory/inventories.html',
+                           username=current_user.username,
                            inventories=user_invs,
-                           user_is_authenticated=user_is_authenticated, number_inventories=number_inventories)
+                           unlisted_item_count=unlisted_item_count,
+                           user_is_authenticated=user_is_authenticated,
+                           number_inventories=number_inventories)
 
 
 @inv.route('/@<string:username>/lists')
@@ -91,9 +95,12 @@ def inventories_for_username(username):
     if len(lists) == 0:
         return render_template(template_name_or_list='404.html', message="No inventories"), 404
 
-    number_inventories = len(lists) # - 1  # -1 to count for the 'hidden' default inventory
+    number_inventories = len(lists) - 1  # -1 to count for the 'hidden' default inventory
+
+    unlisted_item_count = get_user_unlisted_item_count(user_id=user_.id)
 
     return render_template(template_name_or_list='inventory/inventories.html',
+                           unlisted_item_count=unlisted_item_count,
                            inventories=lists, username=username,
                            user_is_authenticated=user_is_authenticated,
                            number_inventories=number_inventories)

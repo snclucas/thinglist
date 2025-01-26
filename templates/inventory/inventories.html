@@ -16,6 +16,7 @@
                 <div class="col-md-12">
                     <div class="card">
                         <div class="card-body">
+
                             <div class="row">
                                 <div class="col-md-8">
                                     <h4 class="mb-0">Lists <small>| {{ number_inventories }} </small></h4>
@@ -51,6 +52,13 @@
                                         {% endif %}
                                     </div>
                                 </div>
+                            </div>
+                        <div class="row">
+                                <div class="col-md-12"><small class="text-right">
+                                    <a href="{{ url_for('items.items_with_username_and_inventory', username=username, inventory_slug='default') | replace('%40', '@') }}">
+                         Unlisted items | {{ unlisted_item_count }}</a>
+
+                                </small></div>
                             </div>
                             <hr>
                             <div class="row">
