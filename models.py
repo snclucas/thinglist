@@ -52,6 +52,7 @@ class Preferences(db.Model):
     __tablename__ = "preferences"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     default_public = db.Column(db.Boolean(), default=False)
+    public_profile = db.Column(db.Boolean(), default=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
 class Notification(db.Model):
