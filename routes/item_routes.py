@@ -173,6 +173,8 @@ def edit_item(item_id):
         item_name = request.form.get("item_name")
         item_description = request.form.get("item_description")
         item_quantity = request.form.get("item_quantity")
+        item_url = request.form.get("item_url")
+        item_url = bleach.clean(item_url)
 
         item_name = bleach.clean(item_name)
         item_description = item_description
@@ -191,11 +193,12 @@ def edit_item(item_id):
         del form_data["item_name"]
         del form_data["item_description"]
         del form_data["item_quantity"]
+        del form_data["item_url"]
 
         item_tags = request.form.get("item_tags")
         item_tags = bleach.clean(item_tags)
         if item_tags != '':
-            item_tags = item_tags.strip().split(",")
+            item_tags = [x.strip() for x in item_tags.split(",")]
         else:
             item_tags = []
         del form_data["item_tags"]
@@ -220,7 +223,8 @@ def edit_item(item_id):
             "item_quantity": item_quantity,
             "item_location": item_location,
             "item_specific_location": item_specific_location,
-            "item_tags": item_tags
+            "item_tags": item_tags,
+            "item_url": item_url
         }
 
         new_item_slug = None

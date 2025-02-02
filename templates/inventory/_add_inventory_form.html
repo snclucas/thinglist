@@ -44,6 +44,7 @@
             <select class=" form-select" id="inventory_type" name="inventory_type" aria-label="Default select example">
                 <option value="1" selected>Inventory</option>
                 <option value="2">List</option>
+                <option value="3">URL list</option>
             </select>
             <div id="emailHelp" class="form-text">Physical inventory or simple list of things</div>
         </div>
@@ -53,7 +54,7 @@
 
     <div class="row">
         <div class="col-sm-2">
-            <label>Show default fields</label>
+            <label>Item page default fields</label>
         </div>
         <div class="col-sm-10">
             <div class="form-check form-switch">
@@ -71,6 +72,10 @@
             <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" id="show_item_tags" name="show_item_tags" checked >
                 <label class="form-check-label" for="show_item_tags">Tags</label>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="show_item_url" name="show_item_url" >
+                <label class="form-check-label" for="show_item_url">URL</label>
             </div>
         </div>
     </div>

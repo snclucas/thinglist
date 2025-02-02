@@ -102,8 +102,12 @@ def items_load():
                                 break
 
                             inventory_slug_ = inventory_data.get("slug", None)
+                            if inventory_slug_ is None:
+                                continue
+
                             inventory_slug_ = bleach.clean(inventory_slug_)
 
+                            # look for the inventory by slug
                             found_inv, found_userinv = find_inventory_by_slug(inventory_slug=inventory_slug_,
                                                                               inventory_owner_id=current_user.id,
                                                                               viewing_user_id=current_user.id)
@@ -460,76 +464,102 @@ _LINK_ = 2
 @items_routes.route(rule='/items/move', methods=['POST'])
 @login_required
 def items_move():
-    if request.method == 'POST':
-        json_data = request.json
+    _public_err_msg = "There was a problem moving your things!"
+    json_data = request.json
 
-        item_ids = json_data.get('item_ids', None)
-        username = json_data.get('username', None)
-        to_inventory_id = json_data.get('to_inventory_id', None)
-        from_inventory_id = json_data.get('inventory_id', None)
-        move_type = json_data.get('move_type', None)
+    item_ids = json_data.get('item_ids', None)
+    username = json_data.get('username', None)
+    to_inventory_id = json_data.get('to_inventory_id', None)
+    from_inventory_id = json_data.get('inventory_id', None)
+    move_type = json_data.get('move_type', None)
 
-        if not all(v is not None for v in [item_ids, username, to_inventory_id, from_inventory_id, move_type]):
-            flash("There was a problem moving your things!")
-            return redirect(url_for('item.items_with_username', username=username).replace('%40', '@'))
-
-        move_type = int(move_type)
-
-        username = bleach.clean(username)
-        to_inventory_id = int(bleach.clean(str(to_inventory_id)))
-        from_inventory_id = int(bleach.clean(str(from_inventory_id)))
-        move_type = int(bleach.clean(str(move_type)))
-        item_ids = [int(bleach.clean(str(x))) for x in item_ids]
-
-        """
-        link - just add new line in ItemInventory
-        move - change inventory id in ItemInventory
-        copy - duplicate item, add new line in ItemInventory
-        """
-        if len(item_ids) == 1 and item_ids[0] == -1:
-            item_ids = get_all_item_ids_in_inventory(user_id = current_user.id, inventory_id = from_inventory_id)
-
-        if move_type == _MOVE_:
-            result = move_items(item_ids=item_ids, user=current_user, inventory_id=int(to_inventory_id))
-            if result["status"] == "error":
-                flash("There was a problem moving your things!")
-        elif move_type == _COPY_:
-            result = copy_items(item_ids=item_ids, user=current_user, inventory_id=int(to_inventory_id))
-            if result["status"] == "error":
-                flash("There was a problem copying your things!")
-        else:
-            result = link_items(item_ids=item_ids, user=current_user, inventory_id=int(to_inventory_id))
-            if result["status"] == "error":
-                flash("There was a problem copying your things!")
-
+    if not all(v is not None for v in [item_ids, username, to_inventory_id, from_inventory_id, move_type]):
+        flash("There was a problem moving your things!")
         return redirect(url_for('item.items_with_username', username=username).replace('%40', '@'))
+
+    move_type = int(move_type)
+
+    username = bleach.clean(username)
+    to_inventory_id = int(bleach.clean(str(to_inventory_id)))
+    from_inventory_id = int(bleach.clean(str(from_inventory_id)))
+    move_type = int(bleach.clean(str(move_type)))
+    item_ids = [int(bleach.clean(str(x))) for x in item_ids]
+
+    """
+    link - just add new line in ItemInventory
+    move - change inventory id in ItemInventory
+    copy - duplicate item, add new line in ItemInventory
+    """
+    if len(item_ids) == 1 and item_ids[0] == -1:
+        item_ids = get_all_item_ids_in_inventory(user_id = current_user.id, inventory_id = from_inventory_id)
+
+    if move_type == _MOVE_:
+        result = move_items(item_ids=item_ids, user=current_user, inventory_id=int(to_inventory_id))
+        if result["status"] == "error":
+            flash(_public_err_msg)
+    elif move_type == _COPY_:
+        result = copy_items(item_ids=item_ids, user=current_user, inventory_id=int(to_inventory_id))
+        if result["status"] == "error":
+            flash(_public_err_msg)
+    else:
+        result = link_items(item_ids=item_ids, user=current_user, inventory_id=int(to_inventory_id))
+        if result["status"] == "error":
+            flash(_public_err_msg)
+
+    return redirect(url_for('item.items_with_username', username=username).replace('%40', '@'))
 
 
 @items_routes.route(rule='/items/edit', methods=['POST'])
 @login_required
 def items_edit():
-    if request.method == 'POST':
-        json_data = request.json
-        username = json_data['username']
-        item_ids = json_data['item_ids']
-        inventory_slug = json_data['inventory_slug']
-        location_id = json_data['location_id']
-        item_visibility = json_data['item_visibility']
-        specific_location = json_data['specific_location']
 
-        access_level = int(item_visibility)
+    json_data = request.json
+    username = json_data.get('username', None)
+    item_ids = json_data.get('item_ids', None)
+    inventory_slug = json_data.get('inventory_slug', None)
+    location_id = json_data.get('location_id', None)
+    item_visibility = json_data.get('item_visibility', None)
+    specific_location = json_data.get('specific_location', None)
 
-        specific_location = bleach.clean(specific_location)
-        if specific_location == "" or specific_location == "None":
-            specific_location = None
+    if None in [username, inventory_slug] or "" in [username, inventory_slug]:
+        flash("There was a problem editing your things!")
+        return redirect(url_for('items.items_with_username',
+                                username=current_user.username).replace('%40', '@'))
 
-        edit_items_locations(item_ids=item_ids, user=current_user, location_id=int(location_id),
-                             specific_location=specific_location)
-        if access_level != -1:
-            change_item_access_level(item_ids=item_ids, access_level=access_level, user_id=current_user.id)
+    if None in [item_ids, location_id, item_visibility]:
+        flash("There was a problem editing your things!")
+        return redirect(url_for(endpoint='items.items_with_username_and_inventory',
+                                username=username, inventory_slug=inventory_slug).replace('%40', '@'))
 
+    try:
+        username = bleach.clean(username)
+        inventory_slug = bleach.clean(inventory_slug)
+        item_ids = [int(bleach.clean(str(x))) for x in item_ids]
+        location_id = int(bleach.clean(str(location_id)))
+        item_visibility = bleach.clean(str(item_visibility))
+    except ValueError:
+        flash("There was a problem editing your things!")
+        return redirect(url_for('items.items_with_username_and_inventory',
+            username=username, inventory_slug=inventory_slug).replace('%40', '@'))
+
+    access_level = int(item_visibility)
+
+    specific_location = bleach.clean(specific_location)
+    if specific_location == "" or specific_location == "None":
+        specific_location = None
+
+    status, msg = edit_items_locations(item_ids=item_ids, user=current_user, location_id=int(location_id),
+                           specific_location=specific_location)
+    if not status:
+        flash("There was a problem editing your things!")
         return redirect(url_for('items.items_with_username_and_inventory',
                                 username=username, inventory_slug=inventory_slug).replace('%40', '@'))
+
+    if access_level != -1:
+        change_item_access_level(item_ids=item_ids, access_level=access_level, user_id=current_user.id)
+
+    return redirect(url_for(endpoint='items.items_with_username_and_inventory',
+                            username=username, inventory_slug=inventory_slug).replace('%40', '@'))
 
 
 @items_routes.route('/items/save-pdf', methods=['POST'])
@@ -727,6 +757,18 @@ def items_save():
 @items_routes.route('/items')
 @login_required
 def items():
+    """
+    Endpoint method for displaying items page for the current logged in user.
+
+    This method requires user to be logged in before accessing. It redirects the user to the items page associated with their username.
+
+    Parameters:
+    - None
+
+    Returns:
+    - Redirect: Redirects the user to their personalized items page.
+
+    """
     username = current_user.username
     return redirect(url_for(endpoint='items.items_with_username', username=username).replace('%40', '@'))
 

@@ -87,6 +87,7 @@ def profile(username):
     current_user_id = None
     requesting_user_id = None
 
+
     # -1 for the default None item type
     num_item_types = len(get_all_itemtypes_for_user(user_id=current_user.id, string_list=False)) - 1
     num_items = get_user_item_count(user_id=current_user.id)

@@ -94,6 +94,10 @@
                                 <h6><strong>Type:</strong> {{ item_type }}</h6>
                             {% endif %}
 
+                            {% if inventory.show_item_url == True %}
+                                <h6><strong>URL:</strong> {{ item.url }}</h6>
+                            {% endif %}
+
                             {% if item_access_level == 0 %}
                                 <h6>
                                     <strong>Location:</strong>

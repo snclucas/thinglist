@@ -444,6 +444,7 @@ def create_inventory(name: str, description: str, slug: str,
                      show_item_type: int,
                      show_item_location: int,
                      show_item_tags: int,
+                     show_item_url: int,
                      to_user, access_level):
     """
     Create a new inventory.
@@ -465,6 +466,7 @@ def create_inventory(name: str, description: str, slug: str,
                               show_default_fields=show_default_fields,
                               show_item_images=show_item_images,
                               show_item_type=show_item_type,
+                              show_item_url=show_item_url,
                               show_item_location=show_item_location,
                               show_item_tags=show_item_tags,
                               access_level=access_level)
@@ -484,6 +486,7 @@ def add_user_inventory(name: str, description: str, inventory_type: int,
                        show_item_type: int = True,
                        show_item_location: int = True,
                        show_item_tags: int = True,
+                       show_item_url: int = False,
                        slug: str = None,
                        access_level: int = 1, user_id: int = None) -> Tuple[Optional[dict], str]:
     if name == "":
@@ -504,6 +507,7 @@ def add_user_inventory(name: str, description: str, inventory_type: int,
                                                                show_default_fields=show_default_fields,
                                                                show_item_images=show_item_images,
                                                                show_item_type=show_item_type,
+                                                               show_item_url=show_item_url,
                                                                show_item_location=show_item_location,
                                                                show_item_tags=show_item_tags,
                                                                slug=slug, to_user=to_user, access_level=access_level)
@@ -873,7 +877,7 @@ def _find_query_parameters(query_, query_params):
 
         for tag_ in item_tags:
             tag_ = tag_.strip()
-            tag_ = tag_.replace(" ", "@#$")
+            #tag_ = tag_.replace(" ", "@#$")
             t_ = find_tag(tag=tag_)
 
             if t_ is not None:
@@ -1134,7 +1138,7 @@ def delete_all_items_in_inventory(user_id: int, inventory_id: int):
         return results_
 
 
-def change_item_access_level(item_ids: int, access_level: int, user_id: int):
+def change_item_access_level(item_ids: int | list, access_level: int, user_id: int):
     if not isinstance(item_ids, list):
         item_ids = [item_ids]
 
@@ -1793,12 +1797,13 @@ def update_item_by_id(item_data: dict, item_id: int, user: User) -> Dict[str, Un
         item_result[0].description = item_data['description']
         item_result[0].quantity = item_data['item_quantity']
         item_result[0].location_id = item_data['item_location']
+        item_result[0].url = item_data['item_url']
         item_result[0].specific_location = item_data['item_specific_location']
 
         item_tags = item_data['item_tags']
         tags_objects = []
         if not isinstance(item_data['item_tags'], list):
-            item_tags = item_data['item_tags'].strip().replace(" ", "@#$").split(",")
+            item_tags = [t.strip().replace(" ", "@#$") for t in item_data['item_tags'].split(",")]
 
         for tag in item_tags:
             instance = db.session.query(Tag).filter_by(tag=tag).one_or_none()
@@ -2038,9 +2043,6 @@ def edit_items_locations(item_ids: list, user: User, location_id: int, specific_
 
     if location_id is None:
         return False, "Location ID cannot be None"
-
-    if specific_location is None:
-        return False, "Specific location cannot be None"
 
     with app.app_context():
         stmt = select(Item).where(Item.user_id == user.id).where(Item.id.in_(item_ids))
@@ -2331,7 +2333,7 @@ def commit():
 
 
 def add_item_to_inventory(item_id=None, item_name=None, item_desc=None, item_type=None, item_tags=None,
-                          inventory_id=None, user_id=None, item_quantity=1,
+                          inventory_id=None, user_id=None, item_quantity=1, item_url=None,
                           item_location_id=None, item_specific_location="", custom_fields=None):
     app_context = app.app_context()
 
@@ -2351,6 +2353,7 @@ def add_item_to_inventory(item_id=None, item_name=None, item_desc=None, item_typ
             if item_id is None or new_item is None:
                 # create the new item
                 new_item = Item(name=item_name, description=item_desc, user_id=user_id, quantity=item_quantity,
+                                url=item_url,
                                 location_id=item_location_id, specific_location=item_specific_location)
                 db.session.add(new_item)
                 # get new item ID and set the item slug
@@ -2554,7 +2557,7 @@ def add_user_to_inventory_from_token(inventory_id: int, user_to_add: User, added
 
 
 def add_user_to_inventory(inventory_id: int, current_user_id: int, user_to_add_username: str,
-                          added_user_access_level: int):
+                          added_user_access_level: int) -> (bool, str):
     with app.app_context():
         user_inventory_ = UserInventory.query.filter(UserInventory.inventory_id == inventory_id) \
             .filter(UserInventory.user_id == current_user_id).one_or_none()
@@ -2582,18 +2585,20 @@ def add_user_to_inventory(inventory_id: int, current_user_id: int, user_to_add_u
                                 db.session.add(ui)
                                 db.session.commit()
 
+                            # Send a notification to the user being added to the list
                             add_user_notification(from_user_id=current_user_id, to_user_id=user_to_add_.id,
                                                   message=f"You have been added to the following inventory")
-                            return True
+                            return True, "User added successfully"
 
                     else:  # the username does not exist
-                        return False
+                        return False, "User not found"
                 else:
-                    return False  # don't support owner change right now
+                    # don't support owner change right now
+                    return False, "Cannot add user as owner"
             else:  # current user was not the inventory owner
-                return False
+                return False, "User is not the owner of the inventory"
         else:  # inventory was not found
-            return False
+            return False, "Inventory not found"
 
 
 def get_user_inventory_by_id(user_id: int, inventory_id: int) -> Inventory:
@@ -2753,6 +2758,7 @@ def edit_inventory_data(user_id: int, inventory_id: int, name: str,
                         show_item_type: int,
                         show_item_location: int,
                         show_item_tags: int,
+                        show_item_url: int,
                         access_level: int) -> None:
     session = db.session
 
@@ -2770,6 +2776,7 @@ def edit_inventory_data(user_id: int, inventory_id: int, name: str,
 
         results_[1].show_item_images = show_item_images
         results_[1].show_item_type = show_item_type
+        results_[1].show_item_url = show_item_url
         results_[1].show_item_location = show_item_location
         results_[1].show_item_tags = show_item_tags
 
@@ -2939,6 +2946,7 @@ def get_user_inventories(current_user_id: int, requesting_user_id: int, access_l
 
                 "inventory_show_item_images": 1 if inv.show_item_images else 0,
                 "inventory_show_item_type": 1 if inv.show_item_type else 0,
+                "inventory_show_item_url": 1 if inv.show_item_url else 0,
                 "inventory_show_item_location": 1 if inv.show_item_location else 0,
                 "inventory_show_item_tags": 1 if inv.show_item_tags else 0,
                 "userinventory_access_level": user_inv.access_level

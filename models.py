@@ -126,6 +126,7 @@ class Inventory(db.Model):
     show_item_location = db.Column(db.Boolean(), nullable=False, unique=False, default=True)
     show_item_type = db.Column(db.Boolean(), nullable=False, unique=False, default=True)
     show_item_tags = db.Column(db.Boolean(), nullable=False, unique=False, default=True)
+    show_item_url = db.Column(db.Boolean(), nullable=False, unique=False, default=True)
     invtags = db.relationship('Invtag', secondary='inventory_tags', back_populates='inventories', lazy='subquery')
 
 
@@ -144,6 +145,7 @@ class Item(db.Model):
     name = db.Column(db.String(255), nullable=False, unique=False)
     slug = db.Column(db.String(255), nullable=True, unique=False)
     description = db.Column(db.String(10000), nullable=True, unique=False)
+    url = db.Column(db.String(10000), nullable=True, unique=False)
     quantity = db.Column(db.Integer, nullable=False, unique=False, default=1)
     inventories = db.relationship('Inventory', secondary='inventory_items', back_populates='items', lazy='subquery')
     tags = db.relationship('Tag', secondary='item_tags', back_populates='items', lazy='subquery')

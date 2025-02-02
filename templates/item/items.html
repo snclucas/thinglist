@@ -246,12 +246,14 @@
                                         {% else %}
                                             {% include 'item/_item_grid_as_inventory.html' %}
                                         {% endif %}
-                                    {% else %}
+                                    {% elif inventory.type == __LIST__ %}
                                         {% if view == "list" %}
                                             {% include 'item/_item_list_as_list.html' %}
                                         {% else %}
                                             {% include 'item/_item_grid_as_list.html' %}
                                         {% endif %}
+                                    {% else %}
+                                        {% include 'item/_item_list_as_urllist.html' %}
                                     {% endif %}
                                 </div>
                             </div>
@@ -274,8 +276,10 @@
 
     {% if inventory.type == __INVENTORY__ %}
         {% include 'item/js_list_inventory.html' %}
-    {% else %}
+    {% elif inventory.type == __LIST__ %}
         {% include 'item/js_list_list.html' %}
+    {% else %}
+        {% include 'item/js_list_urllist.html' %}
     {% endif %}
 
     <script>

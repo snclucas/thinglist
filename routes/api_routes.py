@@ -121,9 +121,9 @@ def items(username=None, inventory_slug=None):
                 location["specific_location"] = item_.specific_location
 
         ret_items.append({
-            "name": {"name": item_.name, "slug": item_.slug, "id": item_.id},
+            "name": {"name": item_.name, "slug": item_.slug, "id": item_.id, "description": item_.description},
             #"slug": item_.slug,
-            #"description": item_.description,
+            "description": item_.description,
             "tags": tag_arr,
             "location": location,
             "type": row[1],
