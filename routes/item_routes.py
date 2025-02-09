@@ -5,6 +5,7 @@ import pathlib
 import random
 import string
 from io import BytesIO
+from typing import List
 
 import bleach
 from PIL import Image
@@ -96,12 +97,12 @@ def item_with_username_and_inventory(username: str, inventory_slug: str, item_sl
                                                          viewing_user_id=requested_user_id)
 
     if inventory_ is None:
-        return render_template('404.html', message="No such item or you do not have access to this item"), 404
+        return render_template(template_name_or_list='404.html', message="No such item or you do not have access to this item"), 404
 
     item_access_level = __VIEWER__
     if user_inventory_ is None:
         if inventory_.access_level != __PUBLIC__:
-            return render_template('404.html', message="No such item or you do not have access to this item"), 404
+            return render_template(template_name_or_list='404.html', message="No such item or you do not have access to this item"), 404
     else:
         item_access_level = user_inventory_.access_level
 
@@ -112,7 +113,7 @@ def item_with_username_and_inventory(username: str, inventory_slug: str, item_sl
         item_, item_type_string, inventory_item_ = None, None, None
 
     if item_ is None or inventory_item_ is None:
-        return render_template('404.html', message="No such item or you do not have access to this item"), 404
+        return render_template(template_name_or_list='404.html', message="No such item or you do not have access to this item"), 404
 
     item_fields = get_item_fields(item_id=item_.id)
 
@@ -244,11 +245,10 @@ def edit_item(item_id):
 @item_routes.route('/item/fields', methods=['POST'])
 @login_required
 def edit_item_fields():
-    if request.method == 'POST':
-        json_data = request.json
-        item_id = json_data['item_id']
-        field_ids = json_data['field_ids']
-        set_field_status(item_id, field_ids, is_visible=True)
+    json_data = request.json
+    item_id = json_data['item_id']
+    field_ids = json_data['field_ids']
+    set_field_status(item_id, field_ids, is_visible=True)
 
     return True
 
@@ -256,14 +256,13 @@ def edit_item_fields():
 @item_routes.route('/default-inventory_fields', methods=['POST'])
 @login_required
 def edit_inv_default_fields():
-    if request.method == 'POST':
-        json_data = request.json
-        inventory_id = json_data['inventory_id']
-        field_ids = json_data['field_ids']
+    json_data = request.json
+    inventory_id = json_data['inventory_id']
+    field_ids = json_data['field_ids']
 
-        field_ids = [str(x) for x in field_ids]
+    field_ids = [str(x) for x in field_ids]
 
-        set_inventory_default_fields(inventory_id=inventory_id, user=current_user, default_fields=field_ids)
+    set_inventory_default_fields(inventory_id=inventory_id, user=current_user, default_fields=field_ids)
 
     return True
 
@@ -329,16 +328,15 @@ def relate_items():
 def unrelate_items():
     user_is_authenticated = current_user.is_authenticated
     if user_is_authenticated:
-        if request.method == 'POST':
-            json_data = request.json
-            item1_id = json_data['item1']
-            item1_id = bleach.clean(str(item1_id))
-            item2_id = json_data['item2']
-            item2_id = bleach.clean(str(item2_id))
-            item1 = int(item1_id)
-            item2 = int(item2_id)
-            status, message = unrelate_items_by_id(item1_id=item1, item2_id=item2)
-            return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
+        json_data = request.json
+        item1_id = json_data['item1']
+        item1_id = bleach.clean(str(item1_id))
+        item2_id = json_data['item2']
+        item2_id = bleach.clean(str(item2_id))
+        item1 = int(item1_id)
+        item2 = int(item2_id)
+        status, message = unrelate_items_by_id(item1_id=item1, item2_id=item2)
+        return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
     else:
         return json.dumps({'success': False}), 200, {'ContentType': 'application/json'}
 
@@ -419,26 +417,26 @@ def set_main_image():
 @login_required
 @item_routes.route("/item/images/upload", methods=["POST"])
 def upload():
-    new_filename_list = []
+    new_filename_list: List[str] = []
 
-    username = request.form.get("username")
-    item_id = request.form.get("item_id")
-    item_slug = request.form.get("item_slug")
-    inventory_slug = request.form.get("inventory_slug")
+    username_: str = request.form.get("username")
+    item_id_: str = request.form.get("item_id")
+    item_slug_: str = request.form.get("item_slug")
+    inventory_slug_: str = request.form.get("inventory_slug")
 
-    username = bleach.clean(username)
-    item_id = bleach.clean(str(item_id))
-    item_slug = bleach.clean(item_slug)
-    inventory_slug = bleach.clean(inventory_slug)
+    username: str = bleach.clean(username_)
+    item_id_: str = bleach.clean(str(item_id_))
+    item_slug: str = bleach.clean(item_slug_)
+    inventory_slug: str = bleach.clean(inventory_slug_)
 
     if username != current_user.username:
-        return redirect(url_for('item.item_with_username_and_inventory',
+        return redirect(url_for(endpoint='item.item_with_username_and_inventory',
                                 username=username,
                                 inventory_slug=inventory_slug,
                                 item_slug=item_slug))
 
     try:
-        item_id = int(item_id)
+        item_id: int = int(item_id_)
     except ValueError:
         pass # for now
 
@@ -466,7 +464,7 @@ def upload():
 
     add_images_to_item(item_id=item_id, filenames=new_filename_list, user=current_user)
 
-    return redirect(url_for('item.item_with_username_and_inventory',
+    return redirect(url_for(endpoint='item.item_with_username_and_inventory',
                             username=username,
                             inventory_slug=inventory_slug,
                             item_slug=item_slug))

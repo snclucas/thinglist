@@ -1005,9 +1005,17 @@ def find_items_query(requested_username: str, logged_in_user, inventory_id: int,
 
 def _process_url_query(req_, inventory_user):
     requested_item_type_string = req_.args.get('type')
+
+
     requested_tag_strings = req_.args.get('tags')
+
+
     requested_item_location_string = req_.args.get('location')
+
+
     view = req_.args.get('view')
+
+
     requested_item_specific_location = req_.args.get('specific_location')
 
     # convert the text 'location_' to an id

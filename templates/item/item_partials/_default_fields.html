@@ -1,0 +1,33 @@
+<p class="card-text">{{ item.description | safe }}</p>
+<br>
+<hr>
+<div class="col-md-12">
+    {% if inventory.show_item_type == True %}
+        <div class="d-flex align-items-center justify-content-between text-xs">
+            <div class="fw-500"><strong>Type:</strong></div>
+            <div>{{ item_type }}</div>
+        </div>
+        <hr>
+    {% endif %}
+    {% if item_access_level == 0 %}
+        <div class="d-flex align-items-center justify-content-between text-xs">
+            <div class="fw-500"><strong>Location:</strong></div>
+            <div>
+                <a href="{{ url_for('items.items_with_username_and_inventory', username=current_user.username, inventory_slug="all", location=item_location['name']) }}">{{ item_location['name'] }}</a>
+                {% if item.specific_location is not none %}
+                    <br>({{ item.specific_location }})
+                {% endif %}
+            </div>
+        </div>
+        <hr>
+    {% endif %}
+    {% if inventory.show_item_url == True %}
+        <div class="d-flex align-items-center justify-content-between text-xs">
+            <div class="fw-500"><strong>URL:</strong></div>
+            <div>{{ item.url }}</div>
+        </div>
+        <hr>
+
+    {% endif %}
+<br>
+</div>

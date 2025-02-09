@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% if inventory is not none %}
+    {% set inv_table_type = inventory.type %}
     {% if "__default__" in inventory.name %}
         {% set inv_name = "Default/None" %}
         {% set inv_desc = "Default/None" %}
@@ -9,6 +10,7 @@
         {% set inv_desc = inventory.description %}
     {% endif %}
 {% else %}
+    {% set inv_table_type = __LIST_ALL__ %}
     {% set inv_name = "All" %}
     {% set inv_desc = "All items" %}
 {% endif %}
@@ -238,21 +240,31 @@
 
                                 </div>
                             </div>
+
                             <div class="row">
                                 <div class="col-md-12">
-                                    {% if inventory.type == __INVENTORY__ %}
+                                    {% if inv_table_type == __INVENTORY__ %}
                                         {% if view == "list" %}
                                             {% include 'item/_item_list_as_inventory.html' %}
                                         {% else %}
                                             {% include 'item/_item_grid_as_inventory.html' %}
                                         {% endif %}
-                                    {% elif inventory.type == __LIST__ %}
+                                    {% elif inv_table_type == __LIST__ %}
                                         {% if view == "list" %}
                                             {% include 'item/_item_list_as_list.html' %}
                                         {% else %}
                                             {% include 'item/_item_grid_as_list.html' %}
                                         {% endif %}
+                                    {% elif inv_table_type == __LIST_ALL__ %}
+                                        asdasdasdasdsadsadasdasdsadasdasdasdsadas
+                                        {% if view == "list" %}
+                                            qqqqqqqqqqqqqqqqqqqqqqqqqqqqqq
+                                            {% include 'item/_item_list_as_list.html' %}
+                                        {% else %}
+                                            {% include 'item/_item_grid_as_list.html' %}
+                                        {% endif %}
                                     {% else %}
+                                        222222222222222222222222
                                         {% include 'item/_item_list_as_urllist.html' %}
                                     {% endif %}
                                 </div>
@@ -274,11 +286,17 @@
         const urlParams = new URLSearchParams(window.location.search);
     </script>
 
-    {% if inventory.type == __INVENTORY__ %}
+    {% if inv_table_type == __INVENTORY__ %}
+        asdad
         {% include 'item/js_list_inventory.html' %}
-    {% elif inventory.type == __LIST__ %}
+    {% elif inv_table_type == __LIST__ %}
+        aaaaaa
         {% include 'item/js_list_list.html' %}
+    {% elif inv_table_type == __LIST_ALL__ %}
+        aaaaaasssssssssssss
+        {% include 'item/js_list_list_allitems.html' %}
     {% else %}
+        iiiiiiiiiii34
         {% include 'item/js_list_urllist.html' %}
     {% endif %}
 

@@ -4,7 +4,7 @@ from flask_login import login_required, current_user
 from flask import request
 from database_functions import get_all_itemtypes_for_user, get_all_user_locations, get_all_user_tags, \
     get_all_item_types, find_items_new, find_all_my_items, find_user_by_username, \
-    count_all_item_ids_in_inventory, count_all_user_items
+    count_all_item_ids_in_inventory, count_all_user_items, find_items_by_field_value
 from routes.items_routes import _get_inventory, _process_url_query
 
 api_routes = Blueprint('api', __name__)
@@ -96,6 +96,8 @@ def items(username=None, inventory_slug=None):
         'dir_0': request.args.get("order[0][dir]", None),
         'search': search_query,
     }
+
+    test_ = find_items_by_field_value(user_id=current_user.id, field_name="manufacturer", field_value="IBM")
 
     items_ = find_items_new(inventory_id=inventory_id,
                             query_params=query_params,

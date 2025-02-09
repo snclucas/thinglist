@@ -886,7 +886,7 @@ def _find_query_parameters(query_, query_params):
     return query_
 
 
-def regenerate_inventory_token(user_id, inventory_id, new_token):
+def regenerate_inventory_token(user_id, inventory_id, new_token) -> (bool, str):
     with app.app_context():
         query = db.session.query(UserInventory, Inventory).join(Inventory) \
             .filter(UserInventory.user_id == user_id) \
@@ -896,11 +896,14 @@ def regenerate_inventory_token(user_id, inventory_id, new_token):
         if results is not None:
             user_inventory_, inventory_ = results
             inventory_.token = new_token
-            db.session.commit()
 
-            return new_token
+            try:
+                db.session.commit()
+                return True, "Token updated successfully"
+            except SQLAlchemyError as ex:
+                return False, ex
 
-        return None
+        return False, "No inventory found"
 
 
 def find_all_my_items(logged_in_user: User):
@@ -930,6 +933,39 @@ def _find_my_items_using_select(logged_in_user: User, inventory_id, query_params
             page_data = db.paginate(d, page=page, per_page=per_page)
 
             d = 3
+
+
+def find_field_by_name(field_name: str) -> dict:
+    with app.app_context():
+        field_slug = slugify(field_name)
+        field_ = Field.query.filter(Field.slug == field_slug).one_or_none()
+        # return {"id": field_.id, "name": field_.name, "slug": field_.slug}
+        return field_
+
+def find_field_by_slug(field_slug: str):
+    with app.app_context():
+        field_ = Field.query.filter(Field.slug == field_slug).one_or_none()
+        return field_
+
+def find_field_by_id(field_id: int):
+    with app.app_context():
+        field_ = Field.query.filter(Field.id == field_id).one_or_none()
+        return field_
+
+
+def find_items_by_field_value(user_id: int, field_name: str, field_value: str):
+    with app.app_context():
+        field_id_ = find_field_by_name(field_name=field_name)
+
+        query = db.session.query(ItemField, Item).join(ItemField, ItemField.item_id == Item.id) \
+            .filter(ItemField.field_id == field_id_.id) \
+            .filter(ItemField.value == field_value) \
+            .filter(Item.user_id == user_id)
+        results_ = query.all()
+
+        return results_
+
+
 
 
 def _find_my_items(logged_in_user: User, inventory_id, query_params):
@@ -2844,7 +2880,7 @@ def delete_location(user_id: int, location_ids) -> dict:
     return {"success": True}
 
 
-def get_user_public_lists(for_user_id: int):
+def get_user_public_lists(for_user_id: int) -> list:
     with app.app_context():
         stmt = db.session.query(Inventory).filter(
             Inventory.owner_id == for_user_id).filter(Inventory.access_level == __PUBLIC__)
@@ -2870,7 +2906,7 @@ def get_user_public_lists(for_user_id: int):
         return ret_results
 
 
-def get_user_inventories(current_user_id: int, requesting_user_id: int, access_level: int = -1) -> list:
+def get_user_inventories(current_user_id: int, requesting_user_id: int, access_level: int = -1) -> Tuple[list, bool, str]:
     """
     Gets the inventories associated with a user.
 
@@ -2895,13 +2931,13 @@ def get_user_inventories(current_user_id: int, requesting_user_id: int, access_l
     """
 
     if not isinstance(access_level, int):
-        raise TypeError("access_level must be an integer")
+        return [], False, "access_level must be an integer"
 
     if not isinstance(current_user_id, int) and current_user_id is not None:
-        raise TypeError("current_user_id must be an integer")
+        return [], False, "current_user_id must be an integer"
 
     if not isinstance(requesting_user_id, int) and requesting_user_id is not None:
-        raise TypeError("requesting_user_id must be an integer")
+        return [], False, "requesting_user_id must be an integer"
 
     with app.app_context():
 
@@ -2912,7 +2948,7 @@ def get_user_inventories(current_user_id: int, requesting_user_id: int, access_l
             is_current_user = (current_user_id == requesting_user_id)
         else:
             if requesting_user_id is None:
-                return []
+                return [], True, ""
             is_current_user = False
 
         if is_current_user:
@@ -2953,7 +2989,7 @@ def get_user_inventories(current_user_id: int, requesting_user_id: int, access_l
             }
             ret_results.append(d)
 
-        return ret_results
+        return ret_results, True, ""
 
 
 def get_user_templates(user_id: int):

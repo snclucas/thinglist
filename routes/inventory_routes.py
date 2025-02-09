@@ -16,9 +16,6 @@ from database_functions import get_user_inventories, delete_item_from_inventory,
 
 inv = Blueprint('inv', __name__)
 
-
-
-
 @inv.context_processor
 def my_utility_processor():
     def item_tag_to_string(item_tag_list):
@@ -42,12 +39,12 @@ def lists():
             - user_is_authenticated (bool): Indicates if the user is authenticated.
             - number_inventories (int): The number of inventories minus one (excluding the 'hidden' default inventory).
     """
-    user_is_authenticated = current_user.is_authenticated
-    user_invs = get_user_inventories(current_user_id=current_user.id,
+    user_is_authenticated: bool = current_user.is_authenticated
+    user_invs, status, msg = get_user_inventories(current_user_id=current_user.id,
                                      requesting_user_id=current_user.id, access_level=-1)
 
-    number_inventories = len(user_invs) - 1  # -1 to count for the 'hidden' default inventory
-    unlisted_item_count = get_user_unlisted_item_count(user_id=current_user.id)
+    number_inventories: int = len(user_invs) - 1  # -1 to count for the 'hidden' default inventory
+    unlisted_item_count: int = get_user_unlisted_item_count(user_id=current_user.id)
 
     return render_template(template_name_or_list='inventory/inventories.html',
                            username=current_user.username,
@@ -81,7 +78,7 @@ def inventories_for_username(username):
             requesting_user_id = current_user.id
             username = current_user.username
 
-    user_invs = get_user_inventories(current_user_id=current_user_id,
+    user_invs, status, msg = get_user_inventories(current_user_id=current_user_id,
                                      requesting_user_id=requesting_user_id,
                                      access_level=-1)
 
@@ -90,18 +87,18 @@ def inventories_for_username(username):
     else:
         public_lists = get_user_public_lists(for_user_id=user_.id)
 
-    lists = user_invs + public_lists
+    lists_ = user_invs + public_lists
 
-    if len(lists) == 0:
+    if len(lists_) == 0:
         return render_template(template_name_or_list='404.html', message="No inventories"), 404
 
-    number_inventories = len(lists) - 1  # -1 to count for the 'hidden' default inventory
+    number_inventories = len(lists_) - 1  # -1 to count for the 'hidden' default inventory
 
     unlisted_item_count = get_user_unlisted_item_count(user_id=user_.id)
 
     return render_template(template_name_or_list='inventory/inventories.html',
                            unlisted_item_count=unlisted_item_count,
-                           inventories=lists, username=username,
+                           inventories=lists_, username=username,
                            user_is_authenticated=user_is_authenticated,
                            number_inventories=number_inventories)
 
@@ -149,7 +146,7 @@ def add_inventory():
     inventory_description_ = bleach.clean(inventory_description_)
 
     # 1- inventory, 2 - list, 3- url list
-    inventory_type_ = request.form.get("inventory_type", 1)
+    inventory_type_ = request.form.get("inventory_type", __INVENTORY__)
     inventory_type_ = int(bleach.clean(str(inventory_type_)))
 
     access_level_ = __PRIVATE__
@@ -307,12 +304,11 @@ def delete_user_to_inv():
         user_id = int(user_id)
     except ValueError:
         flash("Issue deleting user from inventory")
-        #logging.error("Issue deleting user from inventory")
         return redirect(url_for('inv.inventories'))
 
     result = delete_user_to_inventory(inventory_id=inventory_id, user_to_delete_id=user_id)
 
-    inventory_ = find_inventory_by_id(inventory_id=inventory_id, user_id=current_user.id)
+    inventory_, user_inventory_ = find_inventory_by_id(inventory_id=inventory_id, user_id=current_user.id)
 
     if result:
         return redirect(url_for(endpoint='items.items_with_username_and_inventory',
@@ -325,20 +321,20 @@ def delete_user_to_inv():
 @inv.route("/regenerate-token>", methods=["POST"])
 @login_required
 def regenerate_token():
-    if request.method == 'POST':
-        json_data = request.json
-        inventory_id = json_data['inventory_id']
-        new_token = uuid.uuid4().hex
-        token_ = regenerate_inventory_token(user_id=current_user.id,
-                                            inventory_id=inventory_id,
-                                            new_token=new_token)
+    json_data = request.json
+    inventory_id = json_data['inventory_id']
+    new_token = uuid.uuid4().hex
+    status, msg = regenerate_inventory_token(user_id=current_user.id,
+                                        inventory_id=inventory_id,
+                                        new_token=new_token)
 
-        if token_ is not None:
-            return json.dumps({'success': True, "new-token": token_}), 200, \
-                   {'ContentType': 'application/json'}
-        else:
-            return json.dumps({'success': False, "new-token": ""}), 400, \
-                   {'ContentType': 'application/json'}
+    if status:
+        return json.dumps({'success': True, "new-token": new_token}), 200, \
+               {'ContentType': 'application/json'}
+    else:
+        app.logger.error(msg)
+        return json.dumps({'success': False, "new-token": ""}), 400, \
+               {'ContentType': 'application/json'}
 
 
 @inv.route('/list/access', methods=['POST'])
@@ -422,11 +418,11 @@ def add_user_to_list():
 
 @inv.route('/list/@<username>/<inventory_slug>/delete/<item_id>', methods=['POST'])
 @login_required
-def delete_from_inventory(username: str, inventory_slug, item_id):
+def delete_from_inventory(username: str, inventory_slug: str, item_id):
     inventory_, user_inventory_ = find_inventory_by_slug(inventory_slug=inventory_slug,
                                                          inventory_owner_id=current_user.id)
     delete_item_from_inventory(user=current_user, inventory_id=int(inventory_.id), item_id=int(item_id))
-    return redirect(url_for('inv.inventory_by_slug', username=username, inventory_slug=inventory_.slug))
+    return redirect(url_for(endpoint='inv.inventory_by_slug', username=username, inventory_slug=inventory_.slug))
 
 
 @inv.route('/list/additem', methods=['POST'])
@@ -463,8 +459,8 @@ def add_to_inventory():
                           custom_fields=item_custom_fields)
 
     if inventory_id == '' or inventory_slug == '' or inventory_id is None or inventory_slug is None:
-        return redirect(url_for('items.items_with_username',
+        return redirect(url_for(endpoint='items.items_with_username',
                                 username=username))
     else:
-        return redirect(url_for('items.items_with_username_and_inventory',
+        return redirect(url_for(endpoint='items.items_with_username_and_inventory',
                                 username=username, inventory_slug=inventory_slug))
