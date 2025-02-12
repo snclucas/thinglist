@@ -1,23 +1,28 @@
-THIS IS A INV
-
 {% if data_dict | length >= 0 %}
     <hr>
     <div>
         <table class="table collapse show display responsive nowrap compact" style="width:100%" id="items-table">
             <thead>
             <tr>
-                <th data-priority="1">Name</th>
-                <th class="min-phone-l">Type</th>
-                {% if user_is_authenticated %}
-                    <th class="min-phone-l">Location</th>
+                <th class="coldef-name" data-priority="1">Name</th>
+                {% if inv_table_type == __LIST_ALL__ %}
+                <th class="coldef-desc min-phone-l">Description</th>
+                <th class="coldef-inv min-phone-l">Inventory(ies)</th>
+                {% else %}
+                <th class="coldef-type min-phone-l">Type</th>
                 {% endif %}
-                <th class="min-phone-l">Tags</th>
+                {% if inv_table_type == __INVENTORY__ %}
+                    {% if user_is_authenticated %}
+                <th class="coldef-loc min-phone-l">Location</th>
+                    {% endif %}
+                {% endif %}
+                <th class="coldef-tags min-phone-l">Tags</th>
                 {% if user_is_authenticated %}
                     {% if is_inventory_owner or inventory_access_level == 1 %}
-                        <th>
-                            <input class="form-check-input" type="checkbox" value="" id="all-selected-items"> Page |
-                            <input class="form-check-input" type="checkbox" value="" id="total-all-selected-items"> All
-                        </th>
+                <th class="coldef-checkboxes">
+                    <input class="form-check-input" type="checkbox" value="" id="all-selected-items"> Page |
+                    <input class="form-check-input" type="checkbox" value="" id="total-all-selected-items"> All
+                </th>
                     {% endif %}
                 {% endif %}
             </tr>

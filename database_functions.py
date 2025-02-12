@@ -26,7 +26,8 @@ __PUBLIC__ = 3
 
 __INVENTORY__ = 1
 __LIST__ = 2
-__URL_LIST__ = 3
+__LIST_ALL__ = 3
+__URL_LIST__ = 4
 
 
 def drop_then_create():

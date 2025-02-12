@@ -1,0 +1,14 @@
+<h4 class="mb-0"><small>
+    {% if inventory is not none %}
+        {% if "__default__" in inventory.name %}
+            {% set inv_name = "Default/None" %}
+        {% else %}
+            {% set inv_name = inventory.name %}
+        {% endif %}
+        {{ inv_name }}
+    {% else %}
+        All item(s)
+    {% endif %}
+    | <div id="item-count">{{ data_dict| length }}</div>
+</small>
+</h4>

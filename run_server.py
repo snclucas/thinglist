@@ -9,7 +9,7 @@ from app import app
 from routes.auth_routes import auth_flask_login
 
 from routes.index_routes import main
-from routes.inventory_routes import inv
+from routes.list_routes import inv
 from routes.location_routes import location
 from routes.field_template_routes import field_template
 from routes.itemtypes_routes import types

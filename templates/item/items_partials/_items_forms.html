@@ -1,0 +1,61 @@
+<div class="collapse" id="collapseFilter" aria-expanded="false">
+    {% include 'item/_filter_form.html' %}
+</div>
+{% if user_is_authenticated %}
+
+    <div class="collapse" id="collapseItemsHelp" aria-expanded="false">
+        <div class="card card-body">
+            {% include 'item/_items_help.html' %}
+        </div>
+    </div>
+    <div class="collapse" id="collapseItemFields" aria-expanded="false">
+        {% include 'item/_inventory_field_template.html' %}
+    </div>
+    <div class="collapse" id="moveInventory" aria-expanded="false">
+        <div class="card card-body">
+            {% include 'item/_move_item_form.html' %}
+        </div>
+    </div>
+    <div class="collapse" id="bulkEditItems" aria-expanded="false">
+        <div class="card card-body">
+            {% include 'item/_bulk_edit_item_form.html' %}
+        </div>
+    </div>
+    <div class="collapse" id="collapseAddItem" aria-expanded="false">
+        <div class="card card-body">
+            {% include 'item/_add_item_form.html' %}
+        </div>
+    </div>
+
+    <div class="collapse" id="delAllItems" aria-expanded="false">
+        <div class="text-center">
+            <p>Do you really want to delete all items? This process cannot be
+                undone.</p>
+            <button id="confirm-delete-all-items-btn" type="button"
+                    class="btn btn-primary btn-sm">Delete
+            </button>
+            <button id="cancel-delete-all-items-btn" type="button"
+                    class="btn btn-primary btn-sm">Cancel
+            </button>
+            <hr>
+        </div>
+    </div>
+
+    <div class="collapse" id="shareItems" aria-expanded="false">
+        {% include 'item/_share_items.html' %}
+    </div>
+    <div class="collapse" id="collapseDeleteItems" aria-expanded="false">
+        <div class="text-center">
+            <p>Do you really want to delete these items? This process cannot be
+                undone.</p>
+            <button id="confirm-delete-items-btn" type="button"
+                    class="btn btn-primary btn-sm">Delete
+            </button>
+            <button id="cancel-delete-items-btn" type="button"
+                    class="btn btn-primary btn-sm">Cancel
+            </button>
+            <hr>
+        </div>
+    </div>
+
+{% endif %}

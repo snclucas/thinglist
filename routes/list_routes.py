@@ -207,9 +207,7 @@ def del_inventory():
 
         return redirect(url_for('inv.lists'))
 
-__INVENTORY__ = 1
-__LIST__ = 2
-__URLLIST__ = 3
+
 
 @inv.route(rule='/list/edit', methods=['POST'])
 @login_required

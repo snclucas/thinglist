@@ -13,9 +13,8 @@
     {% set inv_table_type = __LIST_ALL__ %}
     {% set inv_name = "All" %}
     {% set inv_desc = "All items" %}
+
 {% endif %}
-
-
 
 {% block title %}
     ThingList
@@ -45,74 +44,12 @@
                     <div class="card">
                         <div class="card-body">
 
-
                             <div class="row">
                                 <div class="col-md-6 order-sm-first order-last">
-                                    <h4 class="mb-0"><small>
-                                        {% if inventory is not none %}
-                                            {% if "__default__" in inventory.name %}
-                                                {% set inv_name = "Default/None" %}
-                                            {% else %}
-                                                {% set inv_name = inventory.name %}
-                                            {% endif %}
-                                            {{ inv_name }}
-                                        {% else %}
-                                            All item(s)
-                                        {% endif %}
-                                        | {{ data_dict| length }}
-                                    </small>
-                                    </h4>
-
+                                    {% include 'item/items_partials/_items_header.html' %}
                                 </div>
-
-
                                 <div class="col-md-6">
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            <div class="text-lg-end text-center">
-                                                {% if is_inventory_owner or inventory_access_level == 1 %}
-                                                    <a data-bs-toggle="collapse" href="#collapseAddItem"
-                                                       role="button" aria-expanded="false"
-                                                       data-toggle="tooltip" data-placement="top"
-                                                       title="Add new item to current inventory"
-                                                       aria-controls="collapseExample">
-                                                <span class="fas fa-plus fa-2x"
-                                                      style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-                                                    </a>
-                                                    <a id="delete-items-btn-collapse" data-bs-toggle="collapse"
-                                                       href="#collapseDeleteItems"
-                                                       role="button" aria-expanded="false"
-                                                       data-toggle="tooltip" data-placement="top" title="Delete item"
-                                                       aria-controls="confirmItemDelete">
-                                                <span id="delete-items-span" class="fas fa-minus fa-2x"
-                                                      style="color:lightgray; display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-                                                    </a>
-                                                {% endif %}
-                                                <a data-bs-toggle="collapse" href="#collapseFilter"
-                                                   role="button" aria-expanded="false"
-                                                   data-toggle="tooltip" data-placement="top"
-                                                   title="Display item filter form"
-                                                   aria-controls="collapseFilter">
-                                                <span id="filter-items-span" class="fas fa-filter fa-2x"
-                                                      style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-                                                </a>
-
-                                                {% if is_inventory_owner or inventory_access_level == 1 %}
-                                                    <span class="fas fa-ellipsis-v fa-2x" data-bs-toggle="collapse"
-                                                          href="#collapseButtonBar"
-                                                          data-toggle="tooltip" data-placement="top"
-                                                          title="Display additional button bar"
-                                                          style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-                                                    <span class="fas fa-info fa-2x" data-bs-toggle="collapse"
-                                                          href="#collapseItemsHelp"
-                                                          data-toggle="tooltip" data-placement="top"
-                                                          title="Display help panel"
-                                                          style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-                                                {% endif %}
-                                                <hr class="show-small">
-                                            </div>
-                                        </div>
-                                    </div>
+                                    {% include 'item/items_partials/_items_header_button_bar.html' %}
                                 </div>
                             </div>
 
@@ -121,152 +58,37 @@
                                     <div class="collapse" id="collapseButtonBar" aria-expanded="false">
                                         <hr>
                                         <div class="text-center">
-                                            {% include 'item/_buttton_panel.html' %}
+                                            {% include 'item/items_partials/_buttton_panel.html' %}
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <hr>
+
                             <div class="row">
                                 <div class="col-md-12">
-                                    <div class="collapse" id="collapseFilter" aria-expanded="false">
-                                        {% include 'item/_filter_form.html' %}
-                                    </div>
-                                    {% if user_is_authenticated %}
-
-                                        <div class="collapse" id="collapseItemsHelp" aria-expanded="false">
-                                            <div class="card card-body">
-                                                {% include 'item/_items_help.html' %}
-                                            </div>
-                                        </div>
-                                        <div class="collapse" id="collapseItemFields" aria-expanded="false">
-                                            {% include 'item/_inventory_field_template.html' %}
-                                        </div>
-                                        <div class="collapse" id="moveInventory" aria-expanded="false">
-                                            <div class="card card-body">
-                                                {% include 'item/_move_item_form.html' %}
-                                            </div>
-                                        </div>
-                                        <div class="collapse" id="bulkEditItems" aria-expanded="false">
-                                            <div class="card card-body">
-                                                {% include 'item/_bulk_edit_item_form.html' %}
-                                            </div>
-                                        </div>
-                                        <div class="collapse" id="collapseAddItem" aria-expanded="false">
-                                            <div class="card card-body">
-                                                {% include 'item/_add_item_form.html' %}
-                                            </div>
-                                        </div>
-
-                                        <div class="collapse" id="delAllItems" aria-expanded="false">
-                                            <div class="text-center">
-                                                <p>Do you really want to delete all items? This process cannot be
-                                                    undone.</p>
-                                                <button id="confirm-delete-all-items-btn" type="button"
-                                                        class="btn btn-primary btn-sm">Delete
-                                                </button>
-                                                <button id="cancel-delete-all-items-btn" type="button"
-                                                        class="btn btn-primary btn-sm">Cancel
-                                                </button>
-                                                <hr>
-                                            </div>
-                                        </div>
-
-                                        <div class="collapse" id="shareItems" aria-expanded="false">
-                                            {% include 'item/_share_items.html' %}
-                                        </div>
-                                        <div class="collapse" id="collapseDeleteItems" aria-expanded="false">
-                                            <div class="text-center">
-                                                <p>Do you really want to delete these items? This process cannot be
-                                                    undone.</p>
-                                                <button id="confirm-delete-items-btn" type="button"
-                                                        class="btn btn-primary btn-sm">Delete
-                                                </button>
-                                                <button id="cancel-delete-items-btn" type="button"
-                                                        class="btn btn-primary btn-sm">Cancel
-                                                </button>
-                                                <hr>
-                                            </div>
-                                        </div>
-
-                                    {% endif %}
+                                    {% include 'item/items_partials/_items_forms.html' %}
                                 </div>
                             </div>
+
                             <div class="row">
                                 <div class="col-md-6 show-big">
-
-                                    <a href="{{ url_for('items.items_with_username_and_inventory', username = username, inventory_slug = inventory_slug, view = 'list') }}">
-                                        <span class="fas fa-bars fa-2x" data-bs-toggle="collapse"
-                                              style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-                                    </a>
-
-                                    <a href="{{ url_for('items.items_with_username_and_inventory', username = username, inventory_slug = inventory_slug, view = 'grid') }}">
-                                        <span class="fas fa-th-large fa-2x" data-bs-toggle="collapse"
-                                              style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-                                    </a>
-
+                                    {% include 'item/items_partials/_items_view_buttons.html' %}
                                 </div>
                                 <div class="col-md-6">
-
-                                    {% if is_inventory_owner or inventory_access_level == 1 %}
-
-                                        {% if user_is_authenticated %}
-                                            <select class="form-select" id="inventory_filter" name="inventory_filter">
-                                                {% if inventory_slug == "all" %}
-                                                    <option value="all" selected>All item(s)</option>
-                                                {% else %}
-                                                    <option value="all">All item(s)</option>
-                                                {% endif %}
-                                                {% if inventory_slug == "default" %}
-                                                    <option value="default" selected>Default/None</option>
-                                                {% else %}
-                                                    <option value="default">Default/None</option>
-                                                {% endif %}
-                                                {% for option in all_user_inventories %}
-                                                    {% if "__default__" not in  option[1].name %}
-                                                        {% if inventory_slug == option[1].slug %}
-                                                            <option value="{{ option[1].slug }}"
-                                                                    selected>{{ option[1].name }}</option>
-                                                        {% else %}
-                                                            <option value="{{ option[1].slug }}">{{ option[1].name }}</option>
-                                                        {% endif %}
-                                                    {% endif %}
-                                                {% endfor %}
-                                            </select>
-                                        {% endif %}
-
-                                    {% endif %}
-
-
+                                    {% include 'item/items_partials/_filter_form.html' %}
                                 </div>
                             </div>
 
                             <div class="row">
                                 <div class="col-md-12">
-                                    {% if inv_table_type == __INVENTORY__ %}
-                                        {% if view == "list" %}
-                                            {% include 'item/_item_list_as_inventory.html' %}
-                                        {% else %}
-                                            {% include 'item/_item_grid_as_inventory.html' %}
-                                        {% endif %}
-                                    {% elif inv_table_type == __LIST__ %}
-                                        {% if view == "list" %}
-                                            {% include 'item/_item_list_as_list.html' %}
-                                        {% else %}
-                                            {% include 'item/_item_grid_as_list.html' %}
-                                        {% endif %}
-                                    {% elif inv_table_type == __LIST_ALL__ %}
-                                        asdasdasdasdsadsadasdasdsadasdasdasdsadas
-                                        {% if view == "list" %}
-                                            qqqqqqqqqqqqqqqqqqqqqqqqqqqqqq
-                                            {% include 'item/_item_list_as_list.html' %}
-                                        {% else %}
-                                            {% include 'item/_item_grid_as_list.html' %}
-                                        {% endif %}
+
+                                    {% if view == "list" %}
+                                        {% include 'item/_item_list_as_inventory.html' %}
                                     {% else %}
-                                        222222222222222222222222
-                                        {% include 'item/_item_list_as_urllist.html' %}
+                                        {% include 'item/_item_grid_as_inventory.html' %}
                                     {% endif %}
+
                                 </div>
                             </div>
                         </div>
@@ -286,19 +108,7 @@
         const urlParams = new URLSearchParams(window.location.search);
     </script>
 
-    {% if inv_table_type == __INVENTORY__ %}
-        asdad
-        {% include 'item/js_list_inventory.html' %}
-    {% elif inv_table_type == __LIST__ %}
-        aaaaaa
-        {% include 'item/js_list_list.html' %}
-    {% elif inv_table_type == __LIST_ALL__ %}
-        aaaaaasssssssssssss
-        {% include 'item/js_list_list_allitems.html' %}
-    {% else %}
-        iiiiiiiiiii34
-        {% include 'item/js_list_urllist.html' %}
-    {% endif %}
+    {% include 'item/js_list_inventory.html' %}
 
     <script>
         $(document).ready(function () {

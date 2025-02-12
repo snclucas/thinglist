@@ -124,8 +124,9 @@ def items(username=None, inventory_slug=None):
 
         ret_items.append({
             "name": {"name": item_.name, "slug": item_.slug, "id": item_.id, "description": item_.description},
-            #"slug": item_.slug,
-            "description": item_.description,
+            #"description": {"description": item_.description, "url": item_.url},
+            "description": {"description": item_.description, "url": item_.url},
+            "inventories": ", ".join([inv.name for inv in item_.inventories]),
             "tags": tag_arr,
             "location": location,
             "type": row[1],
