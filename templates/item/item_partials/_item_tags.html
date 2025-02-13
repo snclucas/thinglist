@@ -1,9 +1,7 @@
 {% if inventory.show_item_tags == True %}
-    <div id="item-tags">
-        {% for tag in item.tags %}
-            <a href="{{ url_for('items.items') }}?tags={{ tag.tag }}">
-                <button type="button" class="btn btn-sm btn-primary">{{ tag.tag }}</button>
-            </a>
-        {% endfor %}
-    </div>
+    {% for tag in item.tags %}
+        <a href="{{ url_for('items.items') }}?tags={{ tag.tag }}">
+            <button type="button" class="btn btn-sm btn-primary">{{ tag.tag }}</button>
+        </a>
+    {% endfor %}
 {% endif %}

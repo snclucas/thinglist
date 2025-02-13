@@ -2,7 +2,7 @@
     $(document).ready(function () {
         const truncate = (input) => input.length > 5 ? `${input.substring(0, 5)}...` : input;
 
-        const user_items_url = {{ url_for('api.items', username=current_user.username, inventory_slug=inventory_slug)  |  tojson|safe}} + "?" + urlParams.toString()
+        const user_items_url = {{ url_for('api.items', username=username, inventory_slug=inventory_slug)  |  tojson|safe}} + "?" + urlParams.toString()
 
 
         const table = new DataTable('#items-table', {
@@ -26,7 +26,7 @@
                     target: 'coldef-name',
                     searchable: true,
                     "render": function (item) {
-                        let item_url = {{ url_for('item.item_with_username_and_inventory', username=current_user.username, inventory_slug=inventory_slug, item_slug='ITEMSSLUG')  |  tojson}}.replace("ITEMSSLUG", item["slug"])
+                        let item_url = {{ url_for('item.item_with_username_and_inventory', username=username, inventory_slug=inventory_slug, item_slug='ITEMSSLUG')  |  tojson}}.replace("ITEMSSLUG", item["slug"])
                         let return_string = "<a href=\"" + item_url + "\">" + item["name"] + "</a>";
                         return return_string;
                     }
@@ -39,6 +39,7 @@
                             return truncate(description["description"]);
                         }
                     },
+                    {% if user_is_authenticated %}
                     { // Item inventories
                         target: 'coldef-inv',
                         searchable: true,
@@ -46,6 +47,7 @@
                             return inventories;
                         }
                     },
+                        {% endif %}
                 {% else %}
                     { // Item type
                         target: 'coldef-type',
@@ -92,15 +94,21 @@
             columns: [
                 {name: 'coldef-name', data: 'name', width: '30px'},
                 {% if inv_table_type == __LIST_ALL__ %}
-                    {name: 'coldef-desc', data: 'description', width: '20px'},
-                    {name: 'coldef-inv', data: 'inventories', width: '20px'},
-                    {name: 'coldef-loc', data: 'location', width: '20px'},
+                {name: 'coldef-desc', data: 'description', width: '20px'},
+                     {% if user_is_authenticated %}
+                {name: 'coldef-inv', data: 'inventories', width: '20px'},
+                {name: 'coldef-loc', data: 'location', width: '20px'},
+                         {% endif %}
                 {% else %}
-                    {name: 'coldef-type', data: 'type', width: '10px'},
-                    {name: 'coldef-loc', data: 'location', width: '20px'},
+                {name: 'coldef-type', data: 'type', width: '10px'},
+                    {% if user_is_authenticated %}
+                {name: 'coldef-loc', data: 'location', width: '20px'},
+                        {% endif %}
                 {% endif %}
                 {name: 'coldef-tags', data: 'tags', width: '20px'},
+             {% if user_is_authenticated %}
                 {name: 'coldef-checkboxes', data: 'id', width: '10px'}
+            {% endif %}
             ],
             ajax: {
                 url: user_items_url,
@@ -110,9 +118,8 @@
                     d.view = "{{ view }}";
 
                 },
-               // success: function (data) {
-               //     $("#item-count").html(data.data.length);
-               //     return super.success(data);
+                //success: function (data) {
+                //    $("#item-count").html(data.data.length);
                 //}
             },
 

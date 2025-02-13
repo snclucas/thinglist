@@ -41,15 +41,17 @@ def user_items():
 
 
 @api_routes.route('/api/items/@<string:username>/<inventory_slug>', methods=['GET', 'POST'])
-@login_required
+#@login_required
 def items(username=None, inventory_slug=None):
+    user_is_authenticated = current_user.is_authenticated
+
     inventory_slug = bleach.clean(inventory_slug.strip())
     inventory_owner_username = bleach.clean(username)
     inventory_owner = None
-    requested_user = None
+    requested_user = username
     inventory_owner_id = None
 
-    user_is_authenticated = current_user.is_authenticated
+
     logged_in_user = None
     logged_in_user_id = None
 
@@ -68,8 +70,9 @@ def items(username=None, inventory_slug=None):
         if inventory_owner is not None:
             inventory_owner_id = inventory_owner.id
 
-    if requested_user is None:
-        requested_user = current_user
+    requested_user = find_user_by_username(username=username)
+    #if requested_user is None:
+    #    requested_user = current_user
 
     if inventory_slug != 'all':
         inventory_id, inventory_, inventory_field_template = _get_inventory(inventory_slug=inventory_slug,
@@ -97,17 +100,18 @@ def items(username=None, inventory_slug=None):
         'search': search_query,
     }
 
-    test_ = find_items_by_field_value(user_id=current_user.id, field_name="manufacturer", field_value="IBM")
+    test_ = find_items_by_field_value(user_id=username, field_name="manufacturer", field_value="IBM")
 
     items_ = find_items_new(inventory_id=inventory_id,
                             query_params=query_params,
-                            requested_username=current_user.username,
-                            logged_in_user=current_user)
+                            #requested_username=current_user.username,
+                            requested_username=username,
+                            logged_in_user=logged_in_user)
 
     if inventory_slug != 'all':
-        num_items_in_inventory = count_all_item_ids_in_inventory(user_id=current_user.id, inventory_id=inventory_id)
+        num_items_in_inventory = count_all_item_ids_in_inventory(user_id=requested_user.id, inventory_id=inventory_id)
     else:
-        num_items_in_inventory = count_all_user_items(user_id=current_user.id)
+        num_items_in_inventory = count_all_user_items(user_id=requested_user.id)
 
     ret_items = []
     for row in items_:

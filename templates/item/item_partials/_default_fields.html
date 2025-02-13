@@ -1,6 +1,13 @@
+<div class="card">
+<div class="card-body">
 <p class="card-text">{{ item.description | safe }}</p>
+</div>
+</div>
+
+<div class="card">
+<div class="card-body">
 <br>
-<hr>
+
 <div class="col-md-12">
     {% if inventory.show_item_type == True %}
         <div class="d-flex align-items-center justify-content-between text-xs">
@@ -15,7 +22,9 @@
             <div>
                 <a href="{{ url_for('items.items_with_username_and_inventory', username=current_user.username, inventory_slug="all", location=item_location['name']) }}">{{ item_location['name'] }}</a>
                 {% if item.specific_location is not none %}
-                    <br>({{ item.specific_location }})
+                    {% if item.specific_location != "" %}
+                        <br>({{ item.specific_location }})
+                    {% endif %}
                 {% endif %}
             </div>
         </div>
@@ -30,54 +39,65 @@
 
     {% endif %}
 
-<div class="d-flex align-items-center justify-content-between text-xs">
-            <div class="fw-500">
-                <strong>Related items:</strong>
+    <div class="d-flex align-items-center justify-content-between text-xs">
+        <div class="fw-500">
+            <strong>Related items:</strong>
             {% if item_access_level == 0 %}
-        <span id="add-related-1"
-              data-bs-toggle="collapse"
-              href="#collapseAddRelated"
-              data-toggle="tooltip" data-placement="top"
-              title="Display help panel"
-              class="fas fa-plus "
-              style="color:black; display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-    {% endif %}
+                <span id="add-related-1"
+                      data-bs-toggle="collapse"
+                      href="#collapseAddRelated"
+                      data-toggle="tooltip" data-placement="top"
+                      title="Display help panel"
+                      class="fas fa-plus "
+                      style="color:black; display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+            {% endif %}
             <div class="collapse" id="collapseAddRelated" aria-expanded="false">
-    {% include 'item/_related_item_form.html' %}
-</div>
-
+                {% include 'item/_related_item_form.html' %}
             </div>
+
+        </div>
+        <div>
+            {% if item.related_items | length > 0 %}
+                {% for rel_item in item.related_items %}
+                    <strong><a
+                            href="{{ url_for('item.item_with_username_and_inventory', username=username, inventory_slug=inventory_slug, item_slug=rel_item.slug) | replace('%40', '@') }}">{{ rel_item.name }}</a></strong>
+
+                    {% if user_is_authenticated %}
+                    <span id="delete-related-{{ rel_item.id }}"
+                          data-item1-id="{{ item.id }}"
+                          data-item2-id="{{ rel_item.id }}"
+                          class="fas fa-times "
+                          style="color:red; cursor: pointer;"></span>
+                    {% endif %}
+
+                    <br>
+                {% endfor %}
+            {% else %}
+                None
+            {% endif %}
+        </div>
+    </div>
+    <hr>
+
+<div class="d-flex align-items-center justify-content-between text-xs">
+            <div class="fw-500"><strong>Lists:</strong></div>
             <div>
-               {% if item.related_items | length > 0 %}
-    {% for rel_item in item.related_items %}
+
+                {% for inventory in item.inventories %}
         <strong><a
-                href="{{ url_for('item.item_with_username_and_inventory', username=username, inventory_slug=inventory_slug, item_slug=rel_item.slug) | replace('%40', '@') }}">{{ rel_item.name }}</a></strong>
-
-        <span id="delete-related-{{ rel_item.id }}"
-              data-item1-id="{{ item.id }}"
-              data-item2-id="{{ rel_item.id }}"
-              class="fas fa-times "
-              style="color:red; display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-
+                href="{{ url_for('items.items_with_username_and_inventory', username=username, inventory_slug=inventory.slug) | replace('%40', '@') }}">{{ inventory.name }}</a></strong>
         <br>
     {% endfor %}
-{% else %}
-    None
-{% endif %}
+
             </div>
         </div>
-        <hr>
 
-<br>
+
+    <br>
 </div>
 
 
 
 
-
-
-
-
-
-
-
+</div>
+</div>

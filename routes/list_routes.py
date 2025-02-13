@@ -12,7 +12,8 @@ from database_functions import get_user_inventories, delete_item_from_inventory,
     find_user_by_username, edit_inventory_data, \
     delete_list_by_id, add_user_to_inventory, delete_user_to_inventory, find_inventory_by_id, add_user_inventory, \
     regenerate_inventory_token, find_inventory_by_access_token, add_user_to_inventory_from_token, \
-    __PRIVATE__, __PUBLIC__, get_user_public_lists, __VIEWER__, get_user_unlisted_item_count
+    __PRIVATE__, __PUBLIC__, get_user_public_lists, __VIEWER__, get_user_unlisted_item_count, __LIST__, __INVENTORY__, \
+    __URL_LIST__
 
 inv = Blueprint('inv', __name__)
 
@@ -239,7 +240,7 @@ def edit_inventory():
         return redirect(url_for('inv.lists'))
     inventory_name = bleach.clean(request.form.get("inventory_name"))
 
-    if inventory_type == __LIST__ or inventory_type == __INVENTORY__ or inventory_type == __URLLIST__:
+    if inventory_type == __LIST__ or inventory_type == __INVENTORY__ or inventory_type == __URL_LIST__:
         inventory_type = int(bleach.clean(request.form.get("inventory_type")))
     else:
         flash("Issue editing inventory, inventory type needs to be 1 (inventory), 2 (list) or 3 (URL list)")

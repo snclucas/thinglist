@@ -7,7 +7,9 @@
                 <th class="coldef-name" data-priority="1">Name</th>
                 {% if inv_table_type == __LIST_ALL__ %}
                 <th class="coldef-desc min-phone-l">Description</th>
+                     {% if user_is_authenticated %}
                 <th class="coldef-inv min-phone-l">Inventory(ies)</th>
+                         {% endif %}
                 {% else %}
                 <th class="coldef-type min-phone-l">Type</th>
                 {% endif %}
