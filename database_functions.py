@@ -7,7 +7,7 @@ from typing import Union, List, Tuple, Optional, Dict
 import flask_bcrypt
 
 from slugify import slugify
-from sqlalchemy import select, and_, ClauseElement, or_
+from sqlalchemy import select, and_, ClauseElement, or_, text
 from sqlalchemy.exc import SQLAlchemyError, NoResultFound, InvalidRequestError
 from sqlalchemy.sql.functions import func
 
@@ -967,6 +967,43 @@ def find_items_by_field_value(user_id: int, field_name: str, field_value: str):
         return results_
 
 
+def find_items_by_custom_fields(fields: List[dict], user_id):
+    _new_v = {}
+
+    _sql_where_clause = ""
+
+    for _ic in range(len(fields)):
+        _first_input_set = fields[_ic]
+        _new_v[f"field{_ic}"] = _first_input_set['field']
+        _new_v[f"value{_ic}"] = _first_input_set['value']
+
+        _sql_where_clause += f"i.user_id = {user_id} AND ("
+        _sql_where_clause += f"(ff.field = :field{_ic} and iff.value = :value{_ic})"
+        if _ic != len(fields) - 1:
+            _sql_where_clause += " OR "
+        _sql_where_clause += ")"
+
+    with (app.app_context()):
+        _sql = text("SELECT i.*, ff.field, iff.value, count(*) "
+                    "FROM item_fields iff "
+                    "INNER JOIN items i ON i.id = iff.item_id "
+                    "INNER JOIN fields ff ON ff.id = iff.field_id "
+                    
+                    #"JOIN item_tags it ON it.item_id = i.id "
+                    #"JOIN tags t ON t.id = it.tag_id "
+                    
+                    
+                    "WHERE " +
+                    _sql_where_clause +
+                    " GROUP BY i.id "
+                    f" HAVING count(*) = {len(fields)}")
+
+        _result = db.session.execute(
+            _sql,
+            _new_v
+        ).all()
+
+        return _result
 
 
 def _find_my_items(logged_in_user: User, inventory_id, query_params):
@@ -1091,6 +1128,15 @@ def _find_someone_elses_items_notloggedin(request_user_id, inventory_id, query_p
         results_ = query.all()
 
         return results_
+
+
+
+
+
+
+
+
+
 
 
 def find_items_new(logged_in_user=None, requested_username=None, inventory_id=None, query_params=None):

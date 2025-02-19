@@ -782,20 +782,20 @@ def items_with_username(username=None):
     return items_with_username_and_inventory(username=username, inventory_slug="all")
 
 
-@items_routes.route('/@<string:username>/<inventory_slug>')
-def items_with_username_and_inventory(username=None, inventory_slug=None):
+@items_routes.route(rule='/@<string:list_username>/<string:inventory_slug>', methods=['GET'])
+def items_with_username_and_inventory(list_username: str=None, inventory_slug: str=None):
 
-    inventory_owner_username = bleach.clean(username)
+    list_username = bleach.clean(list_username.strip())
+    inventory_slug = bleach.clean(inventory_slug.strip())
+
+    user_is_authenticated = current_user.is_authenticated
+
     inventory_owner = None
     inventory_owner_id = None
 
-    user_is_authenticated = current_user.is_authenticated
     logged_in_user = None
     requested_user = None
     logged_in_user_id = None
-
-    # remove spurious whitespace (if any)
-    inventory_slug = bleach.clean(inventory_slug.strip())
 
     user_locations_ = None
     inventory_templates = None
@@ -803,17 +803,14 @@ def items_with_username_and_inventory(username=None, inventory_slug=None):
 
     if user_is_authenticated:
         logged_in_user = current_user
+        logged_in_user_id = logged_in_user.id
         user_locations_ = get_all_user_locations(user_id=logged_in_user.id)
         inventory_templates = get_user_templates(user_id=current_user.id)
 
-        if current_user == inventory_owner_username:
+        if current_user == list_username:
             inventory_owner = current_user
             inventory_owner_id = inventory_owner.id
 
-    requested_username = username
-
-    if logged_in_user is not None:
-        logged_in_user_id = logged_in_user.id
 
     if requested_user is not None:
         requested_user_id = requested_user.id
@@ -829,7 +826,7 @@ def items_with_username_and_inventory(username=None, inventory_slug=None):
         all_user_inventories = None
 
     if inventory_owner is None:
-        inventory_owner = find_user_by_username(username=inventory_owner_username)
+        inventory_owner = find_user_by_username(username=list_username)
         if inventory_owner is not None:
             inventory_owner_id = inventory_owner.id
 
@@ -900,7 +897,7 @@ def items_with_username_and_inventory(username=None, inventory_slug=None):
     return render_template(template_name_or_list='item/items.html',
                            inventory_id=inventory_id,
                            current_username=current_username,
-                           username=username,
+                           username=list_username,
                            inventory_owner_id=inventory_owner_id,
                            inventory=inventory_,
                            data_dict=data_dict,
@@ -1005,16 +1002,9 @@ def find_items_query(requested_username: str, logged_in_user, inventory_id: int,
 
 def _process_url_query(req_, inventory_user):
     requested_item_type_string = req_.args.get('type')
-
-
     requested_tag_strings = req_.args.get('tags')
-
-
     requested_item_location_string = req_.args.get('location')
-
-
     view = req_.args.get('view')
-
 
     requested_item_specific_location = req_.args.get('specific_location')
 

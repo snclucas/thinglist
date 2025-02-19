@@ -164,5 +164,5 @@ def locations():
         loc_array.append(f"type: {item_type_.name.lower()}")
         new_ret.append({"type": item_type_.name.lower()})
 
-    #return new_ret
-    return loc_array
+    return jsonify(new_ret)
+    #return loc_array

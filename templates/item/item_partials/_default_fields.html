@@ -20,7 +20,7 @@
         <div class="d-flex align-items-center justify-content-between text-xs">
             <div class="fw-500"><strong>Location:</strong></div>
             <div>
-                <a href="{{ url_for('items.items_with_username_and_inventory', username=current_user.username, inventory_slug="all", location=item_location['name']) }}">{{ item_location['name'] }}</a>
+                <a href="{{ url_for('items.items_with_username_and_inventory', list_username=current_user.username, inventory_slug="all", location=item_location['name']) }}">{{ item_location['name'] }}</a>
                 {% if item.specific_location is not none %}
                     {% if item.specific_location != "" %}
                         <br>({{ item.specific_location }})
@@ -85,7 +85,7 @@
 
                 {% for inventory in item.inventories %}
         <strong><a
-                href="{{ url_for('items.items_with_username_and_inventory', username=username, inventory_slug=inventory.slug) | replace('%40', '@') }}">{{ inventory.name }}</a></strong>
+                href="{{ url_for('items.items_with_username_and_inventory', list_username=username, inventory_slug=inventory.slug) | replace('%40', '@') }}">{{ inventory.name }}</a></strong>
         <br>
     {% endfor %}
 

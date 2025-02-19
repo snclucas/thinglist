@@ -60,7 +60,7 @@
                     "render": function (tag_array) {
                         let return_string = "";
                         $.each(tag_array, function (tag_index, tag_text) {
-                            return_string += "<a href=\"" + "{{ url_for('items.items_with_username_and_inventory', username=username, inventory_slug=inventory_slug) | replace('%40', '@') }}?tags=" + tag_text + "\"  >  <span class=\"tag_list\">" + tag_text + "</span>  </a>";
+                            return_string += "<a href=\"" + "{{ url_for('items.items_with_username_and_inventory', list_username=username, inventory_slug=inventory_slug) | replace('%40', '@') }}?tags=" + tag_text + "\"  >  <span class=\"tag_list\">" + tag_text + "</span>  </a>";
                         });
                         return return_string;
                     }
