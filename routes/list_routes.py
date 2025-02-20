@@ -12,8 +12,9 @@ from database_functions import get_user_inventories, delete_item_from_inventory,
     find_user_by_username, edit_inventory_data, \
     delete_list_by_id, add_user_to_inventory, delete_user_to_inventory, find_inventory_by_id, add_user_inventory, \
     regenerate_inventory_token, find_inventory_by_access_token, add_user_to_inventory_from_token, \
-    __PRIVATE__, __PUBLIC__, get_user_public_lists, __VIEWER__, get_user_unlisted_item_count, __LIST__, __INVENTORY__, \
-    __URL_LIST__
+    get_user_public_lists, get_user_unlisted_item_count
+
+from site_globals import __INVENTORY__, __LIST__, __URL_LIST__, __PUBLIC__, __PRIVATE__, __VIEWER__
 
 inv = Blueprint('inv', __name__)
 

@@ -2,8 +2,7 @@ import collections
 import json
 import os
 import pathlib
-import random
-import string
+
 from io import BytesIO
 from typing import List
 
@@ -21,9 +20,11 @@ from database_functions import get_all_user_locations, \
     get_item_fields, get_all_item_fields, \
     get_all_fields, set_field_status, update_item_fields, \
     set_inventory_default_fields, save_inventory_fieldtemplate, get_user_location_by_id, unrelate_items_by_id, \
-    find_item_by_slug, relate_items_by_id, find_user_by_username, __PUBLIC__, __PRIVATE__, __VIEWER__, __INVENTORY__, \
-    __LIST__, __LIST_ALL__, __URL_LIST__
+    find_item_by_slug, relate_items_by_id, find_user_by_username
+
 from utils import correct_image_orientation, generate_item_image_filename
+
+from site_globals import __INVENTORY__, __LIST__, __URL_LIST__, __PUBLIC__, __PRIVATE__, __VIEWER__, __LIST_ALL__
 
 item_routes = Blueprint('item', __name__)
 

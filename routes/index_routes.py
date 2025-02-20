@@ -76,7 +76,7 @@ def del_notification():
         return redirect(url_for(endpoint='main.profile', username=username))
 
 
-@main.route('/@<username>')
+@main.route(rule='/@<username>', methods=['GET'])
 @login_required
 def profile(username):
     """
@@ -104,8 +104,9 @@ def profile(username):
         else:
             requesting_user_id = current_user.id
 
-    user_inventories = get_user_inventories(current_user_id=current_user_id, requesting_user_id=requesting_user_id,
-                                            access_level=-1)
+    user_inventories, status, msg = (
+        get_user_inventories(current_user_id=current_user_id, requesting_user_id=requesting_user_id,
+                                            access_level=-1))
 
     user_notifications = current_user.notifications
     # -1 to remove the default inventory

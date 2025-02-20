@@ -16,18 +16,7 @@ from email_utils import send_email
 from models import Inventory, User, Item, UserInventory, InventoryItem, ItemType, Tag, \
     Location, Image, Field, ItemField, FieldTemplate, Notification, TemplateField, Relateditems, ItemImage
 
-_NONE_ = "None"
-
-__PRIVATE__ = 0
-__OWNER__ = 0
-__VIEWER__ = 1
-__COLLABORATOR__ = 2
-__PUBLIC__ = 3
-
-__INVENTORY__ = 1
-__LIST__ = 2
-__LIST_ALL__ = 3
-__URL_LIST__ = 4
+from site_globals import _NONE_, __PUBLIC__, __OWNER__, __PRIVATE__
 
 
 def drop_then_create():
