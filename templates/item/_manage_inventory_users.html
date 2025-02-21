@@ -49,9 +49,9 @@
                         <td>@{{ user.username }}</td>
                         <td>
 
-                            {% if access_level == 1 %}
+                            {% if access_level == __COLLABORATOR__ %}
                                 Collaborator
-                            {% elif access_level == 2 %}
+                            {% elif access_level == __VIEWER__ %}
                                 Viewer
                             {% else %}
                             {% endif %}

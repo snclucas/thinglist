@@ -14,3 +14,5 @@ __URL_LIST__ = 4
 _MOVE_ = 0
 _COPY_ = 1
 _LINK_ = 2
+
+__READ_ONLY__ = 2

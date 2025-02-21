@@ -41,7 +41,7 @@
                 },
 
                 {% if user_is_authenticated %}
-                    {% if is_inventory_owner or inventory_access_level == 1 %}
+                    {% if is_inventory_owner or inventory_access_level == __COLLABORATOR__ %}
                         { // Checkbox
                             target: 3,
                             sortable: false,

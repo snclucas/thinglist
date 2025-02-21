@@ -1,18 +1,31 @@
 
-<p>Fields are groups/sets of fields that can be defined and set to an inventory. These fields will be used when adding new items.</p>
+<p>Fields are the information that defines the items in a list.
+    In addition to the default fields avaialble, you can define your own fields to use with your field
+    templates for your lists.
+    </p>
 
-<p>For example, you could define the following sets of fields for an inventory of computers: </p>
+<p>For example: </p>
 
 <ul>
     <li>Model</li>
     <li>Serial number</li>
-    <li>Manufacturer</li>
-    <li>Hard drive capacity</li>
+    <li>Egg whisk ratio</li>
+    <li>Air speed velocity</li>
     <li>...</li>
 </ul>
 
-<p>These fields would then be available to fill in when you add new items to that inventory.</p>
+<p>These fields would then be available to fill in when you add new items to your lists.</p>
 
-<p>You can add a new inventory by clicking the <i class="fas fa-plus"></i> icon at the top.</p>
+<p>User defined fields can be one of a few types:</p>
 
-<p>You can specify the sort order of the template fields using the <i class="fas fa-sort"></i> icon.</p>
+<ul>
+    <li>Text - simple text values</li>
+    <li>Bool - true/false</li>
+    <li>Textarea - larger amounts of text</li>
+    <li>Url - validated against and url pattern</li>
+</ul>
+
+<p>You can add a new user field by clicking the <i class="fas fa-plus"></i> icon at the top.</p>
+
+<p>Fields can be deleted by clicking the <i class="fas fa-minus"></i> icon at the top.
+    This will delete the field from the list and all items in the list that use that field.</p>

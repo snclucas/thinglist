@@ -10,7 +10,6 @@ import bleach
 from PIL import Image
 from flask import Blueprint, render_template, redirect, url_for, request, jsonify, flash
 from flask_login import login_required, current_user
-# from flask_weasyprint import render_pdf, HTML
 
 from app import app
 from database_functions import get_all_user_locations, \
@@ -24,7 +23,7 @@ from database_functions import get_all_user_locations, \
 
 from utils import correct_image_orientation, generate_item_image_filename
 
-from site_globals import __INVENTORY__, __LIST__, __URL_LIST__, __PUBLIC__, __PRIVATE__, __VIEWER__, __LIST_ALL__
+from site_globals import __PUBLIC__, __VIEWER__
 
 item_routes = Blueprint('item', __name__)
 
@@ -40,17 +39,7 @@ def my_utility_processor():
     return dict(item_tag_to_string=item_tag_to_string)
 
 
-@app.context_processor
-def inject_globals():
-    return dict(
-        __PUBLIC__=__PUBLIC__,
-        __PRIVATE__=__PRIVATE__,
 
-        __INVENTORY__=__INVENTORY__,
-        __LIST__=__LIST__,
-        __LIST_ALL__=__LIST_ALL__,
-        __URL_LIST__=__URL_LIST__
-    )
 
 # @item_routes.route('/item/save-pdf', methods=['POST'])
 # @login_required
@@ -159,90 +148,89 @@ def item_with_username_and_inventory(username: str, inventory_slug: str, item_sl
 @item_routes.route('/item/edit/<item_id>', methods=['POST'])
 @login_required
 def edit_item(item_id):
-    if request.method == 'POST':
-        form_data = dict(request.form)
-        del form_data["csrf_token"]
-        item_id = form_data["item_id"]
-        del form_data["item_id"]
+    form_data = dict(request.form)
+    del form_data["csrf_token"]
+    item_id = form_data["item_id"]
+    del form_data["item_id"]
 
-        item_slug = form_data["item_slug"]
-        del form_data["item_slug"]
+    item_slug = form_data["item_slug"]
+    del form_data["item_slug"]
 
-        inventory_slug = form_data["inventory_slug"]
-        del form_data["inventory_slug"]
+    inventory_slug = form_data["inventory_slug"]
+    del form_data["inventory_slug"]
 
-        username = form_data["username"]
-        del form_data["username"]
+    username = form_data["username"]
+    del form_data["username"]
 
-        item_name = request.form.get("item_name")
-        item_description = request.form.get("item_description")
-        item_quantity = request.form.get("item_quantity")
-        item_url = request.form.get("item_url")
-        item_url = bleach.clean(item_url)
+    item_name = request.form.get("item_name")
+    item_description = request.form.get("item_description")
+    item_quantity = request.form.get("item_quantity")
+    item_url = request.form.get("item_url")
+    item_url = bleach.clean(item_url)
 
-        item_name = bleach.clean(item_name)
-        item_description = item_description
+    item_name = bleach.clean(item_name)
+    item_description = item_description
 
-        description_limit = app.config['ITEM_DESCRIPTION_CHAR_LIMIT']
+    description_limit = app.config['ITEM_DESCRIPTION_CHAR_LIMIT']
 
-        if len(item_description) > int(description_limit):
-            flash(f"Description must be less than {description_limit} characters")
-            return redirect(url_for('item.item_with_username_and_inventory',
-                                    username=username,
-                                    inventory_slug=inventory_slug,
-                                    item_slug=item_slug))
-
-        item_quantity = bleach.clean(item_quantity)
-
-        del form_data["item_name"]
-        del form_data["item_description"]
-        del form_data["item_quantity"]
-        del form_data["item_url"]
-
-        item_tags = request.form.get("item_tags")
-        item_tags = bleach.clean(item_tags)
-        if item_tags != '':
-            item_tags = [x.strip() for x in item_tags.split(",")]
-        else:
-            item_tags = []
-        del form_data["item_tags"]
-
-        item_type = request.form.get("item_type")
-        item_location = request.form.get("item_location")
-        item_specific_location = request.form.get("item_specific_location")
-
-        del form_data["item_type"]
-        del form_data["item_location"]
-        del form_data["item_specific_location"]
-
-        form_data = {int(k): v for k, v in form_data.items()}
-
-        update_item_fields(data=form_data, item_id=int(item_id))
-
-        new_item_data = {
-            "id": item_id,
-            "name": item_name,
-            "description": item_description,
-            "item_type": item_type,
-            "item_quantity": item_quantity,
-            "item_location": item_location,
-            "item_specific_location": item_specific_location,
-            "item_tags": item_tags,
-            "item_url": item_url
-        }
-
-        new_item_slug = None
-        update_result = update_item_by_id(item_data=new_item_data, item_id=int(item_id), user=current_user)
-        if update_result["status"] == "success":
-            item_dict = update_result["item"]
-            new_item_slug = item_dict['slug']
-        else:
-            flash("Error updating item")
-
-        return redirect(url_for('item.item_with_username_and_inventory',
+    if len(item_description) > int(description_limit):
+        flash(f"Description must be less than {description_limit} characters")
+        return redirect(url_for(endpoint='item.item_with_username_and_inventory',
                                 username=username,
                                 inventory_slug=inventory_slug,
-                                item_slug=new_item_slug))
+                                item_slug=item_slug))
+
+    item_quantity = bleach.clean(item_quantity)
+
+    del form_data["item_name"]
+    del form_data["item_description"]
+    del form_data["item_quantity"]
+    del form_data["item_url"]
+
+    item_tags = request.form.get("item_tags")
+    item_tags = bleach.clean(item_tags)
+    if item_tags != '':
+        item_tags = [x.strip() for x in item_tags.split(",")]
+    else:
+        item_tags = []
+    del form_data["item_tags"]
+
+    item_type = request.form.get("item_type")
+    item_location = request.form.get("item_location")
+    item_specific_location = request.form.get("item_specific_location")
+
+    del form_data["item_type"]
+    del form_data["item_location"]
+    del form_data["item_specific_location"]
+
+    form_data = {int(k): v for k, v in form_data.items()}
+
+    update_item_fields(data=form_data, item_id=int(item_id))
+
+    new_item_data = {
+        "id": item_id,
+        "name": item_name,
+        "description": item_description,
+        "item_type": item_type,
+        "item_quantity": item_quantity,
+        "item_location": item_location,
+        "item_specific_location": item_specific_location,
+        "item_tags": item_tags,
+        "item_url": item_url
+    }
+
+    new_item_slug = None
+    update_result = update_item_by_id(item_data=new_item_data, item_id=int(item_id), user=current_user)
+    if update_result["status"] == "success":
+        item_dict = update_result["item"]
+        new_item_slug = item_dict['slug']
+    else:
+        flash("Error updating item")
+
+    return redirect(url_for('item.item_with_username_and_inventory',
+                            username=username,
+                            inventory_slug=inventory_slug,
+                            item_slug=new_item_slug))
 
 
 @item_routes.route('/item/fields', methods=['POST'])

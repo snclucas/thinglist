@@ -1,0 +1,28 @@
+{% if is_inventory_owner or inventory_access_level == __COLLABORATOR__ %}
+
+    {% if user_is_authenticated %}
+        <select class="form-select" id="inventory_filter" name="inventory_filter">
+            {% if inventory_slug == "all" %}
+                <option value="all" selected>All item(s)</option>
+            {% else %}
+                <option value="all">All item(s)</option>
+            {% endif %}
+            {% if inventory_slug == "default" %}
+                <option value="default" selected>Default/None</option>
+            {% else %}
+                <option value="default">Default/None</option>
+            {% endif %}
+            {% for option in all_user_inventories %}
+                {% if "__default__" not in  option[1].name %}
+                    {% if inventory_slug == option[1].slug %}
+                        <option value="{{ option[1].slug }}"
+                                selected>{{ option[1].name }}</option>
+                    {% else %}
+                        <option value="{{ option[1].slug }}">{{ option[1].name }}</option>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+        </select>
+    {% endif %}
+
+{% endif %}

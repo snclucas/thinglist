@@ -1021,47 +1021,53 @@ def _find_my_items(logged_in_user: User, inventory_id, query_params):
 
         query = _find_query_parameters(query_=query, query_params=query_params)
 
-        search = query_params.get("search", None)
-
-        if search is not None:
-            if search != "":
-                query = query.filter(Item.name.contains(search))
-
-        start = query_params.get("start", 0)
-        length = query_params.get("length", 50)
-
-        order_0 = query_params.get("order_0", None)
-        dir_0 = query_params.get("dir_0", None)
-
-        if order_0 is not None and dir_0 is not None:
-            if order_0 == '0':
-                if dir_0 == 'asc':
-                    query = query.order_by(Item.name.asc())
-                else:
-                    query = query.order_by(Item.name.desc())
-            elif order_0 == '1':
-                if dir_0 == 'asc':
-                    query = query.order_by(ItemType.name.asc())
-                else:
-                    query = query.order_by(ItemType.name.desc())
-            elif order_0 == '2':
-                if dir_0 == 'asc':
-                    query = query.order_by(Location.name.asc())
-                else:
-                    query = query.order_by(Location.name.desc())
-
-        page = int((int(start) / int(length)))
-        # page = query_params.get("page", 1)
-        per_page = int(query_params.get("length", 50))
-
-        if length is not None:
-            query = query.limit(per_page)
-        if page is not None:
-            query = query.offset(page * per_page)
+        query = _pagination_query(query_params, query)
 
         results_ = query.all()
 
         return results_
+
+
+def _pagination_query(query_params, query):
+    search = query_params.get("search", None)
+
+    if search is not None:
+        if search != "":
+            query = query.filter(Item.name.contains(search))
+
+    start = query_params.get("start", 0)
+    length = query_params.get("length", 50)
+
+    order_0 = query_params.get("order_0", None)
+    dir_0 = query_params.get("dir_0", None)
+
+    if order_0 is not None and dir_0 is not None:
+        if order_0 == '0':
+            if dir_0 == 'asc':
+                query = query.order_by(Item.name.asc())
+            else:
+                query = query.order_by(Item.name.desc())
+        elif order_0 == '1':
+            if dir_0 == 'asc':
+                query = query.order_by(ItemType.name.asc())
+            else:
+                query = query.order_by(ItemType.name.desc())
+        elif order_0 == '2':
+            if dir_0 == 'asc':
+                query = query.order_by(Location.name.asc())
+            else:
+                query = query.order_by(Location.name.desc())
+
+    page = int((int(start) / int(length)))
+    # page = query_params.get("page", 1)
+    per_page = int(query_params.get("length", 50))
+
+    if length is not None:
+        query = query.limit(per_page)
+    if page is not None:
+        query = query.offset(page * per_page)
+
+    return query
 
 
 """
@@ -1089,6 +1095,7 @@ def _find_someone_elses_items_loggedin(logged_in_user: User, request_user_id, in
         # query = query.filter(InventoryItem.access_level == 2)
 
         query = _find_query_parameters(query_=query, query_params=query_params)
+        query = _pagination_query(query_params, query)
 
         results_ = query.all()
 
@@ -1860,9 +1867,45 @@ def update_item_by_id(item_data: dict, item_id: int, user: User) -> Dict[str, Un
     with app.app_context():
         db.session.expire_on_commit = False
 
-        select_statement = select(Item).where(Item.id == item_id).where(Item.user_id == user.id)
+        select_statement = select(Item).where(Item.id == item_id)#.where(Item.user_id == user.id)
 
-        item_result = db.session.execute(select_statement).first()
+        item_result = db.session.execute(select_statement).one_or_none()
+
+        if item_result is None:
+            return_data = {
+                "status": "error",
+                "message": "Not found",
+                "item": {
+                    "id": None,
+                    "name": None,
+                    "slug": None,
+                    "description": None,
+                    "user_id": None,
+                }
+            }
+            return return_data
+
+        _found = True
+        if item_result[0].user_id != user.id:
+            _found = False
+            for _inv in item_result[0].inventories:
+                for _user in _inv.users:
+                    if _user.id == user.id:
+                        _found = True
+
+        if not _found:
+            return_data = {
+                "status": "error",
+                "message": "",
+                "item": {
+                    "id": None,
+                    "name": None,
+                    "slug": None,
+                    "description": None,
+                    "user_id": None,
+                }
+            }
+            return return_data
 
         item_result[0].name = item_data['name']
         item_result[0].slug = f"{str(item_result[0].id)}-{slugify(item_data['name'])}"

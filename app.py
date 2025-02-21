@@ -12,6 +12,8 @@ from flask_wtf.csrf import CSRFProtect
 from flask_mail import Mail
 
 #from flask_msearch import Search
+from site_globals import (__INVENTORY__, __LIST__, __URL_LIST__, __PUBLIC__, __PRIVATE__,
+                          __VIEWER__, __LIST_ALL__, __COLLABORATOR__)
 
 #from pycharm_flask_debug_patch import restart_with_reloader_patch
 
@@ -121,6 +123,20 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 mail = Mail(app)
+
+
+@app.context_processor
+def inject_globals():
+    return dict(
+        __PUBLIC__=__PUBLIC__,
+        __PRIVATE__=__PRIVATE__,
+        __COLLABORATOR__=__COLLABORATOR__,
+        __INVENTORY__=__INVENTORY__,
+        __LIST__=__LIST__,
+        __LIST_ALL__=__LIST_ALL__,
+        __URL_LIST__=__URL_LIST__,
+        __VIEWER__=__VIEWER__
+    )
 
 
 @app.context_processor

@@ -1,6 +1,6 @@
 {% if user_is_authenticated %}
 
-    {% if is_inventory_owner or inventory_access_level == 1 %}
+    {% if is_inventory_owner or inventory_access_level == __COLLABORATOR__ %}
 
         {% if inventory_slug != "all" and inventory_slug != "default" %}
             <span class="fas fa-list fa-2x" data-bs-toggle="collapse"
@@ -15,7 +15,7 @@
     {% endif %}
 
 
-    {% if is_inventory_owner or inventory_access_level == 1 %}
+    {% if is_inventory_owner or inventory_access_level == __COLLABORATOR__ %}
 
         <!-- <span id="btn_export_pdf" class="fas fa-file-pdf fa-2x"
               style="display: inline-block; margin-right: 20px;"></span> -->

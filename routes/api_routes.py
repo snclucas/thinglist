@@ -58,7 +58,7 @@ def items(username=None, inventory_slug=None):
     if user_is_authenticated:
         logged_in_user = current_user
 
-        if current_user == inventory_owner_username:
+        if current_user.username == inventory_owner_username:
             inventory_owner = current_user
             inventory_owner_id = inventory_owner.id
 

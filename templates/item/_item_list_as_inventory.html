@@ -20,7 +20,7 @@
                 {% endif %}
                 <th class="coldef-tags min-phone-l">Tags</th>
                 {% if user_is_authenticated %}
-                    {% if is_inventory_owner or inventory_access_level == 1 %}
+                    {% if is_inventory_owner or inventory_access_level == __COLLABORATOR__ %}
                 <th class="coldef-checkboxes">
                     <input class="form-check-input" type="checkbox" value="" id="all-selected-items"> Page |
                     <input class="form-check-input" type="checkbox" value="" id="total-all-selected-items"> All

@@ -40,6 +40,8 @@ mimetypes.add_type('application/javascript', '.js')
 mimetypes.add_type('text/css', '.css')
 
 
+
+
 @app.after_request
 def add_headers(response):
     """

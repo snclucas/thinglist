@@ -14,7 +14,7 @@ from database_functions import get_user_inventories, delete_item_from_inventory,
     regenerate_inventory_token, find_inventory_by_access_token, add_user_to_inventory_from_token, \
     get_user_public_lists, get_user_unlisted_item_count
 
-from site_globals import __INVENTORY__, __LIST__, __URL_LIST__, __PUBLIC__, __PRIVATE__, __VIEWER__
+from site_globals import __INVENTORY__, __LIST__, __URL_LIST__, __PUBLIC__, __PRIVATE__, __VIEWER__, __READ_ONLY__
 
 inv = Blueprint('inv', __name__)
 
@@ -354,13 +354,11 @@ def register_for_inventory_access():
     return redirect(url_for('inv.lists'))
 
 
-__READ_ONLY__ = 2
-__COLLABORATOR__ = 1
+
 
 @inv.route('/list/add-user', methods=['POST'])
 @login_required
 def add_user_to_list():
-    _err_msg = "Issue adding user to this list"
     """
 
     Add a user to a specified inventory list.
@@ -379,6 +377,8 @@ def add_user_to_list():
     - Redirects to 'inv.lists' with a flash message if there is an issue adding the user to the list
 
     """
+    _err_msg = "Issue adding user to this list"
+
     list_id = request.form.get("inventory_id", None)
     access_level = request.form.get("access_level", __READ_ONLY__)
     user_to_add = request.form.get("user_to_add", None)

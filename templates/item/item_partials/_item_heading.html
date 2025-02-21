@@ -4,7 +4,7 @@
 
     </div>
     <div class="col-md-1">
-        {% if item_access_level == 0 %}
+        {% if item_access_level == __OWNER__ or item_access_level == __COLLABORATOR__ %}
             <div class="text-end">
                                             <span class="fas fa-ellipsis-v fa-2x" data-bs-toggle="collapse"
                                                   href="#collapseButtonBar"
@@ -22,7 +22,7 @@
 </div>
 
 
-{% if item_access_level == 0 %}
+{% if item_access_level == __OWNER__ or item_access_level == __COLLABORATOR__ %}
     <div class="row">
 
         <div class="col-md-12">

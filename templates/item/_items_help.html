@@ -2,7 +2,7 @@
 
 <p>This is the list of your magnificent items.</p>
 
-{% if is_inventory_owner or inventory_access_level == 1 %}
+{% if is_inventory_owner or inventory_access_level == __COLLABORATOR__ %}
 
     <p><i class="fas fa-list fa-2x"></i> &nbsp; sets the default fields used for new items added to a particular inventory.</p>
 
