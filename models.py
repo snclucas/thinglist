@@ -101,7 +101,7 @@ class Location(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(50), nullable=True, unique=False)
     description = db.Column(db.String(50), nullable=True, unique=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
 
 
 class Inventory(db.Model):
@@ -113,7 +113,7 @@ class Inventory(db.Model):
     description = db.Column(db.String(255))
     owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True, nullable=False)
     owner = db.relationship(User, load_on_pending=True, lazy='subquery')
-    users = db.relationship('User', secondary='inventory_users', back_populates='inventories', lazy='subquery')
+    users = db.relationship('User', secondary='inventory_users', back_populates='inventories', lazy='subquery', cascade="all,delete")
     items = db.relationship('Item', secondary='inventory_items', back_populates='inventories', lazy='subquery')
     default_fields = db.Column(db.String(1000), default="-1")
     field_template = db.Column(db.Integer, db.ForeignKey('field_templates.id'), nullable=True)

@@ -87,10 +87,10 @@ def login():
             flash("Unable to log you in")
 
     allow_registrations = (int(app.config['ALLOW_REGISTRATIONS']) == 1)
-    return render_template("auth/login.html", allow_registrations=allow_registrations)
+    return render_template(template_name_or_list="auth/login.html", allow_registrations=allow_registrations)
 
 
-@auth_flask_login.route("/activate-user/<token>", methods=["GET"])
+@auth_flask_login.route(rule="/activate-user/<token>", methods=["GET"])
 def activate_user(token):
     """
     Activate a user based on the given token.
@@ -110,7 +110,7 @@ def activate_user(token):
             return render_template(template)
 
         activate_user_in_db(user_id=user_.id)
-        flash("You are now an activated Thing!")
+        flash("You are now an activated Thing Master!")
 
     return render_template(template)
 
@@ -153,7 +153,7 @@ def reset_password_token(token):
 
 
 
-@auth_flask_login.route("/reset-password", methods=["GET", "POST"])
+@auth_flask_login.route(rule="/reset-password", methods=["GET", "POST"])
 def reset_password_request():
 
     token_epiration_minutes = int(app.config['TOKEN_EXPIRATION_MINUTES'])
@@ -169,12 +169,10 @@ def reset_password_request():
             token_expires = datetime.datetime.now() + datetime.timedelta(minutes=token_epiration_minutes)
             update_user_token_by_email(email=email, user_token=confirmation_token, token_expires=token_expires)
 
-            text_body = render_template('email/reset_password.txt', user=user_, token=confirmation_token)
-            html_body = render_template('email/reset_password.html', user=user_, token=confirmation_token)
-            send_email("Password change", sender=app.config['ADMINS'][0], recipients=[user_.email],
+            text_body = render_template(template_name_or_list='email/reset_password.txt', user=user_, token=confirmation_token)
+            html_body = render_template(template_name_or_list='email/reset_password.html', user=user_, token=confirmation_token)
+            send_email(subject="Password change", sender=app.config['ADMINS'][0], recipients=[user_.email],
                        text_body=text_body, html_body=html_body)
-
-
 
         flash("Check your email")
         return render_template(template)
@@ -183,7 +181,7 @@ def reset_password_request():
         return render_template(template)
 
 
-@auth_flask_login.route("/change-password", methods=["POST"])
+@auth_flask_login.route(rule="/change-password", methods=["POST"])
 @login_required
 def change_password():
 

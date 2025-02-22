@@ -6,11 +6,6 @@ import os
 from app import app
 
 
-__OWNER = 0
-__COLLABORATOR = 1
-__VIEWER = 2
-__PUBLIC = 3
-
 
 if app.debug:
     # ...

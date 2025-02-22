@@ -16,7 +16,7 @@ from email_utils import send_email
 from models import Inventory, User, Item, UserInventory, InventoryItem, ItemType, Tag, \
     Location, Image, Field, ItemField, FieldTemplate, Notification, TemplateField, Relateditems, ItemImage
 
-from site_globals import _NONE_, __PUBLIC__, __OWNER__, __PRIVATE__
+from site_globals import _NONE_, __PUBLIC__, __OWNER__, __PRIVATE__, __INVENTORY__
 
 
 def drop_then_create():
@@ -44,13 +44,13 @@ def post_user_add_hook(new_user: User):
 
     """
     with app.app_context():
-        add_user_inventory(name=f"__default__{new_user.username}", description=f"Default inventory",
-                           access_level=0,
-                           inventory_type=1,
-                           user_id=new_user.id)
+        _ret = add_user_list(name=f"__default__{new_user.username}", description=f"Default inventory",
+                             access_level=0,
+                             inventory_type=1,
+                             user_id=new_user.id)
         get_or_add_new_location(location_name=_NONE_, location_description="No location (default)",
                                 to_user_id=new_user.id)
-        add_new_user_itemtype(name=_NONE_, user_id=new_user.id)
+        #add_new_user_itemtype(name=_NONE_, user_id=new_user.id)
 
         # create folder for user uploads
         user_upload_folder = os.path.join(app.config['USER_IMAGES_BASE_PATH'], str(new_user.id))
@@ -63,7 +63,7 @@ def post_user_add_hook(new_user: User):
 # --- Users ---
 
 
-def add_user_by_details(username: str, email: str, password: str) -> User:
+def add_user_by_details(username: str, email: str, password: str, fail_on_duplicate=True) -> User:
     """
 
     Parameters:
@@ -93,7 +93,7 @@ def add_user_by_details(username: str, email: str, password: str) -> User:
         password_hash = flask_bcrypt.generate_password_hash(password)
         user = User(username=username, email=email, password=password_hash, activated=True)
 
-        status, message, user = save_new_user(user_=user)
+        status, message, user = save_new_user(user_=user, fail_on_duplicate=fail_on_duplicate)
 
         if status:
             return user
@@ -101,6 +101,17 @@ def add_user_by_details(username: str, email: str, password: str) -> User:
             err_msg = f"Error adding user by details: {message}"
             app.logger.error(err_msg)
         return user
+
+def remove_user_by_id(user_id: int) -> (bool, str):
+    with app.app_context():
+        try:
+            user_ = User.query.filter_by(id=user_id).first()
+            db.session.delete(user_)
+            db.session.commit()
+            return True, ""
+        except SQLAlchemyError as e:
+            return False, str(e)
+
 
 
 def find_user(username_or_email: str) -> User:
@@ -201,7 +212,7 @@ def find_user_by_id(user_id: int) -> User:
         return user_
 
 
-def save_new_user(user_: User) -> Tuple[bool, str, Optional[User]]:
+def save_new_user(user_: User, fail_on_duplicate: bool = True) -> Tuple[bool, str, Optional[User]]:
     """
     Saves a new user to the database.
 
@@ -217,6 +228,9 @@ def save_new_user(user_: User) -> Tuple[bool, str, Optional[User]]:
     """
     with app.app_context():
         potential_user_ = find_user_by_username(username=user_.username)
+        if potential_user_ is not None and not fail_on_duplicate:
+            return True, "duplicate", potential_user_
+
         if potential_user_ is not None:
             return False, "Username taken", None
 
@@ -247,13 +261,13 @@ def find_inventory(inventory_id: int) -> Optional[Inventory]:
     Returns:
     - Optional[Inventory]: The found inventory object, or None if no inventory with the given ID is found.
     """
-
-    try:
-        inventory_ = Inventory.query.filter_by(id=inventory_id).first()
-    except (NoResultFound, InvalidRequestError, SQLAlchemyError) as e:
-        app.logger.error(f"Error finding inventory: {str(e)}")
-        return None
-    return inventory_
+    with app.app_context():
+        try:
+            inventory_ = Inventory.query.filter_by(id=inventory_id).first()
+        except (NoResultFound, InvalidRequestError, SQLAlchemyError) as e:
+            app.logger.error(f"Error finding inventory: {str(e)}")
+            return None
+        return inventory_
 
 
 def find_inventory_by_id(inventory_id: int, user_id: int) -> Tuple[Optional[Inventory], Optional[UserInventory]]:
@@ -272,25 +286,27 @@ def find_inventory_by_id(inventory_id: int, user_id: int) -> Tuple[Optional[Inve
         objects, or None if either the inventory or the user is not found.
 
     """
-    if not isinstance(inventory_id, int):
-        err_msg = f"Error finding inventory by ID: supplied inventory_id is not an integer"
-        app.logger.error(err_msg)
-        return None, None
 
-    if not isinstance(user_id, int):
-        err_msg = f"Error finding inventory by ID: supplied user_id is not an integer"
-        app.logger.error(err_msg)
-        return None, None
+    with app.app_context():
+        if not isinstance(inventory_id, int):
+            err_msg = f"Error finding inventory by ID: supplied inventory_id is not an integer"
+            app.logger.error(err_msg)
+            return None, None
 
-    inventory_ = Inventory.query.filter_by(id=inventory_id).first()
-    if inventory_ is None:
-        err_msg = f"Error finding inventory by ID: inventory not found"
-        app.logger.error(err_msg)
-        return None, None
+        if not isinstance(user_id, int):
+            err_msg = f"Error finding inventory by ID: supplied user_id is not an integer"
+            app.logger.error(err_msg)
+            return None, None
 
-    user_inventory_ = UserInventory.query \
-        .filter_by(inventory_id=inventory_.id).filter_by(user_id=user_id).first()
-    return inventory_, user_inventory_
+        inventory_ = Inventory.query.filter_by(id=inventory_id).first()
+        if inventory_ is None:
+            err_msg = f"Error finding inventory by ID: inventory not found"
+            app.logger.error(err_msg)
+            return None, None
+
+        user_inventory_ = UserInventory.query \
+            .filter_by(inventory_id=inventory_.id).filter_by(user_id=user_id).first()
+        return inventory_, user_inventory_
 
 
 def find_inventory_by_access_token(access_token: str) -> Optional[Inventory]:
@@ -316,7 +332,8 @@ def find_inventory_by_access_token(access_token: str) -> Optional[Inventory]:
         return None
 
 
-def find_inventory_by_slug(inventory_slug: str, inventory_owner_id: int = None,
+def find_inventory_by_slug(inventory_slug: str,
+                           inventory_owner_id: int = None,
                            viewing_user_id: int = None) -> Tuple[Optional[Inventory], Optional[UserInventory]]:
     """
     Find inventory by slug.
@@ -332,52 +349,53 @@ def find_inventory_by_slug(inventory_slug: str, inventory_owner_id: int = None,
     :return: A tuple containing the found inventory and user inventory (if applicable).
     :rtype: Tuple[Optional[Inventory], Optional[UserInventory]]
     """
-    if not isinstance(inventory_slug, str):
-        err_msg = f"Error finding inventory by slug: supplied inventory_slug is not a string"
-        app.logger.error(err_msg)
-        return None, None
-
-    if not isinstance(inventory_owner_id, int):
-        err_msg = f"Error finding inventory by slug: supplied inventory_owner_id is not an integer"
-        app.logger.error(err_msg)
-        return None, None
-
-    # if not isinstance(viewing_user_id, int):
-    #     err_msg = f"Error finding inventory by slug: supplied viewing_user_id is not an integer"
-    #     app.logger.error(err_msg)
-    #     return None, None
-
-    user_is_logged_in = (viewing_user_id is not None)
-
-    # do some new code here to fix
-    # try to find a user inventory for the user and the inventory id
-    inventory_ = Inventory.query.filter(Inventory.slug == inventory_slug).one_or_none()
-    if not inventory_:
-        return None, None
-
-    inventory_id = inventory_.id
-
-    # if the user is not logged in, then we can only get the inventory if it is public
-    if not user_is_logged_in:
-        if inventory_.access_level != __PUBLIC__:
+    with app.app_context():
+        if not isinstance(inventory_slug, str):
+            err_msg = f"Error finding inventory by slug: supplied inventory_slug is not a string"
+            app.logger.error(err_msg)
             return None, None
-        else:
-            # There will not be a user inventory
-            return inventory_, None
 
-    else:
-        # if the user is logged in, then we can get the
-        # inventory if it is public or if the user has access to it
-        user_inventory_ = UserInventory.query.filter(UserInventory.user_id == viewing_user_id).filter(
-            UserInventory.inventory_id == inventory_id).one_or_none()
+        if not isinstance(inventory_owner_id, int):
+            err_msg = f"Error finding inventory by slug: supplied inventory_owner_id is not an integer"
+            app.logger.error(err_msg)
+            return None, None
 
-        if user_inventory_ is not None:
-            return inventory_, user_inventory_
-        else:
-            if inventory_.access_level == __PUBLIC__:
-                return inventory_, None
-            else:
+        # if not isinstance(viewing_user_id, int):
+        #     err_msg = f"Error finding inventory by slug: supplied viewing_user_id is not an integer"
+        #     app.logger.error(err_msg)
+        #     return None, None
+
+        user_is_logged_in = (viewing_user_id is not None)
+
+        # do some new code here to fix
+        # try to find a user inventory for the user and the inventory id
+        inventory_ = Inventory.query.filter(Inventory.slug == inventory_slug).one_or_none()
+        if not inventory_:
+            return None, None
+
+        inventory_id = inventory_.id
+
+        # if the user is not logged in, then we can only get the inventory if it is public
+        if not user_is_logged_in:
+            if inventory_.access_level != __PUBLIC__:
                 return None, None
+            else:
+                # There will not be a user inventory
+                return inventory_, None
+
+        else:
+            # if the user is logged in, then we can get the
+            # inventory if it is public or if the user has access to it
+            user_inventory_ = UserInventory.query.filter(UserInventory.user_id == viewing_user_id).filter(
+                UserInventory.inventory_id == inventory_id).one_or_none()
+
+            if user_inventory_ is not None:
+                return inventory_, user_inventory_
+            else:
+                if inventory_.access_level == __PUBLIC__:
+                    return inventory_, None
+                else:
+                    return None, None
 
 
 def find_template_by_id(template_id: int) -> Optional[FieldTemplate]:
@@ -427,15 +445,18 @@ def backup_to_json():
         backup_json = {}
 
 
-def create_inventory(name: str, description: str, slug: str,
-                     inventory_type: int,
-                     show_default_fields: int,
-                     show_item_images: int,
-                     show_item_type: int,
-                     show_item_location: int,
-                     show_item_tags: int,
-                     show_item_url: int,
-                     to_user, access_level):
+def _create_list(name: str,
+                 description: str,
+                 slug: str,
+                 inventory_type: int = __INVENTORY__,
+                 show_default_fields: int = 1,
+                 show_item_images: int = 1,
+                 show_item_type: int = 1,
+                 show_item_location: int = 1,
+                 show_item_tags: int = 1,
+                 show_item_url: int = 1,
+                 to_user: User = None,
+                 access_level: int = __PRIVATE__):
     """
     Create a new inventory.
 
@@ -450,37 +471,40 @@ def create_inventory(name: str, description: str, slug: str,
     - Inventory: The newly created inventory.
 
     """
-    inventory_token = uuid.uuid4().hex
-    new_inventory = Inventory(name=name, description=description, token=inventory_token,
-                              slug=slug, owner=to_user, type=inventory_type,
-                              show_default_fields=show_default_fields,
-                              show_item_images=show_item_images,
-                              show_item_type=show_item_type,
-                              show_item_url=show_item_url,
-                              show_item_location=show_item_location,
-                              show_item_tags=show_item_tags,
-                              access_level=access_level)
-    db.session.expire_on_commit = False
-    db.session.add(new_inventory)
-    db.session.flush()
-    new_inventory_id = new_inventory.id
-    to_user.inventories.append(new_inventory)
-    db.session.commit()
-    db.session.expunge_all()
-    return new_inventory, new_inventory_id
+    with app.app_context():
+        to_user = db.session.merge(to_user)
+
+        inventory_token = uuid.uuid4().hex
+        new_inventory = Inventory(name=name, description=description, token=inventory_token,
+                                  slug=slug, owner=to_user, type=inventory_type,
+                                  show_default_fields=show_default_fields,
+                                  show_item_images=show_item_images,
+                                  show_item_type=show_item_type,
+                                  show_item_url=show_item_url,
+                                  show_item_location=show_item_location,
+                                  show_item_tags=show_item_tags,
+                                  access_level=access_level)
+        db.session.expire_on_commit = False
+        db.session.add(new_inventory)
+        db.session.flush()
+        new_inventory_id = new_inventory.id
+        to_user.inventories.append(new_inventory)
+        db.session.commit()
+        db.session.expunge_all()
+        return new_inventory, new_inventory_id
 
 
-def add_user_inventory(name: str, description: str, inventory_type: int,
-                       show_default_fields: int = True,
-                       show_item_images: int = True,
-                       show_item_type: int = True,
-                       show_item_location: int = True,
-                       show_item_tags: int = True,
-                       show_item_url: int = False,
-                       slug: str = None,
-                       access_level: int = 1, user_id: int = None) -> Tuple[Optional[dict], str]:
+def add_user_list(name: str, description: str, inventory_type: int,
+                  show_default_fields: int = True,
+                  show_item_images: int = True,
+                  show_item_type: int = True,
+                  show_item_location: int = True,
+                  show_item_tags: int = True,
+                  show_item_url: int = False,
+                  slug: str = None,
+                  access_level: int = 1, user_id: int = None) -> Tuple[Optional[dict], bool, str]:
     if name == "":
-        return None, "Name cannot be empty"
+        return None, False, "List name cannot be empty"
 
     if slug is None:
         slug = slugify(name)
@@ -490,17 +514,17 @@ def add_user_inventory(name: str, description: str, inventory_type: int,
             # add it initially private
             to_user = User.query.filter_by(id=user_id).first()
             if to_user is None:
-                return None, "User not found"
+                return None, False, "User not found"
 
-            new_inventory, new_inventory_id = create_inventory(name=name, description=description,
-                                                               inventory_type=inventory_type,
-                                                               show_default_fields=show_default_fields,
-                                                               show_item_images=show_item_images,
-                                                               show_item_type=show_item_type,
-                                                               show_item_url=show_item_url,
-                                                               show_item_location=show_item_location,
-                                                               show_item_tags=show_item_tags,
-                                                               slug=slug, to_user=to_user, access_level=access_level)
+            new_inventory, new_inventory_id = _create_list(name=name, description=description,
+                                                           inventory_type=inventory_type,
+                                                           show_default_fields=show_default_fields,
+                                                           show_item_images=show_item_images,
+                                                           show_item_type=show_item_type,
+                                                           show_item_url=show_item_url,
+                                                           show_item_location=show_item_location,
+                                                           show_item_tags=show_item_tags,
+                                                           slug=slug, to_user=to_user, access_level=access_level)
 
             result_return_value = {
                 "id": new_inventory_id,
@@ -511,11 +535,16 @@ def add_user_inventory(name: str, description: str, inventory_type: int,
                 "access_level": access_level
             }
 
-            return result_return_value, "success"
+            return result_return_value, True, "success"
 
         except SQLAlchemyError as error:
-            return None, "Could not add inventory"
+            return None, True, "Could not add list"
 
+
+def get_number_user_lists(user_id: int) -> int:
+    with app.app_context():
+        _inv_count = UserInventory.query.filter_by(user_id=user_id).count()
+        return _inv_count
 
 def get_user_default_inventory(user_id: int):
     with app.app_context():
@@ -608,6 +637,7 @@ def delete_list_by_id(inventory_ids: List[int], user_id: int) -> (bool, str):
                         db.session.delete(inv_)
                         try:
                             db.session.commit()
+                            return True, ""
                         except SQLAlchemyError as error:
                             app.logger.error(f"Error deleting inventory: {str(error)}")
                             return False, f"Error deleting inventory: {str(error)}"
@@ -1180,12 +1210,20 @@ def find_items_new(logged_in_user=None, requested_username=None, inventory_id=No
 
 def get_all_item_ids_in_inventory(user_id: int, inventory_id: int):
     with app.app_context():
-        stmt = select(Item.id).join(InventoryItem, InventoryItem.item_id == Item.id
-                                    ).where(user_id == Item.user_id
-                                            ).where(InventoryItem.inventory_id == inventory_id)
+        try:
+            stmt = select(Item.id
+                          ).join(InventoryItem, InventoryItem.item_id == Item.id
+                                 ).where(Item.user_id == user_id
+                                                ).where(InventoryItem.inventory_id == inventory_id)
 
-        results_ = db.session.execute(stmt).all()
-        return [x[0] for x in results_]
+            results_ = db.session.execute(stmt).all()
+            #return [row.Item.id for row in results_]
+            #return [x[0] for x in results_]
+            return [x for x in results_]
+        except SQLAlchemyError as e:
+            app.logger.error(f"Error finding all item ids in inventory: {e}")
+            return []
+
 
 
 def count_all_user_items(user_id: int) -> int:
@@ -1237,8 +1275,9 @@ def change_item_access_level(item_ids: int | list, access_level: int, user_id: i
 
 
 def get_all_user_locations(user_id: int) -> Optional[list[Location]]:
-    user_locations_ = Location.query.filter_by(user_id=user_id).all()
-    return user_locations_
+    with app.app_context():
+        user_locations_ = Location.query.filter_by(user_id=user_id).all()
+        return user_locations_
 
 
 def get_all_user_item_ids(user_id: int) -> list[Item]:
@@ -1339,6 +1378,7 @@ def activate_user_in_db(user_id: int):
 
 
 def find_item_by_id(item_id: int, user_id: int = None) -> Item:
+
     if user_id is None:
         item_ = Item.query.filter_by(id=item_id).first()
     else:
@@ -1739,7 +1779,7 @@ def update_location_by_id(location_data: dict, user: User) -> (bool, str):
     with app.app_context():
         location_id = location_data['id']
 
-        location_ = Location.query.filter_by(id=location_id).filter_by(user_id=user.id)
+        location_ = Location.query.filter_by(id=location_id).filter_by(user_id=user.id).one()
         if location_ is None:
             msg = f"No location with id {location_id} found for user {user.username}"
             app.logger.error(msg)
@@ -1749,9 +1789,11 @@ def update_location_by_id(location_data: dict, user: User) -> (bool, str):
         location_.description = location_data['description']
 
         try:
+            #db.session.merge(location_)
             db.session.commit()
             return True, "Location updated successfully"
-        except SQLAlchemyError:
+        except SQLAlchemyError as e:
+            print(e)
             db.session.rollback()
             msg = f"Could not update location with id {location_id} for user {user.username}"
             app.logger.error(msg)
@@ -2874,30 +2916,37 @@ def edit_inventory_data(user_id: int, inventory_id: int, name: str,
                         show_item_location: int,
                         show_item_tags: int,
                         show_item_url: int,
-                        access_level: int) -> None:
-    session = db.session
+                        access_level: int) -> (bool, str):
+    with app.app_context():
 
-    stmt = select(UserInventory, Inventory).join(Inventory) \
-        .where(UserInventory.user_id == user_id) \
-        .where(UserInventory.inventory_id == inventory_id)
+        stmt = select(UserInventory, Inventory).join(Inventory) \
+            .where(UserInventory.user_id == user_id) \
+            .where(UserInventory.inventory_id == inventory_id)
 
-    results_ = session.execute(stmt).one_or_none()
+        results_ = db.session.execute(stmt).one_or_none()
 
-    if results_ is not None:
-        results_[1].name = name
-        results_[1].description = description
-        results_[1].type = inventory_type
-        results_[1].show_default_fields = show_default_fields
+        if results_ is not None:
+            results_[1].name = name
+            results_[1].description = description
+            results_[1].type = inventory_type
+            results_[1].show_default_fields = show_default_fields
 
-        results_[1].show_item_images = show_item_images
-        results_[1].show_item_type = show_item_type
-        results_[1].show_item_url = show_item_url
-        results_[1].show_item_location = show_item_location
-        results_[1].show_item_tags = show_item_tags
+            results_[1].show_item_images = show_item_images
+            results_[1].show_item_type = show_item_type
+            results_[1].show_item_url = show_item_url
+            results_[1].show_item_location = show_item_location
+            results_[1].show_item_tags = show_item_tags
 
-        results_[1].access_level = access_level
-        db.session.commit()
+            results_[1].access_level = access_level
 
+            try:
+                db.session.commit()
+                return True, "success"
+            except SQLAlchemyError as error:
+               return True, "Could not edit list"
+
+        else:
+            return True, "Could not edit list"
 
 def delete_templates_from_db(user_id: str, template_ids) -> None:
     if not isinstance(template_ids, list):
@@ -2924,39 +2973,40 @@ def delete_templates_from_db(user_id: str, template_ids) -> None:
 
 
 def delete_locations(user_id: int, location_ids) -> dict:
-    if not isinstance(location_ids, list):
-        location_ids = [location_ids]
+    with app.app_context():
+        if not isinstance(location_ids, list):
+            location_ids = [location_ids]
 
-    stmt = select(Location).join(User) \
-        .where(Location.user_id == user_id) \
-        .where(Location.id.in_(location_ids))
-    locations_ = db.session.execute(stmt).all()
+        stmt = select(Location).join(User) \
+            .where(Location.user_id == user_id) \
+            .where(Location.id.in_(location_ids))
+        locations_ = db.session.execute(stmt).all()
 
-    number_items_deleted = 0
-    user_default_location_ = Location.query.filter_by(name="None") \
-        .filter_by(user_id=user_id).one_or_none()
+        number_items_deleted = 0
+        user_default_location_ = Location.query.filter_by(name="None") \
+            .filter_by(user_id=user_id).one_or_none()
 
-    for location_ in locations_:
-        if location_[0] is not None:
-            location_ = location_[0]
+        for location_ in locations_:
+            if location_[0] is not None:
+                location_ = location_[0]
 
-            if location_ is not None:
-                location_id = location_.id
-                try:
-                    # find any items with this location and chnge to None
-                    if user_default_location_ is not None:
-                        items_ = Item.query.filter_by(location_id=location_id) \
-                            .filter_by(user_id=user_id).all()
-                        for row in items_:
-                            row.location_id = user_default_location_.id
+                if location_ is not None:
+                    location_id = location_.id
+                    try:
+                        # find any items with this location and chnge to None
+                        if user_default_location_ is not None:
+                            items_ = Item.query.filter_by(location_id=location_id) \
+                                .filter_by(user_id=user_id).all()
+                            for row in items_:
+                                row.location_id = user_default_location_.id
+                            db.session.commit()
+
+                        db.session.delete(location_)
                         db.session.commit()
 
-                    db.session.delete(location_)
-                    db.session.commit()
-
-                except SQLAlchemyError as err:
-                    return {"success": False}
-    return {"success": True}
+                    except SQLAlchemyError as err:
+                        return {"success": False}
+        return {"success": True}
 
 
 def get_user_public_lists(for_user_id: int) -> list:
@@ -3081,10 +3131,10 @@ def get_user_templates(user_id: int):
     :return: A list of templates associated with the user.
     :rtype: list
     """
-    session = db.session
-    stmt = select(FieldTemplate).join(User).where(User.id == user_id)
-    r = session.execute(stmt).all()
-    return r
+    with app.app_context():
+        stmt = select(FieldTemplate).join(User).where(User.id == user_id)
+        r = db.session.execute(stmt).all()
+        return r
 
 
 def get_user_template_by_id(template_id: int, user_id: int):
@@ -3207,12 +3257,13 @@ def get_number_user_locations(user_id: int):
 
 
 def get_user_location_by_id(location_id: str, user_id: int):
-    session = db.session
-    stmt = select(Location).join(User).where(User.id == user_id).where(Location.id == location_id)
-    r = session.execute(stmt).one_or_none()
-    if r is not None:
-        return r[0].__dict__
-    return None
+    with app.app_context():
+        session = db.session
+        stmt = select(Location).join(User).where(User.id == user_id).where(Location.id == location_id)
+        r = session.execute(stmt).one_or_none()
+        if r is not None:
+            return r[0].__dict__
+        return None
 
 
 def get_item_fields(item_id: int):

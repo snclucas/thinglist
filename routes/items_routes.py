@@ -24,7 +24,7 @@ from database_functions import get_all_user_locations, \
     get_user_templates, get_item_custom_field_data, \
     get_users_for_inventory, get_user_inventory_by_id, get_or_add_new_location, edit_items_locations, \
     change_item_access_level, link_items, copy_items, find_items_new, __PUBLIC__, __PRIVATE__, \
-    find_user_by_username, add_images_to_item, set_item_main_image, get_user_inventories, add_user_inventory, \
+    find_user_by_username, add_images_to_item, set_item_main_image, get_user_inventories, add_user_list, \
     save_template_fields, get_item_fields, save_inventory_fieldtemplate, find_template_by_id, save_user_inventory_view, \
     get_related_items, get_all_item_ids_in_inventory, update_item_by_id, find_item_by_slug
 from routes.items_loader import process_field_sets, process_images
@@ -120,13 +120,13 @@ def items_load():
                             inventory_type = int(bleach.clean(str(inventory_data.get("type", 1))))
                             inventory_access_level = int(bleach.clean(str(inventory_data.get("access_level", 1))))
 
-                            found_inv, status = add_user_inventory(name=inventory_name,
+                            found_inv, status, msg = add_user_list(name=inventory_name,
                                                                    description=inventory_description,
                                                                    inventory_type=inventory_type,
                                                                    slug=inventory_slug_,
                                                                    access_level=inventory_access_level,
                                                                    user_id=current_user.id)
-                            if status != "success":
+                            if status:
                                 load_log += f"Error creating inventory {inventory_slug_}.<br>"
                                 continue
 
@@ -276,15 +276,20 @@ def items_move():
 
     if not all(v is not None for v in [item_ids, username, to_inventory_id, from_inventory_id, move_type]):
         flash("There was a problem moving your things!")
-        return redirect(url_for('item.items_with_username', username=username).replace('%40', '@'))
+        return redirect(url_for(endpoint='item.items_with_username', username=username).replace('%40', '@'))
 
-    move_type = int(move_type)
+    try:
+        username = bleach.clean(username)
+        to_inventory_id = bleach.clean(str(to_inventory_id))
+        to_inventory_id = int(to_inventory_id)
 
-    username = bleach.clean(username)
-    to_inventory_id = int(bleach.clean(str(to_inventory_id)))
-    from_inventory_id = int(bleach.clean(str(from_inventory_id)))
-    move_type = int(bleach.clean(str(move_type)))
-    item_ids = [int(bleach.clean(str(x))) for x in item_ids]
+        from_inventory_id = int(bleach.clean(str(from_inventory_id)))
+        move_type = bleach.clean(move_type)
+        move_type = int(move_type)
+        item_ids = [bleach.clean(str(x)) for x in item_ids]
+        item_ids = [int(x) for x in item_ids]
+    except ValueError:
+        flash(_public_err_msg)
 
     """
     link - just add new line in ItemInventory
@@ -295,19 +300,19 @@ def items_move():
         item_ids = get_all_item_ids_in_inventory(user_id = current_user.id, inventory_id = from_inventory_id)
 
     if move_type == _MOVE_:
-        result = move_items(item_ids=item_ids, user=current_user, inventory_id=int(to_inventory_id))
+        result = move_items(item_ids=item_ids, user=current_user, inventory_id=to_inventory_id)
         if result["status"] == "error":
             flash(_public_err_msg)
     elif move_type == _COPY_:
-        result = copy_items(item_ids=item_ids, user=current_user, inventory_id=int(to_inventory_id))
+        result = copy_items(item_ids=item_ids, user=current_user, inventory_id=to_inventory_id)
         if result["status"] == "error":
             flash(_public_err_msg)
     else:
-        result = link_items(item_ids=item_ids, user=current_user, inventory_id=int(to_inventory_id))
+        result = link_items(item_ids=item_ids, user=current_user, inventory_id=to_inventory_id)
         if result["status"] == "error":
             flash(_public_err_msg)
 
-    return redirect(url_for('item.items_with_username', username=username).replace('%40', '@'))
+    return redirect(url_for(endpoint='item.items_with_username', username=username).replace('%40', '@'))
 
 
 @items_routes.route(rule='/items/edit', methods=['POST'])

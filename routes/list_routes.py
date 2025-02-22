@@ -10,7 +10,7 @@ from database_functions import get_user_inventories, delete_item_from_inventory,
     add_item_to_inventory, \
     find_inventory, find_inventory_by_slug, \
     find_user_by_username, edit_inventory_data, \
-    delete_list_by_id, add_user_to_inventory, delete_user_to_inventory, find_inventory_by_id, add_user_inventory, \
+    delete_list_by_id, add_user_to_inventory, delete_user_to_inventory, find_inventory_by_id, add_user_list, \
     regenerate_inventory_token, find_inventory_by_access_token, add_user_to_inventory_from_token, \
     get_user_public_lists, get_user_unlisted_item_count
 
@@ -180,17 +180,17 @@ def add_inventory():
     if "show_item_url" not in request.form:
         show_item_url = 0
 
-    new_inventory_data, msg = add_user_inventory(name=inventory_name_,
-                                                 description=inventory_description_,
-                                                 inventory_type=inventory_type_,
-                                                 show_default_fields=show_default_fields,
-                                                 show_item_images=show_item_images,
-                                                 show_item_type=show_item_type,
-                                                 show_item_location=show_item_location,
-                                                 show_item_tags=show_item_tags,
-                                                 show_item_url=show_item_url,
-                                                 access_level=access_level_,
-                                                 user_id=current_user.id)
+    new_inventory_data, status, msg = add_user_list(name=inventory_name_,
+                                                    description=inventory_description_,
+                                                    inventory_type=inventory_type_,
+                                                    show_default_fields=show_default_fields,
+                                                    show_item_images=show_item_images,
+                                                    show_item_type=show_item_type,
+                                                    show_item_location=show_item_location,
+                                                    show_item_tags=show_item_tags,
+                                                    show_item_url=show_item_url,
+                                                    access_level=access_level_,
+                                                    user_id=current_user.id)
 
     if new_inventory_data is None:
         return redirect(url_for('inv.lists'))
