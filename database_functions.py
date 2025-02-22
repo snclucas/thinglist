@@ -2923,7 +2923,7 @@ def delete_templates_from_db(user_id: str, template_ids) -> None:
         db.session.commit()
 
 
-def delete_location(user_id: int, location_ids) -> dict:
+def delete_locations(user_id: int, location_ids) -> dict:
     if not isinstance(location_ids, list):
         location_ids = [location_ids]
 

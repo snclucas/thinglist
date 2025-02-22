@@ -3,37 +3,44 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 
 from database_functions import get_user_locations, update_location_by_id, get_or_add_new_location, \
-    delete_location, find_location_by_id
+    delete_locations, find_location_by_id
 
-location = Blueprint('location', __name__)
+from app import app
+
+location = Blueprint(name='location', import_name=__name__)
 
 
 def get_form_data(key: str) -> str:
     return request.form.get(key)
 
-def sanitize_input(value: str) -> str:
-    return bleach.clean(value)
-
-@location.route('/locations', methods=['GET'])
+@location.route(rule='/locations', methods=['GET'])
 @login_required
 def locations():
     user_locations = get_user_locations(user_id=current_user.id)
     return render_template(template_name_or_list='location/locations.html', username=current_user.username, locations=user_locations)
 
 
-@location.route('/location/delete', methods=['POST'])
+@location.route(rule='/location/delete', methods=['POST'])
 @login_required
-def del_location():
+def del_locations():
     """
-    Deletes the specified locations.
+    Deletes the specified locations by IDs.
 
     :return: None
     """
-    if request.method == 'POST':
-        json_data = request.json
-        location_ids = json_data["location_ids"]
+    json_data = request.json
+    location_ids = json_data["location_ids"]
+    try:
+        location_ids = [bleach.clean(x) for x in location_ids]
         location_ids = [int(x) for x in location_ids]
-        delete_location(user_id=current_user.id, location_ids=location_ids)
+    except ValueError:
+        flash("Something went wrong.")
+        return redirect(url_for('location.locations'))
+
+    _ret = delete_locations(user_id=current_user.id, location_ids=location_ids)
+
+    if not _ret["success"]:
+        flash("Something went wrong.")
     return redirect(url_for('location.locations'))
 
 
@@ -46,21 +53,43 @@ def add_location():
     :return: None
     """
 
-    location_id = get_form_data("location_id")
-    location_name = sanitize_input(get_form_data("location_name"))
-    location_description = sanitize_input(get_form_data("location_description"))
+    _location_id = get_form_data("location_id")
+    if _location_id is None or _location_id == "":
+        app.logger.error("Location ID is required to add a location.")
+        flash("Something went wrong.")
+        return redirect(url_for('location.locations'))
+
+    _location_name =  get_form_data("location_name")
+    if _location_name is None or _location_name == "":
+        app.logger.error("Location name is required to add a location.")
+        flash("Location name is required.")
+        return redirect(url_for('location.locations'))
+
+    _location_description = get_form_data("location_description")
+    if _location_description is None or _location_description == "":
+        _location_description = _location_name
+
+    try:
+        _location_id = bleach.clean(_location_id)
+        _location_id_int = int(_location_id)
+        _location_name = bleach.clean(_location_name)
+        _location_description =  bleach.clean(_location_description)
+    except ValueError as ve:
+        flash("Something went wrong.")
+        app.logger.error(ve)
+        return redirect(url_for('location.locations'))
 
     new_location_data = {
-        "id": location_id,
-        "name": location_name,
-        "description": location_description,
+        "id": _location_id_int,
+        "name": _location_name,
+        "description": _location_description,
     }
 
-    potential_location = find_location_by_id(location_id=int(location_id))
+    potential_location = find_location_by_id(location_id=_location_id_int)
 
     if potential_location is None:
-        get_or_add_new_location(location_name=location_name,
-                                location_description=location_description,
+        get_or_add_new_location(location_name=_location_name,
+                                location_description=_location_description,
                                 to_user_id=current_user.id)
     else:
         update_location_by_id(location_data=new_location_data, user=current_user)

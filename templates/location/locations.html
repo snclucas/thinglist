@@ -107,7 +107,7 @@
 
             $.ajax({
                 type: "POST",
-                url: "{{ url_for('location.del_location')}}",
+                url: "{{ url_for('location.del_locations')}}",
                 contentType: 'application/json;charset=UTF-8',
                 headers: {
                     "X-CSRFToken": "{{ csrf_token() }}",
@@ -138,7 +138,7 @@
 
             $.ajax({
                 type: "POST",
-                url: "{{ url_for('location.del_location')}}",
+                url: "{{ url_for('location.del_locations')}}",
                 contentType: 'application/json;charset=UTF-8',
                 headers: {
                     "X-CSRFToken": "{{ csrf_token() }}",

@@ -11,7 +11,7 @@
         {% for location in locations %}
             <tr>
                 <td>
-                    <a href="{{ url_for('items.items_with_username_and_inventory', username=username, inventory_slug="all") | replace('%40', '@') }}?location={{ location['name']  | replace('@#$', ' ') | replace(' ', '+') }}">
+                    <a href="{{ url_for('items.items_with_username_and_inventory', list_username=username, inventory_slug="all") | replace('%40', '@') }}?location={{ location['name']  | replace('@#$', ' ') | replace(' ', '+') }}">
                         {{ location['name'] }}  </a>
                 </td>
                 <td>{{ location['description'] }}</td>
