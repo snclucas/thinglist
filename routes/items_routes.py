@@ -645,7 +645,7 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
                                                                         logged_in_user_id=logged_in_user_id)
 
     if user_is_authenticated:
-        users_in_this_inventory = get_users_for_inventory(inventory_id=inventory_id, current_user_id=current_user.id)
+        users_in_this_inventory = get_users_for_inventory(inventory_id=inventory_id)
 
     if inventory_ is None and inventory_slug != "all":
         return render_template('404.html', message="No such inventory"), 404

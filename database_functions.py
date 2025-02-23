@@ -341,11 +341,6 @@ def find_inventory_by_slug(inventory_slug: str,
             app.logger.error(err_msg)
             return None, None
 
-        # if not isinstance(viewing_user_id, int):
-        #     err_msg = f"Error finding inventory by slug: supplied viewing_user_id is not an integer"
-        #     app.logger.error(err_msg)
-        #     return None, None
-
         user_is_logged_in = (viewing_user_id is not None)
 
         # do some new code here to fix
@@ -922,27 +917,6 @@ def find_all_my_items(logged_in_user: User):
         query = query.filter(Item.user_id == logged_in_user.id)
         results_ = query.all()
         return results_
-
-
-def _find_my_items_using_select(logged_in_user: User, inventory_id, query_params):
-    with app.app_context():
-        if inventory_id is not None and inventory_id != '':
-            d = select(Item, ItemType, Location, InventoryItem, UserInventory) \
-                .join(ItemType, ItemType.id == Item.item_type) \
-                .join(Location, Location.id == Item.location_id) \
-                .join(InventoryItem, InventoryItem.item_id == Item.id) \
-                .where(InventoryItem.inventory_id == inventory_id)
-
-            start = query_params.get("start", 0)
-            length = query_params.get("length", 50)
-
-            page = int((int(start) / int(length)) + 1)
-            # page = query_params.get("page", 1)
-            per_page = int(query_params.get("length", 50))
-
-            page_data = db.paginate(d, page=page, per_page=per_page)
-
-            d = 3
 
 
 def find_field_by_name(field_name: str) -> dict:
@@ -1546,7 +1520,7 @@ def set_item_main_image(main_image_url: str, item_id: int, user_id: int) -> bool
             return False
 
 
-def get_all_images(user_id: int = None) -> list[Image]:
+def get_all_images(user_id: int = None) -> Tuple[Image, ItemImage]:
     with app.app_context():
         images_ = Image.query.all()
         itemimages_ = ItemImage.query.all()
@@ -2641,18 +2615,27 @@ def add_new_template(name: str, fields: str, to_user: User) -> FieldTemplate:
             print(e)
 
 
-def get_users_for_inventory(inventory_id: int, current_user_id: int):
+def get_users_for_inventory(inventory_id: int) -> Optional[dict]:
+    if inventory_id is None:
+        return None
+
     with app.app_context():
         stmt = db.session.query(User, UserInventory.access_level) \
             .join(User, UserInventory.user_id == User.id) \
             .filter(UserInventory.inventory_id == inventory_id)
 
-        result = db.session.execute(stmt).all()
+        try:
+            result = db.session.execute(stmt).all()
+            return dict(result)
+        except Exception as e:
+            app.logger.error(f"Could not get users for inventory {inventory_id} due to: {str(e)}")
+            return None
 
-        return dict(result)
 
+def delete_user_to_inventory(inventory_id: int, user_to_delete_id: int) -> (bool, str):
+    if inventory_id is None or user_to_delete_id is None:
+        return False, "Inventory ID or user ID cannot be None"
 
-def delete_user_to_inventory(inventory_id: int, user_to_delete_id: int):
     with app.app_context():
         user_inventory_ = UserInventory.query.filter(UserInventory.inventory_id == inventory_id) \
             .filter(UserInventory.user_id == user_to_delete_id).one_or_none()
@@ -2661,32 +2644,34 @@ def delete_user_to_inventory(inventory_id: int, user_to_delete_id: int):
             if user_inventory_.access_level != __OWNER__:
                 db.session.delete(user_inventory_)
                 db.session.commit()
-                return True
+                return True, "User deleted successfully"
             else:
-                return False
+                return False, "Cannot delete owner from inventory"
         else:
-            return False
+            return False, "User not found in inventory"
 
-def _create_notification(from_user: User, message: str) -> Notification:
-    return Notification(text=message, from_user=from_user)
+def _create_notification(from_user_username: str, message: str) -> Notification:
+    return Notification(text=message, from_user_username=from_user_username)
 
-def add_user_notification(to_user_id: int, from_user_id: int, message: str) -> (bool, str):
+def add_user_notification(to_user_id: int, from_user_id: int, message: str, _ctx=None) -> (bool, str):
 
     if to_user_id is None or from_user_id is None:
         return None, "To and from user IDs cannot be None"
     if message is None:
         return None, "Message cannot be None"
 
-    with app.app_context():
-        user_ = find_user_by_id(user_id=to_user_id)
+    if _ctx is None:
+        _ctx = app.app_context()
+    with _ctx:
+        user_ = db.session.query(User).filter(User.id == to_user_id).one()
+
         if user_ is not None:
             from_user_ = db.session.query(User).filter(User.id == from_user_id).one()
             if from_user_ is not None:
-                notification_ = _create_notification(from_user=from_user_, message=message)
-                user_.notifications.append(notification_)
+                notification_ = Notification(text=message, from_user_username=from_user_.username)
                 try:
                     db.session.add(notification_)
-                    db.session.merge(notification_)
+                    user_.notifications.append(notification_)
                     db.session.commit()
                     db.session.flush()
                     return notification_.id, "Notification added successfully"
@@ -2722,15 +2707,15 @@ def add_user_to_inventory_from_token(inventory_id: int, user_to_add: User, added
 
 def add_user_to_inventory(inventory_id: int, current_user_id: int, user_to_add_username: str,
                           added_user_access_level: int) -> (bool, str):
-    with app.app_context():
+    _ctx = app.app_context()
+    with _ctx:
         user_inventory_ = UserInventory.query.filter(UserInventory.inventory_id == inventory_id) \
             .filter(UserInventory.user_id == current_user_id).one_or_none()
 
         if user_inventory_ is not None:
             if user_inventory_.access_level == __OWNER__:
                 if added_user_access_level != __OWNER__:
-
-                    user_to_add_ = find_user_by_username(username=user_to_add_username)
+                    user_to_add_ = User.query.filter_by(username=user_to_add_username).first()
                     if user_to_add_ is not None:
                         if user_to_add_ is not None:
 
@@ -2750,7 +2735,7 @@ def add_user_to_inventory(inventory_id: int, current_user_id: int, user_to_add_u
                                 db.session.commit()
 
                             # Send a notification to the user being added to the list
-                            add_user_notification(from_user_id=current_user_id, to_user_id=user_to_add_.id,
+                            add_user_notification(_ctx=_ctx, from_user_id=current_user_id, to_user_id=user_to_add_.id,
                                                   message=f"You have been added to the following inventory")
                             return True, "User added successfully"
 
@@ -3447,6 +3432,11 @@ def add_field(field_name: str, field_type: str, user_id: int):
 
 
 def edit_field_by_id(field_id: int, field_name: str, field_type: str, user_id: int):
+    if field_id is None:
+        return False
+    if field_name is None:
+        return False
+
     with app.app_context():
         field_ = Field.query.filter_by(id=field_id, user_id=user_id).one_or_none()
         if field_ is not None:

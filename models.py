@@ -61,8 +61,9 @@ class Notification(db.Model):
     date = db.Column(db.DateTime(), default=datetime.datetime.now)
     text = db.Column(db.String(255), nullable=True, unique=False)
     from_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True, nullable=False)
-    from_user = db.relationship(User, overlaps="notifications, users", load_on_pending=True, lazy='subquery',
-                                passive_deletes="all")
+    from_user_username = db.Column(db.String(255), nullable=True, unique=False)
+    #from_user = db.relationship(User, overlaps="notifications, users", load_on_pending=True, lazy='subquery',
+    #                            passive_deletes="all")
 #viewonly=True,
 
 

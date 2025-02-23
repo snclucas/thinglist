@@ -226,7 +226,7 @@ def edit_inventory():
     inventory_description = request.form.get("inventory_description", "")
     inventory_description = bleach.clean(inventory_description)
 
-    inventory_type = request.form.get("inventory_type", 1)
+    inventory_type = request.form.get("inventory_type", __INVENTORY__)
     inventory_type = bleach.clean(inventory_type)
 
     try:
@@ -306,7 +306,7 @@ def delete_user_to_inv():
         flash("Issue deleting user from inventory")
         return redirect(url_for('inv.inventories'))
 
-    result = delete_user_to_inventory(inventory_id=inventory_id, user_to_delete_id=user_id)
+    result, msg = delete_user_to_inventory(inventory_id=inventory_id, user_to_delete_id=user_id)
 
     inventory_, user_inventory_ = find_inventory_by_id(inventory_id=inventory_id, user_id=current_user.id)
 

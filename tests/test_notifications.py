@@ -1,13 +1,8 @@
 import unittest
 
-from slugify import slugify
-
 from database_functions import add_user_by_details, remove_user_by_id, \
-    get_number_user_lists, add_user_list, find_inventory_by_id, \
-    find_inventory_by_slug, delete_list_by_id, edit_inventory_data, get_all_user_notifications, add_user_notification, \
+    get_all_user_notifications, add_user_notification, \
     get_number_of_user_notifications, delete_notification_by_id
-
-from site_globals import __INVENTORY__, __PRIVATE__, __LIST__
 
 
 class TestApp(unittest.TestCase):
