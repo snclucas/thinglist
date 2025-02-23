@@ -3,7 +3,7 @@ import unittest
 from slugify import slugify
 
 from database_functions import add_user_by_details, remove_user_by_id, \
-    get_number_user_lists, add_user_list, find_inventory, find_inventory_by_id, \
+    get_number_user_lists, add_user_list, find_inventory_by_id, \
     find_inventory_by_slug, delete_list_by_id, edit_inventory_data
 
 from site_globals import __INVENTORY__, __PRIVATE__, __LIST__
@@ -65,21 +65,6 @@ class TestApp(unittest.TestCase):
         self.assertEqual(name, new_inventory_data["name"])
         self.assertEqual(description, new_inventory_data["description"])
         self.assertEqual(list_type, new_inventory_data["type"])
-
-        _found_list = find_inventory(inventory_id=new_inventory_data["id"])
-
-        self.assertIsNotNone(_found_list)
-        self.assertEqual(name, _found_list.name)
-        self.assertEqual(description, _found_list.description)
-        self.assertEqual(list_type, _found_list.type)
-        self.assertEqual(show_default_fields, _found_list.show_default_fields)
-        self.assertEqual(show_item_images, _found_list.show_item_images)
-        self.assertEqual(show_item_type, _found_list.show_item_type)
-        self.assertEqual(show_item_location, _found_list.show_item_location)
-        self.assertEqual(show_item_tags, _found_list.show_item_tags)
-        self.assertEqual(show_item_url, _found_list.show_item_url)
-        self.assertEqual(access_level, _found_list.access_level)
-
 
 
         _found_list, _found_userlist = find_inventory_by_id(inventory_id=new_inventory_data["id"], user_id=to_user.id)

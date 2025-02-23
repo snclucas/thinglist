@@ -42,7 +42,7 @@ class User(UserMixin, db.Model):
     inventories = db.relationship('Inventory', secondary='inventory_users',
                                   back_populates='users', cascade="all,delete", lazy='subquery')
 
-    notifications = db.relationship('Notification', backref='users', passive_deletes="all")
+    notifications = db.relationship('Notification', backref='users', cascade="all,delete", lazy='subquery')
     activated = db.Column(db.Boolean(), nullable=True, unique=False, default=False)
     token = db.Column(db.String(255), nullable=True, unique=False)
     token_expires = db.Column(db.DateTime(), default=datetime.datetime.now)

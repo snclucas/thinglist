@@ -251,25 +251,6 @@ def save_new_user(user_: User, fail_on_duplicate: bool = True) -> Tuple[bool, st
 
 # --- Inventories ---
 
-def find_inventory(inventory_id: int) -> Optional[Inventory]:
-    """
-    Method to find an inventory based on the inventory ID.
-
-    Parameters:
-    - inventory_id (int): The ID of the inventory to find.
-
-    Returns:
-    - Optional[Inventory]: The found inventory object, or None if no inventory with the given ID is found.
-    """
-    with app.app_context():
-        try:
-            inventory_ = Inventory.query.filter_by(id=inventory_id).first()
-        except (NoResultFound, InvalidRequestError, SQLAlchemyError) as e:
-            app.logger.error(f"Error finding inventory: {str(e)}")
-            return None
-        return inventory_
-
-
 def find_inventory_by_id(inventory_id: int, user_id: int) -> Tuple[Optional[Inventory], Optional[UserInventory]]:
     """Find inventory by ID and user ID.
 
@@ -324,12 +305,12 @@ def find_inventory_by_access_token(access_token: str) -> Optional[Inventory]:
         err_msg = f"Error finding inventory by access token: access token is None"
         app.logger.error(err_msg)
         return None
-
-    inventory_ = Inventory.query.filter_by(token=access_token).first()
-    if inventory_ is not None:
-        return inventory_
-    else:
-        return None
+    with app.app_context():
+        inventory_ = Inventory.query.filter_by(token=access_token).first()
+        if inventory_ is None:
+            return None
+        else:
+            return inventory_
 
 
 def find_inventory_by_slug(inventory_slug: str,
@@ -661,6 +642,15 @@ def delete_notification_by_id(notification_id: int, user: User):
             "message": f"No notification with ID {notification_id} for user @{user.username}"
         }
 
+
+def get_all_user_notifications(user_id: int):
+    with app.app_context():
+        _user = find_user_by_id(user_id=user_id)
+        return _user.notifications
+
+def get_number_of_user_notifications(user_id: int) -> int:
+    with app.app_context():
+        return len(get_all_user_notifications(user_id=user_id))
 
 def get_item_custom_field_data(user_id: int, item_list=None):
     with app.app_context():
@@ -2677,19 +2667,36 @@ def delete_user_to_inventory(inventory_id: int, user_to_delete_id: int):
         else:
             return False
 
+def _create_notification(from_user: User, message: str) -> Notification:
+    return Notification(text=message, from_user=from_user)
 
-def add_user_notification(to_user_id: int, from_user_id, message: str):
+def add_user_notification(to_user_id: int, from_user_id: int, message: str) -> (bool, str):
+
+    if to_user_id is None or from_user_id is None:
+        return None, "To and from user IDs cannot be None"
+    if message is None:
+        return None, "Message cannot be None"
+
     with app.app_context():
-        user_ = db.session.query(User).filter(User.id == to_user_id).one()
+        user_ = find_user_by_id(user_id=to_user_id)
         if user_ is not None:
             from_user_ = db.session.query(User).filter(User.id == from_user_id).one()
             if from_user_ is not None:
-                notification_ = Notification(text=message, from_user=from_user_)
+                notification_ = _create_notification(from_user=from_user_, message=message)
                 user_.notifications.append(notification_)
-                db.session.commit()
+                try:
+                    db.session.add(notification_)
+                    db.session.merge(notification_)
+                    db.session.commit()
+                    db.session.flush()
+                    return notification_.id, "Notification added successfully"
+                except SQLAlchemyError as error:
+                    app.logger.error(f"Could not add notification to user {user_.username} due to: {str(error)}")
+                    return None, f"Could not add notification to user {user_.username}"
 
 
-def add_user_to_inventory_from_token(inventory_id: int, user_to_add: User, added_user_access_level: int):
+
+def add_user_to_inventory_from_token(inventory_id: int, user_to_add: User, added_user_access_level: int) -> bool:
     with app.app_context():
 
         user_inventory_ = UserInventory.query.filter(UserInventory.inventory_id == inventory_id) \
@@ -2697,9 +2704,9 @@ def add_user_to_inventory_from_token(inventory_id: int, user_to_add: User, added
 
         if user_inventory_ is None:
 
-            ui = UserInventory(user_id=user_to_add.id, inventory_id=inventory_id,
+            _new_user_inventory = UserInventory(user_id=user_to_add.id, inventory_id=inventory_id,
                                access_level=added_user_access_level)
-            db.session.add(ui)
+            db.session.add(_new_user_inventory)
             db.session.commit()
 
             inv_ = Inventory.query.filter(Inventory.id == inventory_id).one_or_none()

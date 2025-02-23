@@ -8,7 +8,7 @@ from flask_login import login_required, current_user
 from app import app
 from database_functions import get_user_inventories, delete_item_from_inventory, \
     add_item_to_inventory, \
-    find_inventory, find_inventory_by_slug, \
+    find_inventory_by_slug, \
     find_user_by_username, edit_inventory_data, \
     delete_list_by_id, add_user_to_inventory, delete_user_to_inventory, find_inventory_by_id, add_user_list, \
     regenerate_inventory_token, find_inventory_by_access_token, add_user_to_inventory_from_token, \
@@ -112,7 +112,7 @@ def list_by_id(inventory_id: int):
     Args:
         inventory_id: The ID of the inventory to list
     """
-    inventory_ = find_inventory(inventory_id=inventory_id)
+    inventory_, user_inventory_ = find_inventory_by_id(inventory_id=inventory_id, user_id=current_user.id)
     if inventory_ is not None:
         if inventory_.owner_id == current_user.id:
             return redirect(url_for(endpoint='items.items_with_username_and_inventory',
