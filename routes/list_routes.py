@@ -463,4 +463,4 @@ def add_to_inventory():
                                 username=username))
     else:
         return redirect(url_for(endpoint='items.items_with_username_and_inventory',
-                                username=username, inventory_slug=inventory_slug))
+                                list_username=username, inventory_slug=inventory_slug))

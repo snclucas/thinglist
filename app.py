@@ -13,7 +13,7 @@ from flask_mail import Mail
 
 #from flask_msearch import Search
 from site_globals import (__INVENTORY__, __LIST__, __URL_LIST__, __PUBLIC__, __PRIVATE__,
-                          __VIEWER__, __LIST_ALL__, __COLLABORATOR__)
+                          __VIEWER__, __LIST_ALL__, __COLLABORATOR__, __DEFAULT__)
 
 #from pycharm_flask_debug_patch import restart_with_reloader_patch
 
@@ -128,6 +128,7 @@ mail = Mail(app)
 @app.context_processor
 def inject_globals():
     return dict(
+        __DEFAULT__=__DEFAULT__,
         __PUBLIC__=__PUBLIC__,
         __PRIVATE__=__PRIVATE__,
         __COLLABORATOR__=__COLLABORATOR__,

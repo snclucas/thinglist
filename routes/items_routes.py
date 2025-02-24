@@ -126,7 +126,7 @@ def items_load():
                                                                    slug=inventory_slug_,
                                                                    access_level=inventory_access_level,
                                                                    user_id=current_user.id)
-                            if status:
+                            if not status:
                                 load_log += f"Error creating inventory {inventory_slug_}.<br>"
                                 continue
 
@@ -312,7 +312,7 @@ def items_move():
         if result["status"] == "error":
             flash(_public_err_msg)
 
-    return redirect(url_for(endpoint='item.items_with_username', username=username).replace('%40', '@'))
+    return redirect(url_for(endpoint='items.items_with_username', username=username).replace('%40', '@'))
 
 
 @items_routes.route(rule='/items/edit', methods=['POST'])

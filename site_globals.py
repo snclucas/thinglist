@@ -1,4 +1,5 @@
 _NONE_ = "None"
+__DEFAULT__ = "default"
 
 __PRIVATE__ = 0
 __OWNER__ = 0

@@ -11,17 +11,22 @@
         {% for location in locations %}
             <tr>
                 <td>
+                    {% if __DEFAULT__ in  location['name'] %}
+                        {% set location_name = "Default/None set" %}
+                    {% else %}
+                        {% set location_name = location['name'] %}
+                    {% endif %}
                     <a href="{{ url_for('items.items_with_username_and_inventory', list_username=username, inventory_slug="all") | replace('%40', '@') }}?location={{ location['name']  | replace('@#$', ' ') | replace(' ', '+') }}">
-                        {{ location['name'] }}  </a>
+                        {{ location_name }}  </a>
                 </td>
                 <td>{{ location['description'] }}</td>
-
                 <td>
-                    {% if  location['name'] != "None" %}
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="" data-location-id="{{ location['id'] }}"
-                               id="selected-item-{{ location['id'] }}">
-                    </div>
+                    {% if  __DEFAULT__ not in  location['name'] %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value=""
+                                   data-location-id="{{ location['id'] }}"
+                                   id="selected-item-{{ location['id'] }}">
+                        </div>
                     {% endif %}
                 </td>
             </tr>

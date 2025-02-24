@@ -31,7 +31,7 @@ def user_item_types():
 @api_routes.route('/api/user-items', methods=['GET', 'POST'])
 @login_required
 def user_items():
-    user_items_ = find_all_my_items(logged_in_user=current_user)
+    user_items_ = find_all_my_items(logged_in_user_id=current_user.id)
     ret_items = []
     for item_ in user_items_:
         ret_items.append(f"{item_.slug}")
