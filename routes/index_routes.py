@@ -111,7 +111,7 @@ def profile(username):
     user_notifications = current_user.notifications
     # -1 to remove the default inventory
     return render_template('profile.html', name=current_user.username, num_items=num_items,
-                           num_item_types=num_item_types, username=username, user_inventories=user_inventories,
+                           num_item_types=num_item_types, list_username=username, user_inventories=user_inventories,
                            num_field_templates=num_field_templates, num_user_locations=num_user_locations,
                            user_notifications=user_notifications, user_is_authenticated=user_is_authenticated,
                            num_inventories=len(list(user_inventories))-1, num_user_fields=num_user_fields)

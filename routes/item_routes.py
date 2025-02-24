@@ -52,9 +52,9 @@ def my_utility_processor():
         #return item_with_username_and_inventory()
 
 
-@item_routes.route('/@<username>/<inventory_slug>/<item_slug>')
-def item_with_username_and_inventory(username: str, inventory_slug: str, item_slug: str):
-    inventory_owner_username = bleach.clean(username)
+@item_routes.route('/@<list_username>/<inventory_slug>/<item_slug>')
+def item_with_username_and_inventory(list_username: str, inventory_slug: str, item_slug: str):
+    inventory_owner_username = bleach.clean(list_username)
     inventory_owner = None
     inventory_owner_id = None
 
@@ -72,7 +72,7 @@ def item_with_username_and_inventory(username: str, inventory_slug: str, item_sl
 
         # check for default inventory
         if inventory_slug == "d":
-            inventory_slug = f"default-{username}"
+            inventory_slug = f"default-{list_username}"
 
     else:
         requested_user = None
@@ -135,11 +135,11 @@ def item_with_username_and_inventory(username: str, inventory_slug: str, item_sl
 
     all_item_types_ = get_all_item_types()
 
-    return render_template(template_name_or_list='item/item.html', name=username,
+    return render_template(template_name_or_list='item/item.html', name=list_username,
                            inventory_owner_id=inventory_owner_id, item_fields=item_fields,
                            all_item_fields=all_item_fields,
                            all_fields=all_fields, inventory_slug=inventory_.slug, inventory=inventory_,
-                           item=item_, username=username, item_type=item_type_string,
+                           item=item_, username=list_username, item_type=item_type_string,
                            all_item_types=all_item_types_,
                            all_user_locations=all_user_locations_, item_location=item_location,
                            item_access_level=item_access_level)

@@ -580,16 +580,16 @@ def items():
 
     """
     username = current_user.username
-    return redirect(url_for(endpoint='items.items_with_username', username=username).replace('%40', '@'))
+    return redirect(url_for(endpoint='items.items_with_username', list_username=username).replace('%40', '@'))
 
 
-@items_routes.route('/@<string:username>/items')
-def items_with_username(username=None):
+@items_routes.route('/@<string:list_username>/items')
+def items_with_username(list_username=None):
     """
-    :param username: The username of the user whose items are to be retrieved.
+    :param list_username: The username of the user whose items are to be retrieved.
     :return: A response containing the items belonging to the user with the specified username.
     """
-    return items_with_username_and_inventory(list_username=username, inventory_slug="all")
+    return items_with_username_and_inventory(list_username=list_username, inventory_slug="all")
 
 
 @items_routes.route(rule='/@<string:list_username>/<string:inventory_slug>', methods=['GET'])
@@ -646,6 +646,8 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
 
     if user_is_authenticated:
         users_in_this_inventory = get_users_for_inventory(inventory_id=inventory_id)
+        if users_in_this_inventory is None:
+            users_in_this_inventory = {}
 
     if inventory_ is None and inventory_slug != "all":
         return render_template('404.html', message="No such inventory"), 404
@@ -707,7 +709,7 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
     return render_template(template_name_or_list='item/items.html',
                            inventory_id=inventory_id,
                            current_username=current_username,
-                           username=list_username,
+                           list_username=list_username,
                            inventory_owner_id=inventory_owner_id,
                            inventory=inventory_,
                            data_dict=data_dict,

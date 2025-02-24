@@ -13,9 +13,9 @@ field_routes = Blueprint('field', __name__)
 def fields():
     return fields_with_username(username=current_user.username)
 
-@field_routes.route('/@<username>/fields')
+@field_routes.route('/@<list_username>/fields')
 @login_required
-def fields_with_username(username):
+def fields_with_username(list_username):
     user_fields = get_all_user_fields(user_id=current_user.id)
     return render_template(template_name_or_list='fields/fields.html',
                            name=current_user.username, fields=user_fields)

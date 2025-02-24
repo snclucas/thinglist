@@ -49,15 +49,15 @@ def lists():
     unlisted_item_count: int = get_user_unlisted_item_count(user_id=current_user.id)
 
     return render_template(template_name_or_list='inventory/inventories.html',
-                           username=current_user.username,
+                           list_username=current_user.username,
                            inventories=user_invs,
                            unlisted_item_count=unlisted_item_count,
                            user_is_authenticated=user_is_authenticated,
                            number_inventories=number_inventories)
 
 
-@inv.route('/@<string:username>/lists')
-def inventories_for_username(username):
+@inv.route('/@<string:list_username>/lists')
+def inventories_for_username(list_username):
     current_user_id = None
     requesting_user_id = None
     if current_user is not None:
@@ -65,20 +65,20 @@ def inventories_for_username(username):
     else:
         user_is_authenticated = False
 
-    user_ = find_user_by_username(username=username)
+    user_ = find_user_by_username(username=list_username)
 
     if user_is_authenticated:
         current_user_id = current_user.id
-        if username != current_user.username:
+        if list_username != current_user.username:
 
             if user_ is not None:
                 requesting_user_id = user_.id
-                username = user_.username
+                list_username = user_.username
             else:
                 return render_template(template_name_or_list='404.html', message="No such inventory"), 404
         else:
             requesting_user_id = current_user.id
-            username = current_user.username
+            list_username = current_user.username
 
     user_invs, status, msg = get_user_inventories(current_user_id=current_user_id,
                                      requesting_user_id=requesting_user_id,
@@ -100,7 +100,7 @@ def inventories_for_username(username):
 
     return render_template(template_name_or_list='inventory/inventories.html',
                            unlisted_item_count=unlisted_item_count,
-                           inventories=lists_, username=username,
+                           inventories=lists_, list_username=list_username,
                            user_is_authenticated=user_is_authenticated,
                            number_inventories=number_inventories)
 
@@ -116,7 +116,7 @@ def list_by_id(inventory_id: int):
     if inventory_ is not None:
         if inventory_.owner_id == current_user.id:
             return redirect(url_for(endpoint='items.items_with_username_and_inventory',
-                                    username=current_user.username, inventory_slug=inventory_.slug))
+                                    list_username=current_user.username, inventory_slug=inventory_.slug))
 
     return render_template(template_name_or_list='404.html', message="No such inventory"), 404
 
