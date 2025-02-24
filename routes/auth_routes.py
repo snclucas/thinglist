@@ -76,7 +76,7 @@ def login():
             remember = request.form.get("remember", "no") == "yes"
 
             if user.activated == 0:
-                flash("Account not activated")
+                flash("Thing Master not activated")
                 return render_template("auth/login.html")
 
             if login_user(user, remember=remember):

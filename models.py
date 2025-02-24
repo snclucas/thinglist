@@ -91,7 +91,7 @@ class Field(db.Model):
     slug = db.Column(db.String(255), nullable=True, unique=True)
     type = db.Column(db.String(255), nullable=True, unique=False)
     data = db.Column(db.String(255), nullable=True, unique=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
     #items = db.relationship('Item', secondary='item_fields', back_populates='fields', cascade="all,delete")
     items = db.relationship('Item', secondary='item_fields', back_populates='fields')
     field_templates = db.relationship('FieldTemplate', secondary='fieldtemplate_fields', back_populates='fields')

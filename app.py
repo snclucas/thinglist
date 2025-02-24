@@ -31,13 +31,14 @@ app = Flask(import_name="ThingList", static_url_path="", static_folder="static")
 
 
 
-
 app.config['RESIZE_URL'] = os.environ.get('RESIZE_URL', '')
 app.config['RESIZE_ROOT'] = os.environ.get('RESIZE_ROOT', '/tmp')
 
 resize = flask_resize.Resize(app)
 
 ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL')
+
+app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
 
 app.config['LOG_DIRECTORY'] = os.environ.get('LOG_DIRECTORY', '')
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', '')
