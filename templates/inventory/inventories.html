@@ -53,13 +53,15 @@
                                     </div>
                                 </div>
                             </div>
-                        <div class="row">
-                                <div class="col-md-12"><small class="text-right">
-                                    <a href="{{ url_for('items.items_with_username_and_inventory', list_username=username, inventory_slug='default') | replace('%40', '@') }}">
-                         Unlisted items | {{ unlisted_item_count }}</a>
+                            {% if user_is_authenticated %}
+                            <div class="row">
+                                    <div class="col-md-12"><small class="text-right">
+                                        <a href="{{ url_for('items.items_with_username_and_inventory', list_username=username, inventory_slug='default') | replace('%40', '@') }}">
+                             Unlisted items | {{ unlisted_item_count }}</a>
 
-                                </small></div>
-                            </div>
+                                    </small></div>
+                                </div>
+                            {% endif %}
                             <hr>
                             <div class="row">
                                 <div class="col-md-12">

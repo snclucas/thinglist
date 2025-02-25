@@ -512,7 +512,7 @@ def get_number_user_lists(user_id: int) -> int:
         _inv_count = UserInventory.query.filter_by(user_id=user_id).count()
         return _inv_count
 
-def get_user_default_inventory(user_id: int):
+def get_user_default_inventory(user_id: int) -> Optional[Inventory]:
     with app.app_context():
         # Find user default inventory
         user_ = find_user_by_id(user_id=user_id)
@@ -526,11 +526,14 @@ def get_user_unlisted_items(user_id: int):
         return items_
 
 
-def get_user_unlisted_item_count(user_id: int) -> int:
+def get_user_unlisted_item_count(user_id: int) -> Optional[int]:
     with app.app_context():
         user_default_inventory_ = get_user_default_inventory(user_id=user_id)
-        item_count = InventoryItem.query.filter_by(inventory_id=user_default_inventory_.id).count()
-        return item_count
+        if user_default_inventory_ is not None:
+            item_count = InventoryItem.query.filter_by(inventory_id=user_default_inventory_.id).count()
+            return item_count
+        else:
+            return None
 
 
 def delete_all_user_lists(user_id: int):
