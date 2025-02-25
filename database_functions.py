@@ -14,8 +14,7 @@ from sqlalchemy.sql.functions import func
 from app import db, app
 from email_utils import send_email
 from models import Inventory, User, Item, UserInventory, InventoryItem, ItemType, Tag, \
-    Location, Image, Field, ItemField, FieldTemplate, Notification, TemplateField, Relateditems, ItemImage, \
-    AccessControl
+    Location, Image, Field, ItemField, FieldTemplate, Notification, TemplateField, Relateditems, ItemImage
 
 from site_globals import _NONE_, __PUBLIC__, __OWNER__, __PRIVATE__, __INVENTORY__, __DEFAULT__
 
