@@ -20,7 +20,14 @@
         <div class="d-flex align-items-center justify-content-between text-xs">
             <div class="fw-500"><strong>Location:</strong></div>
             <div>
-                <a href="{{ url_for('items.items_with_username_and_inventory', list_username=current_user.username, inventory_slug="all", location=item_location['name']) }}">{{ item_location['name'] }}</a>
+
+                {% if __DEFAULT__ in item_location['name'] %}
+                    {% set location_name = "Default/None set" %}
+                    {% else %}
+                    {% set location_name = item_location['name'] %}
+                    {% endif %}
+
+                <a href="{{ url_for('items.items_with_username_and_inventory', list_username=current_user.username, inventory_slug="all", location=item_location['name']) }}">{{ location_name }}</a>
                 {% if item.specific_location is not none %}
                     {% if item.specific_location != "" %}
                         <br>({{ item.specific_location }})

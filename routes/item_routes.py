@@ -176,7 +176,7 @@ def edit_item(item_id):
     if len(item_description) > int(description_limit):
         flash(f"Description must be less than {description_limit} characters")
         return redirect(url_for(endpoint='item.item_with_username_and_inventory',
-                                username=username,
+                                list_username=username,
                                 inventory_slug=inventory_slug,
                                 item_slug=item_slug))
 
@@ -228,7 +228,7 @@ def edit_item(item_id):
         flash("Error updating item")
 
     return redirect(url_for('item.item_with_username_and_inventory',
-                            username=username,
+                            list_username=username,
                             inventory_slug=inventory_slug,
                             item_slug=new_item_slug))
 
@@ -283,7 +283,7 @@ def save_inventory_template():
         flash("Error saving inventory template")
 
     return redirect(url_for(endpoint='items.items_with_username_and_inventory',
-                            username=current_user.username, inventory_slug=inventory_slug))
+                            list_username=current_user.username, inventory_slug=inventory_slug))
 
 @login_required
 @item_routes.route("/item/relate-items", methods=["POST"])
@@ -310,7 +310,7 @@ def relate_items():
         relate_items_by_id(item1_id=item_id, item2_id=relateditem_.id)
 
     return redirect(url_for(endpoint='item.item_with_username_and_inventory',
-                            username=current_user.username,
+                            list_username=current_user.username,
                             inventory_slug=inventory_slug,
                             item_slug=item_slug))
 
@@ -356,7 +356,7 @@ def delete_images():
         flash(message=f"There was a problem deleting the images")
 
     return redirect(url_for('item.item_with_username_and_inventory',
-                            username=username,
+                            list_username=username,
                             inventory_slug=inventory_slug,
                             item_slug=item_slug))
 
@@ -401,7 +401,7 @@ def set_main_image():
     set_item_main_image(main_image_url=main_image, item_id=item_id, user_id=current_user.id)
 
     return redirect(url_for(endpoint='item.item_with_username_and_inventory',
-                            username=username,
+                            list_username=username,
                             inventory_slug=inventory_slug,
                             item_slug=item_slug))
 
@@ -422,7 +422,7 @@ def upload():
 
     if username != current_user.username:
         return redirect(url_for(endpoint='item.item_with_username_and_inventory',
-                                username=username,
+                                list_username=username,
                                 inventory_slug=inventory_slug,
                                 item_slug=item_slug))
 
@@ -456,6 +456,6 @@ def upload():
     add_images_to_item(item_id=item_id, filenames=new_filename_list, user=current_user)
 
     return redirect(url_for(endpoint='item.item_with_username_and_inventory',
-                            username=username,
+                            list_username=username,
                             inventory_slug=inventory_slug,
                             item_slug=item_slug))

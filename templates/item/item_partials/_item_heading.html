@@ -1,7 +1,6 @@
 <div class="row">
     <div class="col-md-11">
         <h5>{{ item.name }} | {{ item.quantity }} </h5>
-
     </div>
     <div class="col-md-1">
         {% if item_access_level == __OWNER__ or item_access_level == __COLLABORATOR__ %}

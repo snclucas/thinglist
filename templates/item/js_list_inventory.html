@@ -70,10 +70,16 @@
                         target: 'coldef-loc',
                         searchable: true,
                         "render": function (location_dict) {
-                            if (location_dict["specific_location"] !== "None") {
-                                return location_dict["location"] + "<br>" + location_dict["specific_location"];
+                            let _list_location = "Default/None set";
+                            if (location_dict["location"].includes('__default__')     ) {
+                                _list_location = "Default/None set";
                             } else {
-                                return location_dict["location"];
+                                _list_location = location_dict["location"];
+                            }
+                            if (location_dict["specific_location"] !== "None") {
+                                return _list_location + "<br>" + location_dict["specific_location"];
+                            } else {
+                                return _list_location;
                             }
                         }
                     },
