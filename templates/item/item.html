@@ -10,7 +10,8 @@
         <meta property="og:title" content="ThingList | @{{ username }} | {{ item.name }}"/>
         <meta property="og:type" content="website"/>
         {% if item.main_image is not none %}
-            <meta property="og:image" content="{{ url_for('static', filename='uploads/' + item.main_image) }}"/>
+            {% set image_url = get_image_url(inventory_owner_id, item.main_image) %}
+            <meta property="og:image" content="{{ image_url }}"/>
         {% endif %}
     {% endblock %}
 
@@ -18,7 +19,6 @@
 {% endblock %}
 
 {% block content %}
-
 
     <div class="content">
     <div class="container">

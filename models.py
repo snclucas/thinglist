@@ -4,6 +4,7 @@ from random import choice
 
 from flask_login import UserMixin
 from sqlalchemy import UniqueConstraint, event
+from sqlalchemy.event import listen, listens_for
 
 from app import db
 from sqlalchemy.ext.declarative import declarative_base
@@ -92,7 +93,6 @@ class Field(db.Model):
     type = db.Column(db.String(255), nullable=True, unique=False)
     data = db.Column(db.String(255), nullable=True, unique=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
-    #items = db.relationship('Item', secondary='item_fields', back_populates='fields', cascade="all,delete")
     items = db.relationship('Item', secondary='item_fields', back_populates='fields')
     field_templates = db.relationship('FieldTemplate', secondary='fieldtemplate_fields', back_populates='fields')
 
@@ -129,6 +129,25 @@ class Inventory(db.Model):
     show_item_tags = db.Column(db.Boolean(), nullable=False, unique=False, default=True)
     show_item_url = db.Column(db.Boolean(), nullable=False, unique=False, default=True)
     invtags = db.relationship('Invtag', secondary='inventory_tags', back_populates='inventories', lazy='subquery')
+
+
+# @listens_for(Inventory, 'after_insert')
+# def add_acl(mapper, connect, target):
+#     from flask_login import current_user
+#     from site_globals import __OWNER__
+#     if isinstance(target, Inventory):
+#         acl = AccessControl(user_id=target.owner.id, entity="inventory", access_level=__OWNER__)
+#         db.session.add(acl)
+#         db.session.commit()
+#
+#     d = current_user
+#     d = 3
+#     #acl = AccessControl(user_id=user_id, entity=entity, access_level=access_level)
+#     #db.session.add(acl)
+#     #db.session.commit()
+
+
+#listen(Inventory, 'after_insert', add_acl)
 
 
 class Relateditems(db.Model):
@@ -187,6 +206,15 @@ class ItemField(db.Model):
     user_id = db.Column(db.Integer, nullable=True, unique=False, default=-1)
     __table_args__ = (UniqueConstraint('field_id', 'item_id', name='_item_field_uc'),
                       )
+
+
+# class AccessControl(db.Model):
+#     __tablename__ = "acl"
+#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+#     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+#     entity = db.Column(db.String(255), nullable=True, unique=False)
+#     access_level = db.Column(db.Integer, default=0)
+
 
 
 class Image(db.Model):

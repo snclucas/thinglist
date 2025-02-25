@@ -14,7 +14,8 @@ from sqlalchemy.sql.functions import func
 from app import db, app
 from email_utils import send_email
 from models import Inventory, User, Item, UserInventory, InventoryItem, ItemType, Tag, \
-    Location, Image, Field, ItemField, FieldTemplate, Notification, TemplateField, Relateditems, ItemImage
+    Location, Image, Field, ItemField, FieldTemplate, Notification, TemplateField, Relateditems, ItemImage, \
+    AccessControl
 
 from site_globals import _NONE_, __PUBLIC__, __OWNER__, __PRIVATE__, __INVENTORY__, __DEFAULT__
 
@@ -491,6 +492,10 @@ def add_user_list(name: str, description: str, inventory_type: int,
                                                            show_item_location=show_item_location,
                                                            show_item_tags=show_item_tags,
                                                            slug=slug, to_user=to_user, access_level=access_level)
+
+            # acl = AccessControl(user_id=to_user.id, entity="inventory", access_level=__OWNER__)
+            # db.session.add(acl)
+            # db.session.commit()
 
             result_return_value = {
                 "id": new_inventory_id,
