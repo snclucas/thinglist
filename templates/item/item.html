@@ -6,7 +6,7 @@
     {{ super() }}
 
     {% block metadata %}
-        <meta property="og:description" content="{{ item.description }}"/>
+        <meta property="og:description" content="{{ item.description|truncate|striptags }}"/>
         <meta property="og:title" content="ThingList | @{{ username }} | {{ item.name }}"/>
         <meta property="og:type" content="website"/>
         {% if item.main_image is not none %}
@@ -41,7 +41,6 @@
                         </div>
                     </div>
 
-
                     <div class="row">
                         <div class="col-md-8 order-sm-first order-last">
 
@@ -68,8 +67,6 @@
                                 </div>
                             {% endif %}
 
-
-
                             <div class="row">
                                 <div class="col-md-12">
 
@@ -77,13 +74,10 @@
 
                                     <br>
                                 </div>
-
                             </div>
                         </div>
 
-
                     </div>
-
 
                     <div class="row">
                         <div class="col-md-12">
