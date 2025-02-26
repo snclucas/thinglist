@@ -100,7 +100,7 @@ def items(username=None, inventory_slug=None):
         'search': search_query,
     }
 
-    test_ = find_items_by_field_value(user_id=username, field_name="manufacturer", field_value="IBM")
+    #test_ = find_items_by_field_value(user_id=username, field_name="manufacturer", field_value="IBM")
 
     items_ = find_items_new(inventory_id=inventory_id,
                             query_params=query_params,

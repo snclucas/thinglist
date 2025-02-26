@@ -46,10 +46,17 @@
                     <label class="form-label" for="plassering">Location:</label>
                     <select class="form-select" id="item_location" name="item_location">
                         {% for user_location in all_user_locations %}
-                            {% if user_location.id == item_location.id %}
-                                <option value="{{ user_location.id }}" selected>{{ user_location.name }}</option>
+
+                            {% if __DEFAULT__ in user_location.name %}
+                            {% set _location_name = "Default/Not set" %}
                             {% else %}
-                                <option value="{{ user_location.id }}">{{ user_location.name }}</option>
+                            {% set _location_name = user_location.name %}
+                            {% endif %}
+
+                            {% if user_location.id == item_location.id %}
+                                <option value="{{ user_location.id }}" selected>{{ _location_name }}</option>
+                            {% else %}
+                                <option value="{{ user_location.id }}">{{ _location_name }}</option>
                             {% endif %}
 
                         {% endfor %}

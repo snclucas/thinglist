@@ -1,27 +1,26 @@
-<br>
 {% if item_fields | length > 0 %}
-
+    <br>
     <div class="card">
-    <div class="card-body">
-        {% for field, item_field in item_fields.items() %}
-            <div class="d-flex align-items-center justify-content-between text-xs">
-                <div class="fw-500"><strong>{{ field.field|capitalize }}</strong></div>
-                <div>
-                    {% if field.type|lower == 'url' %}
-                        <a href="{{ item_field.value }}">{{ item_field.value }}</a>
-                    {% elif field.type|lower == 'bool' %}
-                        {% if item_field.value == "1" %}
-                            True
+        <div class="card-body">
+            {% for field, item_field in item_fields.items() %}
+                <div class="d-flex align-items-center justify-content-between text-xs">
+                    <div class="fw-500"><strong>{{ field.field|capitalize }}</strong></div>
+                    <div>
+                        {% if field.type|lower == 'url' %}
+                            <a href="{{ item_field.value }}">{{ item_field.value }}</a>
+                        {% elif field.type|lower == 'bool' %}
+                            {% if item_field.value == "1" %}
+                                True
+                            {% else %}
+                                False
+                            {% endif %}
                         {% else %}
-                            False
+                            {{ item_field.value }}
                         {% endif %}
-                    {% else %}
-                        {{ item_field.value }}
-                    {% endif %}
+                    </div>
                 </div>
-            </div>
-            <hr><!---->
-        {% endfor %}
-    </div>
+                <hr><!---->
+            {% endfor %}
+        </div>
     </div>
 {% endif %}

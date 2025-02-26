@@ -434,6 +434,20 @@ def upload():
     uploaded_files = request.files.getlist("file[]")
     for file in uploaded_files:
 
+        if not file.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):
+            flash("Only image files are allowed")
+            return redirect(url_for(endpoint='item.item_with_username_and_inventory',
+                                    list_username=username,
+                                    inventory_slug=inventory_slug,
+                                    item_slug=item_slug))
+
+        if "image" not in file.mimetype:
+            flash("Only image files are allowed")
+            return redirect(url_for(endpoint='item.item_with_username_and_inventory',
+                                    list_username=username,
+                                    inventory_slug=inventory_slug,
+                                    item_slug=item_slug))
+
         new_filename = generate_item_image_filename(item_slug=item_slug, item_id=item_id, img_type="jpg")
         new_filename_list.append(new_filename)
 

@@ -1,8 +1,6 @@
 {% if inventory.show_item_images == True %}
-
         {% if item.main_image is not none %}
             {% set image_url = get_image_url(inventory_owner_id, item.main_image) %}
-            <img src="{{ image_url }}" class="rounded float-end img-thumbnail" alt="...">
+            <img style="margin-bottom: 10px;" src="{{ image_url }}" class="rounded float-end img-thumbnail" alt="...">
         {% endif %}
-
 {% endif %}
