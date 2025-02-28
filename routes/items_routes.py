@@ -12,11 +12,10 @@ from flask import make_response, flash
 
 from flask import Blueprint, render_template, redirect, url_for, request, current_app
 from flask_login import login_required, current_user
-from slugify import slugify
 
 from app import app
 from routes.index_routes import profile
-from database_functions import get_all_user_locations, \
+from database.database_functions import get_all_user_locations, \
     get_all_item_types, \
     find_type_by_text, find_inventory_by_slug, find_location_by_name, \
     add_item_to_inventory, find_all_user_inventories, delete_items, move_items, \
@@ -24,12 +23,11 @@ from database_functions import get_all_user_locations, \
     get_user_templates, get_item_custom_field_data, \
     get_users_for_inventory, get_user_inventory_by_id, get_or_add_new_location, edit_items_locations, \
     change_item_access_level, link_items, copy_items, find_items_new, __PUBLIC__, __PRIVATE__, \
-    find_user_by_username, add_images_to_item, set_item_main_image, get_user_inventories, add_user_list, \
-    save_template_fields, get_item_fields, save_inventory_fieldtemplate, find_template_by_id, save_user_inventory_view, \
+    get_user_inventories, add_user_list, \
+    get_item_fields, find_template_by_id, save_user_inventory_view, \
     get_related_items, get_all_item_ids_in_inventory, update_item_by_id, find_item_by_slug
+from database.database_functions import find_user_by_username
 from routes.items_loader import process_field_sets, process_images
-
-from utils import generate_item_image_filename
 
 from site_globals import _COPY_, _MOVE_
 
@@ -45,21 +43,6 @@ def my_utility_processor():
         return ",".join(tag_arr)
 
     return dict(item_tag_to_string=item_tag_to_string)
-
-
-def _find_list_index(list_, value):
-    """
-    Args:
-        list_ (list): The list in which to search for the value.
-        value: The value to search for in the list.
-
-    Returns:
-        int: The index of the value in the list. If the value is not found, -1 is returned.
-    """
-    try:
-        return list_.index(value)
-    except ValueError:
-        return -1
 
 
 @items_routes.route('/items/load', methods=['POST'])

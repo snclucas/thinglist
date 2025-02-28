@@ -5,7 +5,7 @@ import os
 import bleach
 from slugify import slugify
 
-from database_functions import save_template_fields, save_inventory_fieldtemplate, set_item_main_image, \
+from database.database_functions import save_template_fields, save_inventory_fieldtemplate, set_item_main_image, \
     add_images_to_item
 from utils import generate_item_image_filename
 

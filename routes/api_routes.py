@@ -2,9 +2,9 @@ import bleach
 from flask import Blueprint, jsonify
 from flask_login import login_required, current_user
 from flask import request
-from database_functions import get_all_itemtypes_for_user, get_all_user_locations, get_all_user_tags, \
-    get_all_item_types, find_items_new, find_all_my_items, find_user_by_username, \
-    count_all_item_ids_in_inventory, count_all_user_items, find_items_by_field_value
+from database.database_functions import get_all_itemtypes_for_user, get_all_user_locations, get_all_user_tags, \
+    get_all_item_types, find_items_new, find_all_my_items, count_all_item_ids_in_inventory, count_all_user_items
+from database.database_functions import find_user_by_username
 from routes.items_routes import _get_inventory, _process_url_query
 
 api_routes = Blueprint('api', __name__)

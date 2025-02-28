@@ -1,7 +1,8 @@
 import unittest
 
-from database_functions import add_user_by_details, remove_user_by_id, find_user_by_id, find_user_by_username, \
-    find_user_by_email
+from database.database_functions import add_user_by_details, remove_user_by_id, find_user_by_username, find_user_by_email, \
+    find_user_by_id
+
 
 class TestApp(unittest.TestCase):
     users = {}

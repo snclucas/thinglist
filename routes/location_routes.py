@@ -2,7 +2,7 @@ import bleach
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 
-from database_functions import get_user_locations, update_location_by_id, get_or_add_new_location, \
+from database.database_functions import get_user_locations, update_location_by_id, get_or_add_new_location, \
     delete_locations, find_location_by_id
 
 from app import app

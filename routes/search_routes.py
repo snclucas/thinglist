@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request
 from flask_login import login_required, current_user
 
-from database_functions import search_items
+from database.database_functions import search_items
 
 search_routes = Blueprint('search', __name__)
 

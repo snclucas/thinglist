@@ -4,19 +4,17 @@ import os
 import uuid
 from typing import Union, List, Tuple, Optional, Dict
 
-import flask_bcrypt
-
 from slugify import slugify
 from sqlalchemy import select, and_, ClauseElement, or_, text
 from sqlalchemy.exc import SQLAlchemyError, NoResultFound, InvalidRequestError
 from sqlalchemy.sql.functions import func
 
-from app import db, app
+from app import db, app, flask_bcrypt
 from email_utils import send_email
 from models import Inventory, User, Item, UserInventory, InventoryItem, ItemType, Tag, \
     Location, Image, Field, ItemField, FieldTemplate, Notification, TemplateField, Relateditems, ItemImage
 
-from site_globals import _NONE_, __PUBLIC__, __OWNER__, __PRIVATE__, __INVENTORY__, __DEFAULT__
+from site_globals import _NONE_, __PUBLIC__, __OWNER__, __PRIVATE__, __INVENTORY__
 
 
 def drop_then_create():
@@ -28,41 +26,18 @@ def drop_then_create():
         print(e)
 
 
-def post_user_add_hook(new_user: User):
-    """
 
-    The post_user_add_hook method is used to execute certain actions after a new user is added to the system.
 
-    Parameters:
-    - new_user (User): The newly created user object.
-
-    Returns:
-    - None
-
-    Example usage:
-    post_user_add_hook(new_user)
-
-    """
+def activate_user_in_db(user_id: int) -> bool:
     with app.app_context():
-        _ret = add_user_list(name=f"__default__{new_user.username}",
-                             description=f"Default inventory for {new_user.username}",
-                             access_level=0,
-                             inventory_type=1,
-                             user_id=new_user.id)
-        get_or_add_new_location(location_name=f"__default__{new_user.id}",
-                                location_description=f"Default location for {new_user.username}",
-                                to_user_id=new_user.id)
-        #add_new_user_itemtype(name=_NONE_, user_id=new_user.id)
-
-        # create folder for user uploads
-        user_upload_folder = os.path.join(app.config['USER_IMAGES_BASE_PATH'], str(new_user.id))
-        if not os.path.exists(user_upload_folder):
-            os.makedirs(user_upload_folder)
-
-    # add default locations, types
-
-
-# --- Users ---
+        try:
+            user_ = db.session.query(User).filter(User.id == user_id).one()
+            user_.activated = True
+            db.session.commit()
+            return True
+        except SQLAlchemyError as ex:
+            app.logger.error(f"Could not activate user {user_id}: {str(ex)}")
+            return False
 
 
 def add_user_by_details(username: str, email: str, password: str, fail_on_duplicate=True) -> User:
@@ -97,12 +72,14 @@ def add_user_by_details(username: str, email: str, password: str, fail_on_duplic
 
         status, message, user = save_new_user(user_=user, fail_on_duplicate=fail_on_duplicate)
 
+
         if status:
             return user
         else:
             err_msg = f"Error adding user by details: {message}"
             app.logger.error(err_msg)
         return user
+
 
 def remove_user_by_id(user_id: int) -> (bool, str):
     with app.app_context():
@@ -115,14 +92,12 @@ def remove_user_by_id(user_id: int) -> (bool, str):
             return False, str(e)
 
 
-
 def find_user(username_or_email: str) -> User:
     with app.app_context():
         user = find_user_by_username(username=username_or_email)
         if not user:
             user = find_user_by_email(email=username_or_email)
         return user
-
 
 
 def find_user_by_username(username: str) -> Optional[User]:
@@ -236,7 +211,9 @@ def save_new_user(user_: User, fail_on_duplicate: bool = True) -> Tuple[bool, st
             app.logger.error(f"Error saving new user: {str(err)}")
 
         post_user_add_hook(new_user=user_)
+
         return True, "success", user_
+
 
 
 # --- Inventories ---
@@ -1270,7 +1247,7 @@ def add_new_user_itemtype(name: str, user_id: int) -> (bool, str):
         return True, f"Item type {name} exists for {user_id}"
 
 
-def find_type_by_text(type_text: str, user_id: int = None) -> Union[dict, None]:
+def find_type_by_text(type_text: str, user_id: int = None) -> Optional[dict]:
     with app.app_context():
 
         if user_id is None:
@@ -1286,26 +1263,12 @@ def find_type_by_text(type_text: str, user_id: int = None) -> Union[dict, None]:
 
 
 def get_all_itemtypes_for_user(user_id: int, string_list=True) -> list:
-    if string_list:
-        stmt = select(ItemType.name).where(ItemType.user_id == user_id)
-    else:
-        stmt = select(ItemType).where(ItemType.user_id == user_id)
+    query_statement = select(ItemType.name) if string_list else select(ItemType)
+    query_statement = query_statement.where(ItemType.user_id == user_id)
 
-    res = db.session.execute(stmt).all()
+    query_result = db.session.execute(query_statement).all()
 
-    ret_data = []
-    if res is not None:
-        for row in res:
-            ret_data.append(row[0])
-
-    return ret_data
-
-
-def activate_user_in_db(user_id: int):
-    with app.app_context():
-        user_ = db.session.query(User).filter(User.id == user_id).one()
-        user_.activated = True
-        db.session.commit()
+    return [row[0] for row in query_result if query_result is not None]
 
 
 def find_item_by_id(item_id: int, user_id: int = None) -> Item:
@@ -3546,3 +3509,38 @@ def update_user_token_by_email(email: str, user_token: str, token_expires: datet
             db.session.merge(user_)
             db.session.commit()
         return
+
+
+def post_user_add_hook(new_user: User):
+    """
+
+    The post_user_add_hook method is used to execute certain actions after a new user is added to the system.
+
+    Parameters:
+    - new_user (User): The newly created user object.
+
+    Returns:
+    - None
+
+    Example usage:
+    post_user_add_hook(new_user)
+
+    """
+    with app.app_context():
+        _ret = add_user_list(name=f"__default__{new_user.username}",
+                             description=f"Default inventory for {new_user.username}",
+                             access_level=0,
+                             inventory_type=1,
+                             user_id=new_user.id)
+        get_or_add_new_location(location_name=f"__default__{new_user.id}",
+                                location_description=f"Default location for {new_user.username}",
+                                to_user_id=new_user.id)
+        #add_new_user_itemtype(name=_NONE_, user_id=new_user.id)
+
+        # create folder for user uploads
+        user_upload_folder = os.path.join(app.config['USER_IMAGES_BASE_PATH'], str(new_user.id))
+        if not os.path.exists(user_upload_folder):
+            os.makedirs(user_upload_folder)
+
+    # add default locations, types
+

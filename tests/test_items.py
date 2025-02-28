@@ -1,9 +1,11 @@
 import unittest
 
-from database_functions import add_user_by_details, remove_user_by_id, add_user_list, get_users_for_inventory, \
+from database.database_functions import add_user_list, get_users_for_inventory, \
     add_item_to_inventory, find_items_new, delete_list_by_id, find_default_user_location, find_item_type_by_name, \
     update_item_by_id, find_all_my_items, get_user_item_count
-from site_globals import __INVENTORY__, __PRIVATE__, __LIST__, __COLLABORATOR__, __PUBLIC__
+from database.database_functions import add_user_by_details, remove_user_by_id
+from site_globals import __INVENTORY__, __PRIVATE__
+
 
 class TestApp(unittest.TestCase):
     users = {}

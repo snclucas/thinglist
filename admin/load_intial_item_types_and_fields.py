@@ -3,7 +3,7 @@ import os
 
 from slugify import slugify
 
-from database_functions import get_or_create
+from database.database_functions import get_or_create
 
 from models import Field
 

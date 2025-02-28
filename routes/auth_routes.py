@@ -7,8 +7,10 @@ from flask import current_app, Blueprint, render_template, request, flash, redir
 from app import login_manager, flask_bcrypt, app
 from flask_login import (login_required, login_user, logout_user, confirm_login, current_user)
 
-from database_functions import find_user, save_new_user, find_user_by_token, activate_user_in_db, find_user_by_username, \
-    find_user_by_email, update_user_password_by_token, update_user_token_by_email, update_user_password_by_user_id
+from database.database_functions import update_user_password_by_token, update_user_token_by_email, \
+    update_user_password_by_user_id, post_user_add_hook
+from database.database_functions import activate_user_in_db, find_user, find_user_by_username, find_user_by_email, \
+    find_user_by_token, save_new_user
 from email_utils import send_email
 from models import User
 from routes.index_routes import profile
@@ -334,6 +336,7 @@ def register():
         try:
             user_added, msg, user = save_new_user(new_user)
             if user_added:
+                post_user_add_hook(new_user=user)
                 text_body = render_template(template_name_or_list='email/user_registration.txt', user=username,
                                             token=confirmation_token, token_expires=token_expires.isoformat())
                 html_body = render_template(template_name_or_list='email/user_registration.html', user=username,

@@ -1,6 +1,6 @@
 
 
-from database_functions import get_all_images
+from database.database_functions import get_all_images
 
 
 def prune():

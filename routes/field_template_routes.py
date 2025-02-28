@@ -5,7 +5,7 @@ import bleach
 from flask import Blueprint, render_template, redirect, url_for, request, abort, Response
 from flask_login import login_required, current_user
 
-from database_functions import find_template, add_new_template, update_template_by_id, get_user_templates, \
+from database.database_functions import find_template, add_new_template, update_template_by_id, get_user_templates, \
     get_all_fields, save_template_fields, get_user_template_by_id, delete_templates_from_db, \
     set_template_fields_orders, \
     get_template_fields_by_id, get_all_fields_include_users

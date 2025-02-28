@@ -1,9 +1,8 @@
 import unittest
 
-from database_functions import add_user_by_details, remove_user_by_id, \
-    get_all_user_notifications, add_user_notification, \
-    get_number_of_user_notifications, delete_notification_by_id, add_field, get_all_user_fields, delete_fields_from_db, \
+from database.database_functions import add_field, get_all_user_fields, delete_fields_from_db, \
     get_all_fields_include_users
+from database.database_functions import add_user_by_details, remove_user_by_id
 
 
 class TestApp(unittest.TestCase):

@@ -3,7 +3,7 @@ import bleach
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 
-from database_functions import get_all_user_fields, delete_fields_from_db, add_field, edit_field_by_id
+from database.database_functions import get_all_user_fields, delete_fields_from_db, add_field, edit_field_by_id
 
 field_routes = Blueprint('field', __name__)
 

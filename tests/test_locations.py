@@ -1,7 +1,8 @@
 import unittest
 
-from database_functions import add_user_by_details, remove_user_by_id, \
-    get_or_add_new_location, get_all_user_locations, get_user_location_by_id, delete_locations, update_location_by_id
+from database.database_functions import get_or_add_new_location, get_all_user_locations, get_user_location_by_id, delete_locations, update_location_by_id
+from database.database_functions import add_user_by_details, remove_user_by_id
+
 
 class TestApp(unittest.TestCase):
 

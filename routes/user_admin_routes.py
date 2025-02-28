@@ -2,10 +2,10 @@
 
 import bleach
 
-from flask import Blueprint, render_template, redirect, url_for, request, current_app
+from flask import Blueprint, request
 from flask_login import login_required, current_user
 
-from database_functions import delete_all_user_items, delete_all_user_lists
+from database.database_functions import delete_all_user_items, delete_all_user_lists
 from routes.index_routes import profile
 
 user_admin_routes = Blueprint('user_admin', __name__)

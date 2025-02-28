@@ -2,12 +2,13 @@ import csv
 import os
 from io import StringIO
 
+import bleach
 from flask import Blueprint, render_template, redirect, url_for, request, make_response
 from flask_login import login_required, current_user
 
 from app import app
 
-from database_functions import get_all_itemtypes_for_user, find_type_by_text, \
+from database.database_functions import get_all_itemtypes_for_user, find_type_by_text, \
     add_new_user_itemtype, delete_itemtypes_from_db
 
 types = Blueprint('types', __name__)
@@ -34,6 +35,7 @@ def delete_item_type():
 @login_required
 def add_item_type():
     item_type_name = request.form.get("item_type_name")
+    item_type_name = bleach.clean(item_type_name)
 
     potential_item_type_ = find_type_by_text(type_text=item_type_name)
 
