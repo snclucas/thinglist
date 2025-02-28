@@ -6,6 +6,7 @@
     {{ super() }}
 
     {% block metadata %}
+        <meta name="description" content="{{ item.description|truncate|striptags }}">
         <meta property="og:description" content="{{ item.description|truncate|striptags }}"/>
         <meta property="og:title" content="ThingList | @{{ username }} | {{ item.name }}"/>
         <meta property="og:type" content="website"/>
