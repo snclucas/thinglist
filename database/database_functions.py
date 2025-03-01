@@ -2884,24 +2884,25 @@ def delete_templates_from_db(user_id: str, template_ids) -> None:
     if not isinstance(template_ids, list):
         template_ids = [template_ids]
 
-    stmt = select(FieldTemplate).join(User) \
-        .where(FieldTemplate.user_id == user_id) \
-        .where(FieldTemplate.id.in_(template_ids))
-    templates_ = db.session.execute(stmt).all()
+    with app.app_context():
+        stmt = select(FieldTemplate).join(User) \
+            .where(FieldTemplate.user_id == user_id) \
+            .where(FieldTemplate.id.in_(template_ids))
+        templates_ = db.session.execute(stmt).all()
 
-    # get all the niventories that use this template
+        # get all the niventories that use this template
 
-    for template_ in templates_:
-        template_ = template_[0]
+        for template_ in templates_:
+            template_ = template_[0]
 
-        inventories_ = Inventory.query.filter(Inventory.field_template == template_.id).all()
-        for inventory_ in inventories_:
-            inventory_.field_template = None
+            inventories_ = Inventory.query.filter(Inventory.field_template == template_.id).all()
+            for inventory_ in inventories_:
+                inventory_.field_template = None
 
-        db.session.commit()
+            db.session.commit()
 
-        db.session.delete(template_)
-        db.session.commit()
+            db.session.delete(template_)
+            db.session.commit()
 
 
 def delete_locations(user_id: int, location_ids) -> dict:
@@ -3078,15 +3079,15 @@ def get_user_template_by_id(template_id: int, user_id: int):
     This method retrieves a user template from the database based on the provided template ID and user ID. It uses SQLAlchemy to construct and execute a SQL statement to fetch the template
     *. If the template is found, it is returned; otherwise, None is returned. If an error occurs during database access, an error message is logged.
     """
-    session = db.session
-    stmt = select(FieldTemplate).join(User).where(FieldTemplate.id == template_id) \
-        .where(FieldTemplate.user_id == user_id)
-    r = None
-    try:
-        r = session.execute(stmt).one_or_none()
-    except SQLAlchemyError as e:
-        app.logger.error(f"Failed to get template by ID: {str(e)}")
-    return r
+    with app.app_context():
+        stmt = select(FieldTemplate).join(User).where(FieldTemplate.id == template_id) \
+            .where(FieldTemplate.user_id == user_id)
+        r = None
+        try:
+            r = db.session.execute(stmt).one_or_none()
+        except SQLAlchemyError as e:
+            app.logger.error(f"Failed to get template by ID: {str(e)}")
+        return r
 
 
 def get_template_fields_by_id(template_id: int):
@@ -3237,12 +3238,17 @@ def get_all_fields():
         return res
 
 
-def get_all_fields_include_users(user_id: int):
+def get_all_user_and_system_fields(user_id: int):
     with app.app_context():
         q_ = db.session.query(Field).filter(or_(Field.user_id == user_id, Field.user_id == None))
         res_ = db.session.execute(q_).all()
         return res_
 
+def get_all_system_fields():
+    with app.app_context():
+        q_ = db.session.query(Field).filter(Field.user_id == None)
+        res_ = db.session.execute(q_).all()
+        return res_
 
 def get_all_user_fields(user_id: int):
     with app.app_context():
@@ -3286,7 +3292,7 @@ def set_inventory_default_fields(inventory_id, user, default_fields):
         return
 
 
-def save_template_fields(template_name: str, fields: list[int], user_id: int) -> Optional[int]:
+def save_template_fields(template_name: str, fields: list[int], user_id: int) -> (bool, str, Optional[int]):
     field_type = 1
     if len(fields) > 0:
         if isinstance(fields[0], int):
@@ -3295,7 +3301,7 @@ def save_template_fields(template_name: str, fields: list[int], user_id: int) ->
             field_type = 2
 
     if template_name is None:
-        return None
+        return False, "Template name cannot be None", None
 
     with app.app_context():
 
@@ -3348,7 +3354,7 @@ def save_template_fields(template_name: str, fields: list[int], user_id: int) ->
 
         db.session.commit()
 
-        return field_template_.id
+        return True, "success", field_template_.id
 
 
 def update_item_fields(data, item_id: int):

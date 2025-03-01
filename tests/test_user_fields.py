@@ -1,7 +1,7 @@
 import unittest
 
 from database.database_functions import add_field, get_all_user_fields, delete_fields_from_db, \
-    get_all_fields_include_users
+    get_all_user_and_system_fields, get_all_system_fields
 from database.database_functions import add_user_by_details, remove_user_by_id
 
 
@@ -81,9 +81,11 @@ class TestApp(unittest.TestCase):
         num_user_fields = list(get_all_user_fields(user_id=self.users['simon'].id))
         self.assertEqual(2, len(num_user_fields))
 
+        num_system_fields = list(get_all_system_fields())
+
         # get all fields including system, should be 6 (2 user + 4 system)
-        _all_fields_and_system = get_all_fields_include_users(user_id=self.users['simon'].id)
-        self.assertEqual(6, len(_all_fields_and_system))
+        _all_fields_and_system = get_all_user_and_system_fields(user_id=self.users['simon'].id)
+        self.assertEqual(2+len(num_system_fields), len(_all_fields_and_system))
 
 
         # clean up and delete the system fields

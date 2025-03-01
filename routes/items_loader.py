@@ -19,8 +19,8 @@ def process_field_sets(inventory_data, current_user, found_inv, load_log):
             template_slugs_ = field_set_.get("slugs", [])
             if len(template_slugs_) > 0:
                 template_slugs_ = [bleach.clean(str(x)) for x in template_slugs_]
-                field_template_id_ = save_template_fields(template_name=template_name_,
-                                                          fields=template_slugs_, user=current_user)
+                status, msg, field_template_id_ = save_template_fields(template_name=template_name_,
+                                                          fields=template_slugs_, user_id=current_user.id)
 
                 status, save_inv_fieldtemplate_msg = save_inventory_fieldtemplate(inventory_id=found_inv["id"],
                                                                                   inventory_template=field_template_id_,

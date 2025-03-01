@@ -79,7 +79,7 @@ class FieldTemplate(db.Model):
     name = db.Column(db.String(50))
     fields = db.relationship('Field', secondary='fieldtemplate_fields',
                              back_populates='field_templates', lazy='subquery')
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
 
 
 class TemplateField(db.Model):
