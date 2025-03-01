@@ -1,11 +1,12 @@
 import csv
+import json
 import os
 
 from slugify import slugify
 
 from database.database_functions import get_or_create
 
-from models import Field, ItemType
+from models import Field, ItemType, ReservedWords
 
 
 def load_fields():
@@ -17,10 +18,11 @@ def load_fields():
         line_count = 0
         reader = csv.reader(csvfile, delimiter=',', quotechar='"')
         for row in reader:
-            print(', '.join(row))
             if line_count != 0:
                 get_or_create(model=Field, field=row[0], slug=slugify(row[1]), type=row[2])
             line_count += 1
+
+    return line_count
 
 
 def load_types():
@@ -37,6 +39,17 @@ def load_types():
                 get_or_create(model=ItemType, name=row[0])
             line_count += 1
 
-if __name__ == '__main__':
-    load_fields()
-    load_types()
+
+def load_words():
+    path = os.getcwd()
+    _reserved_words_file = f"{path}/../data/reserved_words.json"
+    _reserved_words_json = json.load(open(_reserved_words_file))
+
+    line_count = 0
+
+    for word in _reserved_words_json:
+        if line_count != 0:
+            get_or_create(model=ReservedWords, word=word)
+        line_count += 1
+
+    return line_count
