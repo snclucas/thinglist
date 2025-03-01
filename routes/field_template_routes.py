@@ -104,7 +104,7 @@ def set_template_fields():
 
             field_ids = [int(x) for x in field_ids] # was str(x)
 
-            save_template_fields(template_name=template_name, fields=field_ids, user=current_user)
+            save_template_fields(template_name=template_name, fields=field_ids, user_id=current_user.id)
 
     return redirect(url_for('field_template.templates'))
 
@@ -112,34 +112,32 @@ def set_template_fields():
 @field_template.route('/field-templates/delete', methods=['POST'])
 @login_required
 def delete_template():
-    if request.method == 'POST':
-        json_data = request.json
-        template_ids = json_data['template_ids']
-        delete_templates_from_db(user_id=current_user.id, template_ids=template_ids)
-        return redirect(url_for('field_template.templates'))
+    json_data = request.json
+    template_ids = json_data['template_ids']
+    delete_templates_from_db(user_id=current_user.id, template_ids=template_ids)
+    return redirect(url_for('field_template.templates'))
 
 
 @field_template.route('/field-templates/add', methods=['POST'])
 @login_required
 def add_template():
-    if request.method == 'POST':
-        template_id = request.form.get("template_id")
-        template_name = request.form.get("template_name")
-        template_fields = request.form.get("template_fields")
+    template_id = request.form.get("template_id")
+    template_name = request.form.get("template_name")
+    template_fields = request.form.get("template_fields")
 
-        new_template_data = {
-            "id": template_id,
-            "name": template_name,
-            "fields": template_fields,
-        }
+    new_template_data = {
+        "id": template_id,
+        "name": template_name,
+        "fields": template_fields,
+    }
 
-        potential_template = find_template(template_id=int(template_id))
+    potential_template = find_template(template_id=int(template_id))
 
-        if potential_template is None:
-            template_ = FieldTemplate(name=new_template_data['name'], fields=new_template_data['fields'])
-            add_new_template(name=template_name,
-                             fields=template_fields, to_user=current_user)
-        else:
-            update_template_by_id(template_data=new_template_data, user=current_user)
+    if potential_template is None:
+        template_ = FieldTemplate(name=new_template_data['name'], fields=new_template_data['fields'])
+        add_new_template(name=template_name,
+                         fields=template_fields, to_user=current_user)
+    else:
+        update_template_by_id(template_data=new_template_data, user=current_user)
 
-        return redirect(url_for('field_template.templates'))
+    return redirect(url_for('field_template.templates'))

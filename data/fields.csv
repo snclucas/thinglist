@@ -8,6 +8,7 @@ Airframe hours,Airframe hours,input
 Album length,Album length,input
 Alias,Alias,input
 Analogue outputs,Analogue outputs,input
+Appearance,Appearance,input
 Area,Area,input
 Artist,Artist,input
 ASIN,ASIN,input
@@ -32,10 +33,12 @@ Board number,Board number,input
 Born,Born,input
 Brand,Brand,input
 Breed,Breed,input
+Budget,Budget,input
 Buyer,Buyer,input
 Capacitance,Capacitance,input
 Capacity,Capacity,input
 CAS latency,CAS latency,input
+CAS number,CAS number,input
 Channel separation,Channel separation,input
 Chemical formula,Chemical formula,input
 Chipset,Chipset,input
@@ -75,6 +78,7 @@ Digital outputs,Digital outputs,input
 Dimensions,Dimensions,input
 Director,Director,input
 Disaplacement,Disaplacement,input
+Discipline,Discipline,input
 Disk number,Disk number,input
 Displacement,Displacement,input
 Display Bit Depth,Display Bit Depth,input
@@ -90,10 +94,13 @@ Engine make,Engine make,input
 Engine model,Engine model,input
 Engine type,Engine type,input
 Engine usage,Engine usage,input
+Exterior Material,Exterior Material,input
 Failure rate,Failure rate,input
 Family,Family,input
 Firmware,Firmware,input
 Floppy drive,Floppy drive,input
+Focal Length,Focal Length,input
+Focus type,Focus type,input
 Form factor,Form factor,input
 Format,Format,input
 Frame Rate Control,Frame Rate Control,input
@@ -116,6 +123,7 @@ Hull material,Hull material,input
 Hull type,Hull type,input
 Ideology,Ideology,input
 Impedance,Impedance,input
+Index,Index,input
 Inductance,Inductance,input
 Input sensitivity,Input sensitivity,input
 Input voltage,Input voltage,input
@@ -134,11 +142,14 @@ Manufacturer,Manufacturer,input
 Market,Market,input
 Material,Material,input
 Max Number of Colors,Max Number of Colors,input
+Maximum Aperture,Maximum Aperture,input
 Maximum DC Current,Maximum DC Current,input
 Maximum speed,Maximum speed,input
 Media type,Media type,input
 Mileage,Mileage,input
 Model,Model,input
+Monoisotopic mass,Monoisotopic mass,input
+Mount ,Mount ,input
 Mounting style,Mounting style,input
 Noise reduction,Noise reduction,input
 Number of births,Number of births,input
@@ -188,10 +199,12 @@ Rate of climb,Rate of climb,input
 Rating,Rating,input
 Record label,Record label,input
 Recording time,Recording time,input
+Reference,Reference,input
 Refresh rate,Refresh rate,input
 Reg number,Reg number,input
 Region,Region,input
 Relatives,Relatives,input
+Release year,Release year,input
 Reliability,Reliability,input
 Resistance,Resistance,input
 Rotation rate,Rotation rate,input
@@ -210,7 +223,6 @@ Seller,Seller,input
 Sensitivity,Sensitivity,input
 Serial number,Serial number,input
 Series,Series,input
-Series,Series,input
 Service ceiling,Service ceiling,input
 Service tag,Service tag,input
 Shade,Shade,input
@@ -222,6 +234,7 @@ SKU,SKU,input
 Slot  ,Slot  ,input
 Slot type,Slot type,input
 Socket,Socket,input
+Solubility,Solubility,input
 Sound chip,Sound chip,input
 Source ,Source ,input
 SPARS code,SPARS code,input
@@ -269,3 +282,12 @@ Wingspan,Wingspan,input
 Wow and flutter,Wow and flutter,input
 Year build,Year build,input
 Zipcode,Zipcode,input
+MPN,MPN,input
+Finderscope,Finderscope,input
+Maximum Magnification,Maximum Magnification,input
+Objective Lens Diameter,Objective Lens Diameter,input
+Maximum Resolution,Maximum Resolution,input
+Pattern,Pattern,input
+Lining Color,Lining Color,input
+Handmade,Handmade,bool
+Hours,Hours,input

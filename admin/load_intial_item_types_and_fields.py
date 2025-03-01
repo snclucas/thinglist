@@ -5,7 +5,7 @@ from slugify import slugify
 
 from database.database_functions import get_or_create
 
-from models import Field
+from models import Field, ItemType
 
 
 def load_fields():
@@ -23,5 +23,20 @@ def load_fields():
             line_count += 1
 
 
+def load_types():
+    path = os.getcwd()
+    file_path = os.path.realpath(__file__)
+    item_types_csv = f"{path}/../data/items_types.csv"
+
+    with open(item_types_csv, newline='') as csvfile:
+        line_count = 0
+        reader = csv.reader(csvfile, delimiter=',', quotechar='"')
+        for row in reader:
+            print(', '.join(row))
+            if line_count != 0:
+                get_or_create(model=ItemType, name=row[0])
+            line_count += 1
+
 if __name__ == '__main__':
     load_fields()
+    load_types()

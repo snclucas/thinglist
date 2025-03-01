@@ -1263,8 +1263,8 @@ def find_type_by_text(type_text: str, user_id: int = None) -> Optional[dict]:
 
 
 def get_all_itemtypes_for_user(user_id: int, string_list=True) -> list:
-    query_statement = select(ItemType.name) if string_list else select(ItemType)
-    query_statement = query_statement.where(ItemType.user_id == user_id)
+    query_statement = db.session.query(ItemType.name) if string_list else db.session.query(ItemType)
+    query_statement = query_statement.filter(or_(ItemType.user_id == user_id, ItemType.user_id == None))
 
     query_result = db.session.execute(query_statement).all()
 
@@ -3286,7 +3286,7 @@ def set_inventory_default_fields(inventory_id, user, default_fields):
         return
 
 
-def save_template_fields(template_name, fields, user):
+def save_template_fields(template_name: str, fields: list[int], user_id: int) -> Optional[int]:
     field_type = 1
     if len(fields) > 0:
         if isinstance(fields[0], int):
@@ -3294,13 +3294,15 @@ def save_template_fields(template_name, fields, user):
         else:
             field_type = 2
 
+    if template_name is None:
+        return None
+
     with app.app_context():
 
-        field_template_ = FieldTemplate.query.filter_by(name=template_name).filter_by(user_id=user.id).one_or_none()
+        field_template_ = FieldTemplate.query.filter_by(name=template_name).filter_by(user_id=user_id).one_or_none()
 
         if field_template_ is None:
-
-            field_template_ = FieldTemplate(name=template_name, user_id=user.id)
+            field_template_ = FieldTemplate(name=template_name, user_id=user_id)
             db.session.add(field_template_)
 
             for field in fields:
@@ -3329,7 +3331,7 @@ def save_template_fields(template_name, fields, user):
             if inventories_ is not None:
                 for inventory in inventories_:
                     save_inventory_fieldtemplate(inventory_id=inventory.id,
-                                                 inventory_template=field_template_.id, user_id=user.id)
+                                                 inventory_template=field_template_.id, user_id=user_id)
 
         db.session.commit()
 

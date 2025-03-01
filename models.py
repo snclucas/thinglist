@@ -17,6 +17,11 @@ def generate_short_id(num_of_chars: int):
     return ''.join(choice(string.ascii_letters+string.digits) for _ in range(num_of_chars))
 
 
+class ReservedWords(db.Model):
+    __tablename__ = "reserved_words"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    word = db.Column(db.String(50), nullable=False, unique=True)
+
 
 
 class User(UserMixin, db.Model):
@@ -203,7 +208,7 @@ class ItemField(db.Model):
     item_id = db.Column(db.Integer, db.ForeignKey('items.id', ondelete='CASCADE'))
     value = db.Column(db.String(255), nullable=True, unique=False)
     show = db.Column(db.Boolean(), nullable=True, unique=False, default=False)
-    user_id = db.Column(db.Integer, nullable=True, unique=False, default=-1)
+    user_id = db.Column(db.Integer, nullable=True, unique=False)
     __table_args__ = (UniqueConstraint('field_id', 'item_id', name='_item_field_uc'),
                       )
 
@@ -257,7 +262,9 @@ class ItemType(db.Model):
     __tablename__ = "item_type"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(50), nullable=True, unique=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
+    #user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
+
+    user_id = db.Column(db.Integer, nullable=True, unique=False)
     __table_args__ = (UniqueConstraint('name', 'user_id', name='_name_userid_uc'),)
 
 
