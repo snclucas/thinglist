@@ -1574,7 +1574,7 @@ def delete_images_from_item(item_id: int, image_ids: List[str], user: User) -> (
             return False, err_msg
 
 
-def update_template_by_id(template_data: dict, user: User) -> (bool, str):
+def update_template_by_id(template_data: dict, user: User) -> (bool, str, Optional[int]):
     """
     Update a template by its ID.
 
@@ -1610,22 +1610,9 @@ def update_template_by_id(template_data: dict, user: User) -> (bool, str):
     if not isinstance(template_data['fields'], list):
         return False, "Template fields must be a list"
 
-    with app.app_context():
-        template_id = template_data['id']
+    return save_template_fields(template_name=template_data['name'],
+                         fields=template_data['fields'], user_id=user.id)
 
-        template_ = FieldTemplate.query.filter_by(id=template_id).filter_by(user_id=user.id).one_or_none()
-        if template_ is None:
-            return False, f"No template with id {template_id} found for user {user.username}"
-
-        template_.name = template_data['name']
-        template_.fields = template_data['fields']
-
-        try:
-            db.session.commit()
-            return True, "Template updated successfully"
-        except SQLAlchemyError:
-            db.session.rollback()
-            return False, "Could not update template"
 
 
 def update_location_by_id(location_data: dict, user: User) -> (bool, str):

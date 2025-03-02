@@ -89,23 +89,22 @@ def templates_with_username(username):
 @field_template.route('/set-template-fields', methods=['POST'])
 @login_required
 def set_template_fields():
-    if request.method == 'POST':
-        request_xhr_key = request.headers.get('X-Requested-With')
-        if request_xhr_key and request_xhr_key == 'XMLHttpRequest':
-            json_data = request.json
-            template_name = json_data['template_name']
+    request_xhr_key = request.headers.get('X-Requested-With')
+    if request_xhr_key and request_xhr_key == 'XMLHttpRequest':
+        json_data = request.json
+        template_name = json_data['template_name']
 
-            # sanitise template name
-            template_name = bleach.clean(template_name)
+        # sanitise template name
+        template_name = bleach.clean(template_name)
 
-            field_ids = json_data['field_ids']
-            if len(field_ids) == 0:
-                abort(Response("At least 1 field is required for the template", 400))
+        field_ids = json_data['field_ids']
+        if len(field_ids) == 0:
+            abort(Response("At least 1 field is required for the template", 400))
 
-            field_ids = [int(x) for x in field_ids] # was str(x)
+        field_ids = [int(x) for x in field_ids] # was str(x)
 
-            status, template_id = save_template_fields(template_name=template_name,
-                                                       fields=field_ids, user_id=current_user.id)
+        status, template_id = save_template_fields(template_name=template_name,
+                                                   fields=field_ids, user_id=current_user.id)
 
     return redirect(url_for('field_template.templates'))
 
