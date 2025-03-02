@@ -20,7 +20,7 @@ def templates():
     return templates_with_username(username=current_user.username)
 
 
-@field_template.route('/field-templates/<template_id>/sort', methods=['GET', 'POST'])
+@field_template.route('/field-templates/<int:template_id>/sort', methods=['GET', 'POST'])
 @login_required
 def sort_template(template_id):
     if request.method == 'GET':
@@ -43,7 +43,7 @@ def sort_template(template_id):
 
         od = collections.OrderedDict(sorted(selected_field_ids.items()))
 
-        return render_template('field_template/_sort_template_fields.html', field_template_name=user_template_[0].name,
+        return render_template(template_name_or_list='field_template/_sort_template_fields.html', field_template_name=user_template_[0].name,
                                username=current_user.username, all_fields=all_fields, user_template=user_template_,
                                selected_field_ids=selected_field_ids, template_id=template_id, fields=od)
 
@@ -62,7 +62,6 @@ def template(template_id):
     :param template_id: The ID of the field template to retrieve.
     :return: The rendered template or a 404 error message if the template does not exist or the user does not have access.
     """
-    #all_fields = dict(get_all_fields())
     all_fields = list(get_all_user_and_system_fields(user_id=current_user.id))
 
     user_template_ = get_user_template_by_id(template_id=template_id, user_id=current_user.id)
@@ -77,12 +76,12 @@ def template(template_id):
                            selected_field_ids=selected_field_ids, template_id=template_id)
 
 
-@field_template.route('/@<username>/field-templates')
+@field_template.route('/@<string:username>/field-templates')
 @login_required
 def templates_with_username(username):
     all_fields = dict(get_all_fields())
     user_templates = get_user_templates(user_id=current_user.id)
-    return render_template('field_template/field_templates.html',
+    return render_template(template_name_or_list='field_template/field_templates.html',
                            name=current_user.username, templates=user_templates, all_fields=all_fields)
 
 
@@ -93,7 +92,6 @@ def set_template_fields():
     if request_xhr_key and request_xhr_key == 'XMLHttpRequest':
         json_data = request.json
         template_name = json_data['template_name']
-
         # sanitise template name
         template_name = bleach.clean(template_name)
 

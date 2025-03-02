@@ -14,7 +14,7 @@ from email_utils import send_email
 from models import Inventory, User, Item, UserInventory, InventoryItem, ItemType, Tag, \
     Location, Image, Field, ItemField, FieldTemplate, Notification, TemplateField, Relateditems, ItemImage
 
-from site_globals import _NONE_, __PUBLIC__, __OWNER__, __PRIVATE__, __INVENTORY__
+from site_globals import _NONE_, __PUBLIC__, __OWNER__, __PRIVATE__, __INVENTORY__, __DEFAULT__
 
 
 def drop_then_create():
@@ -85,14 +85,23 @@ def remove_user_by_id(user_id: int) -> (bool, str):
     with app.app_context():
         try:
             user_ = User.query.filter_by(id=user_id).first()
+            if user_ is None:
+                return False, f"User with ID {user_id} not found"
             db.session.delete(user_)
             db.session.commit()
-            return True, ""
+            return True, f"User with ID {user_id} removed successfully"
         except SQLAlchemyError as e:
             return False, str(e)
 
 
-def find_user(username_or_email: str) -> User:
+def find_user(username_or_email: str) -> Optional[User]:
+    """
+    Args:
+        username_or_email: str, the username or email of the user to be found
+
+    Returns:
+        Optional[User]: Returns the found User object if a match is found, otherwise returns None.
+    """
     with app.app_context():
         user = find_user_by_username(username=username_or_email)
         if not user:
@@ -497,7 +506,7 @@ def get_user_default_inventory(user_id: int) -> Optional[Inventory]:
     with app.app_context():
         # Find user default inventory
         user_ = find_user_by_id(user_id=user_id)
-        user_default_inventory_ = Inventory.query.filter_by(name=f"__default__{user_.username}").filter_by().first()
+        user_default_inventory_ = Inventory.query.filter_by(name=f"{__DEFAULT__}{user_.username}").filter_by().first()
         return user_default_inventory_
 
 def get_user_unlisted_items(user_id: int):
@@ -522,7 +531,7 @@ def delete_all_user_lists(user_id: int):
 
     list_ids_ = []
     for list_ in _user_inventories:
-        if "__default__" not in list_["inventory_name"]:
+        if __DEFAULT__ not in list_["inventory_name"]:
             list_ids_.append(list_["inventory_id"])
 
     delete_list_by_id(inventory_ids = list_ids_, user_id = user_id)
@@ -2077,7 +2086,7 @@ def edit_items_locations(item_ids: list, user: User, location_id: int, specific_
         return False, "Location ID cannot be None"
 
     with app.app_context():
-        stmt = select(Item).where(Item.user_id == user.id).where(Item.id.in_(item_ids))
+        stmt = select(Item).where(Item.user_id == user.id).where(Item.id.in_(item_ids)) # type: ignore
         results_ = db.session.execute(stmt).all()
         if results_ is None:
             return False, "No items found"
@@ -2318,7 +2327,7 @@ def get_or_create(model, defaults=None, **kwargs):
 
 def add_item_inventory_by_invid(item: Item, inventory_id: int, user: User):
     with app.app_context():
-        stmt = select(UserInventory, Inventory).join(Inventory).join(User).where(User.id == user.id).where(
+        stmt = select(UserInventory, Inventory).join(Inventory).join(User).where(User.id == user.id).where(  # type: ignore
             Inventory.id == inventory_id)
         r = db.session.execute(stmt).first()[1]
 
@@ -3046,7 +3055,6 @@ def get_user_templates(user_id: int):
     Retrieve the templates associated with a given user.
 
     :param user_id: The user id for which templates are to be retrieved.
-    :type int: int
 
     :return: A list of templates associated with the user.
     :rtype: list
@@ -3098,7 +3106,7 @@ def set_template_fields_orders(field_data, template_id: int, user_id: int):
 
             stmt = select(TemplateField).where(FieldTemplate.id == template_id) \
                 .join(FieldTemplate) \
-                .where(TemplateField.field_id == field_id)
+                .where(TemplateField.field_id == field_id)  # type: ignore
             r = session.execute(stmt).one_or_none()
 
             if r is not None:
@@ -3329,7 +3337,7 @@ def save_template_fields(template_name: str, fields: list[int], user_id: int) ->
         db.session.commit()
 
         # now do the sorting
-        stmt = select(TemplateField).where(FieldTemplate.id == field_template_.id)
+        stmt = select(TemplateField).where(FieldTemplate.id == field_template_.id)  # type: ignore
         r = db.session.execute(stmt).all()
 
         max_order = db.session.query(func.max(TemplateField.order)).scalar()

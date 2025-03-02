@@ -12,11 +12,9 @@
             </div>
 
             <div class="row">
-
                 <div class="col-md-12">
                     <div class="card">
                         <div class="card-body">
-
                             <div class="row">
                                 <div class="col-md-8">
                                     <h4 class="mb-0">Lists <small>| {{ number_inventories }} </small></h4>
@@ -45,10 +43,6 @@
                                                   href="#collapseInventoryHelp"
                                                   style="display: inline-block; margin-right: 20px;"></span>
 
-
-
-
-
                                         {% endif %}
                                     </div>
                                 </div>
@@ -56,7 +50,7 @@
                             {% if user_is_authenticated %}
                             <div class="row">
                                     <div class="col-md-12"><small class="text-right">
-                                        <a href="{{ url_for('items.items_with_username_and_inventory', list_username=username, inventory_slug='default') | replace('%40', '@') }}">
+                                        <a href="{{ url_for('items.items_with_username_and_inventory', list_username=list_username, inventory_slug='default') | replace('%40', '@') }}">
                              Unlisted items | {{ unlisted_item_count }}</a>
 
                                     </small></div>
@@ -101,18 +95,13 @@
                                             <hr>
                                         </div>
                                     </div>
-
-
                                     {% include 'inventory/partials/_inventory-table.html' %}
                                 </div>
                             </div>
                         </div>
-
                     </div>
                 </div>
-
             </div>
-
         </div>
 
     </div>
@@ -178,7 +167,6 @@
                 delete_btn_selector.removeAttr('disabled');
             }
         }
-
 
         $('[id^=inventoryEdit]').click(function () {
             let inventory_id = $(this).attr('data-inventory-id');
