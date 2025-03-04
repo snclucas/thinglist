@@ -13,7 +13,7 @@
                 <option value="default">Default/None</option>
             {% endif %}
             {% for option in all_user_inventories %}
-                {% if "__default__" not in  option[1].name %}
+                {% if __DEFAULT__ not in  option[1].name %}
                     {% if inventory_slug == option[1].slug %}
                         <option value="{{ option[1].slug }}"
                                 selected>{{ option[1].name }}</option>

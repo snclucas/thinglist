@@ -2,7 +2,7 @@
 
 {% if inventory is not none %}
     {% set inv_table_type = inventory.type %}
-    {% if "__default__" in inventory.name %}
+    {% if __DEFAULT__ in inventory.name %}
         {% set inv_name = "Default/None" %}
         {% set inv_desc = "Default/None" %}
     {% else %}

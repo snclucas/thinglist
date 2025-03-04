@@ -19,7 +19,7 @@
             {% set list_name = inventory_data['inventory_name'] %}
             {% set inventory_slug = inventory_data['inventory_slug'] %}
 
-            {% if "__default__" not in inventory_data['inventory_name'] %}
+            {% if __DEFAULT__ not in inventory_data['inventory_name'] %}
                 <tr>
                     <td>
                         <a href="{{ url_for('items.items_with_username_and_inventory', list_username=inventory_data['inventory_owner'], inventory_slug=inventory_slug) | replace('%40', '@') }}">
