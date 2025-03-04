@@ -12,7 +12,7 @@ from routes.index_routes import main
 from routes.list_routes import inv
 from routes.location_routes import location
 from routes.field_template_routes import field_template
-from routes.itemtypes_routes import types
+from routes.item_types_routes import types
 from routes.item_routes import item_routes
 from routes.items_routes import items_routes
 from routes.api_routes import api_routes

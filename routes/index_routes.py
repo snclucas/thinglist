@@ -58,7 +58,7 @@ def privacy():
     return render_template('privacy_policy.html')
 
 
-@main.route(rule='/delete-notification>', methods=['POST'])
+@main.route(rule='/delete-notification', methods=['POST'])
 @login_required
 def del_notification():
     """
