@@ -34,10 +34,11 @@ def load_types():
         line_count = 0
         reader = csv.reader(csvfile, delimiter=',', quotechar='"')
         for row in reader:
-            print(', '.join(row))
             if line_count != 0:
                 get_or_create(model=ItemType, name=row[0])
             line_count += 1
+
+    return line_count
 
 
 def load_words():

@@ -2,7 +2,7 @@
 
 import bleach
 
-from flask import Blueprint, request
+from flask import Blueprint, request, render_template
 from flask_login import login_required, current_user
 
 from database.database_functions import delete_all_user_items, delete_all_user_lists
@@ -10,6 +10,12 @@ from routes.index_routes import profile
 
 user_admin_routes = Blueprint('user_admin', __name__)
 
+
+
+@user_admin_routes.route('/user-admin', methods=['POST'])
+@login_required
+def admin():
+    return render_template(template_name_or_list='admin/admin.html')
 
 
 @user_admin_routes.route('/user-admin/wipe', methods=['POST'])

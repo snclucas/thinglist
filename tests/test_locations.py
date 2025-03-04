@@ -1,6 +1,7 @@
 import unittest
 
-from database.database_functions import get_or_add_new_location, get_all_user_locations, get_user_location_by_id, delete_locations, update_location_by_id
+from database.database_functions import get_or_add_new_location, get_all_user_locations, get_user_location_by_id, \
+    delete_locations, update_location_by_id, get_number_user_locations
 from database.database_functions import add_user_by_details, remove_user_by_id
 
 
@@ -17,9 +18,7 @@ class TestApp(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         for user_name, user in cls.users.items():
-            _ret = 1
             _ret = remove_user_by_id(user_id = user.id)
-            print(_ret)
 
     def test_add_location(self):
         _num_inventories = len(get_all_user_locations(user_id=self.users['simon'].id))
@@ -30,7 +29,19 @@ class TestApp(unittest.TestCase):
         _ret = get_or_add_new_location(location_name=_new_location_name, location_description=_new_location_description, to_user_id=self.users['simon'].id)
         self.assertEqual(True, _ret["status"])
 
+
+
+
+
         _num_inventories = len(get_all_user_locations(user_id=self.users['simon'].id))
+        self.assertEqual(2, _num_inventories)
+
+        _num_inventories = get_number_user_locations(user_id=self.users['simon'].id)
+        self.assertEqual(2, _num_inventories)
+
+
+
+
 
         _new_location_id = _ret["id"]
         _new_location = get_user_location_by_id(location_id=_new_location_id, user_id=self.users['simon'].id)

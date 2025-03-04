@@ -13,13 +13,12 @@ from flask_login import login_required, current_user
 
 from app import app
 from database.database_functions import get_all_user_locations, \
-    get_all_item_types, \
     update_item_by_id, get_item_by_slug, add_images_to_item, delete_images_from_item, set_item_main_image, \
     find_inventory_by_slug, \
     get_item_fields, get_all_item_fields, \
     get_all_fields, set_field_status, update_item_fields, \
     set_inventory_default_fields, save_inventory_fieldtemplate, get_user_location_by_id, unrelate_items_by_id, \
-    find_item_by_slug, relate_items_by_id
+    find_item_by_slug, relate_items_by_id, get_all_user_and_system_item_types
 from database.database_functions import find_user_by_username
 
 from utils import correct_image_orientation, generate_item_image_filename
@@ -130,11 +129,11 @@ def item_with_username_and_inventory(list_username: str, inventory_slug: str, it
 
     item_location = None
     if user_is_authenticated and item_access_level != __VIEWER__:
-        user_location = get_user_location_by_id(location_id=item_.location_id, user_id=current_user.id)
-        if user_location is not None:
-            item_location = user_location
+        user_location_dict = get_user_location_by_id(location_id=item_.location_id, user_id=current_user.id)
+        if user_location_dict is not None:
+            item_location = user_location_dict
 
-    all_item_types_ = get_all_item_types()
+    all_item_types_ = get_all_user_and_system_item_types(user_id=current_user.id)
 
     return render_template(template_name_or_list='item/item.html', name=list_username,
                            inventory_owner_id=inventory_owner_id, item_fields=item_fields,

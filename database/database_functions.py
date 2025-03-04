@@ -26,6 +26,10 @@ def drop_then_create():
         print(e)
 
 
+def _to_dict(object_: db.Model) -> dict:
+    _dict = object_.__dict__
+    _dict.pop('_sa_instance_state', None)
+    return _dict
 
 
 def activate_user_in_db(user_id: int) -> bool:
@@ -664,35 +668,6 @@ def get_item_custom_field_data(user_id: int, item_list=None):
         return sdsd, slugs, sdsd2
 
 
-def delete_itemtypes_from_db(itemtype_ids, user_id: int) -> (bool, str):
-    with app.app_context():
-        if not isinstance(itemtype_ids, list):
-            itemtype_ids = [itemtype_ids]
-
-        user_none_type_ = ItemType.query.filter_by(user_id=user_id).filter_by(name=_NONE_).first()
-
-        stmt = select(ItemType).join(User) \
-            .where(ItemType.user_id == user_id) \
-            .where(ItemType.id.in_(itemtype_ids))
-        itemtypes_ = db.session.execute(stmt).all()
-
-        for itemtype_ in itemtypes_:
-            itemtype_ = itemtype_[0]
-
-            d = Item.query.filter_by(user_id=user_id).filter_by(item_type=itemtype_.id).all()
-            for row in d:
-                row.item_type = user_none_type_.id
-
-            db.session.commit()
-
-            db.session.delete(itemtype_)
-            db.session.commit()
-
-
-def get_user_item_count(user_id: int):
-    with app.app_context():
-        item_count_ = db.session.query(Item).filter(Item.user_id == user_id).count()
-        return item_count_
 
 
 def _find_field_by_name(field_name: str):
@@ -1208,55 +1183,102 @@ def get_all_user_tags(user_id: int) -> list[Tag]:
     return res_
 
 
-def get_all_item_types() -> list:
-    item_types_ = ItemType.query.all()
-    return item_types_
 
 
-def get_item_types(item_id=None, user_id=None) -> list:
-    item_types_ = ItemType.query
-    if item_id is not None:
-        item_types_ = item_types_.filter_by(item_id=item_id)
 
-    if user_id is not None:
-        item_types_ = item_types_.filter_by(user_id=user_id)
-    return item_types_.all()
+
+
+
+# --- ITEM TYPES SECTION -----------------------------------------------------------------------------------------------
+
+def get_all_user_item_types(user_id: int, string_list=True) -> list:
+    with app.app_context():
+        query_statement = db.session.query(ItemType.name) if string_list else db.session.query(ItemType)
+        query_statement = query_statement.filter(ItemType.user_id == user_id)
+        query_result = db.session.execute(query_statement).all()
+        return [row[0] for row in query_result if query_result is not None]
+
+
+def get_all_user_and_system_item_types(user_id: int, string_list=True) -> list:
+    with app.app_context():
+        query_statement = db.session.query(ItemType.name) if string_list else db.session.query(ItemType)
+        query_statement = query_statement.filter(or_(ItemType.user_id == user_id, ItemType.user_id == None))
+        query_result = db.session.execute(query_statement).all()
+        return [row[0] for row in query_result if query_result is not None]
+
+
+def delete_item_types_by_id(itemtype_ids: Union[int, list[int]], user_id: int) -> (bool, str):
+    with app.app_context():
+        if not isinstance(itemtype_ids, list):
+            itemtype_ids = [itemtype_ids]
+
+        user_none_type_ = ItemType.query.filter_by(user_id=user_id).filter_by(name=_NONE_).first()
+
+        stmt = select(ItemType).join(User) \
+            .where(ItemType.user_id == user_id) \
+            .where(ItemType.id.in_(itemtype_ids))
+        itemtypes_ = db.session.execute(stmt).all()
+
+        for itemtype_ in itemtypes_:
+            itemtype_ = itemtype_[0]
+
+            d = Item.query.filter_by(user_id=user_id).filter_by(item_type=itemtype_.id).all()
+            for row in d:
+                row.item_type = user_none_type_.id
+
+            try:
+                db.session.commit()
+                db.session.delete(itemtype_)
+                db.session.commit()
+                return True, "success"
+            except SQLAlchemyError as ex:
+                app.logger.error(f"Error deleting item types: {str(ex)}")
+                return False, "Error deleting item types"
+
+
+def get_user_item_type_count(user_id: int) -> int:
+    with app.app_context():
+        item_type_count_ = db.session.query(ItemType).filter(ItemType.user_id == user_id).count()
+        return item_type_count_
 
 def find_item_type_by_name(item_type_name: str, user_id: int) -> ItemType:
     with app.app_context():
         item_type_ = ItemType.query.filter_by(name=item_type_name).filter_by(user_id=user_id).first()
         return item_type_
 
-def add_new_user_itemtype(name: str, user_id: int) -> (bool, str):
+def add_new_user_item_type(name: str, user_id: int) -> (bool, str, dict):
     with app.app_context():
         if name is None or name == "":
             app.logger.error(f"System tried to add user item with name {name} for user {user_id}")
-            return False, f"Item type name cannot be None or blank"
+            return False, f"Item type name cannot be None or blank", None
 
         if user_id is None:
             app.logger.error(f"System tried to add user item with user_id {user_id} for user {user_id}")
-            return False, f"User ID cannot be None"
+            return False, f"User ID cannot be None", None
 
         # convert to lower case
         name = name.lower().strip()
 
-        item_type_ = find_type_by_text(type_text=name, user_id=user_id)
+        existing_item_type_ = find_item_type_by_text(type_text=name, user_id=user_id)
 
-        if item_type_ is None:
+        if existing_item_type_ is None:
             new_item_type_ = ItemType(name=name.lower(), user_id=user_id)
             db.session.add(new_item_type_)
 
             try:
                 db.session.commit()
-                return True, f"Item type {name} added for user {user_id}"
+                db.session.flush()
+                db.session.refresh(new_item_type_)
+                new_item_type_ = db.session.merge(new_item_type_)
+                return True, f"Item type {name} added for user {user_id}", _to_dict(new_item_type_)
             except SQLAlchemyError as ex:
                 app.logger.error(f"Could not add new item type {name} for user {user_id}: [{str(ex)}]")
-                return False, f"Could not add new item type {name} for user {user_id}"
+                return False, f"Could not add new item type {name} for user {user_id}", None
 
-        return True, f"Item type {name} exists for {user_id}"
+        return True, f"Item type {name} exists for {user_id}", _to_dict(existing_item_type_)
 
 
-def find_type_by_text(type_text: str, user_id: int = None) -> Optional[dict]:
+def find_item_type_by_text(type_text: str, user_id: int = None) -> Optional[dict]:
     with app.app_context():
 
         if user_id is None:
@@ -1266,18 +1288,30 @@ def find_type_by_text(type_text: str, user_id: int = None) -> Optional[dict]:
                 .filter_by(user_id=user_id).one_or_none()
 
         if item_type_ is not None:
-            return {"id": item_type_.id, "name": item_type_.name, "user_id": item_type_.user_id}
+            return _to_dict(item_type_)
 
         return None
 
 
-def get_all_itemtypes_for_user(user_id: int, string_list=True) -> list:
-    query_statement = db.session.query(ItemType.name) if string_list else db.session.query(ItemType)
-    query_statement = query_statement.filter(or_(ItemType.user_id == user_id, ItemType.user_id == None))
+def get_user_item_count(user_id: int):
+    with app.app_context():
+        item_count_ = db.session.query(Item).filter(Item.user_id == user_id).count()
+        return item_count_
 
-    query_result = db.session.execute(query_statement).all()
 
-    return [row[0] for row in query_result if query_result is not None]
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def find_item_by_id(item_id: int, user_id: int = None) -> Item:
@@ -3177,20 +3211,44 @@ def get_user_locations(user_id: int) -> List[dict]:
     return locations_results
 
 
-def get_number_user_locations(user_id: int):
-    session = db.session
-    stmt = session.query(func.count(Location.id)).where(Location.user_id == user_id)
-    r = session.execute(stmt).all()
-    return r[0][0]
+# IMPROVED
+# TESTED
+def get_number_user_locations(user_id: int) -> Optional[int]:
+    if user_id is None:
+        app.logger.error(f"Number of user locations failed as the user ID is None")
+        return None
 
-
-def get_user_location_by_id(location_id: str, user_id: int):
     with app.app_context():
-        session = db.session
-        stmt = select(Location).join(User).where(User.id == user_id).where(Location.id == location_id)
-        r = session.execute(stmt).one_or_none()
-        if r is not None:
-            return r[0].__dict__
+        try:
+            stmt = db.session.query(func.count(Location.id)).where(Location.user_id == user_id)
+            r = db.session.execute(stmt).all()
+            return r[0][0]
+        except SQLAlchemyError as err:
+            app.logger.error(f"Failed to get number of user locations: {str(err)}")
+            return None
+
+
+
+
+# IMPROVED
+# TESTED
+def get_user_location_by_id(location_id: str, user_id: int) -> Optional[dict]:
+    if location_id is None:
+        app.logger.error(f"Location was attempted to be added with ID=None for user {user_id}")
+        return None
+    if user_id is None:
+        app.logger.error(f"Location was attempted to be added with ID={location_id} with user_id=None")
+        return None
+
+    with app.app_context():
+        try:
+            stmt = select(Location).join(User).where(User.id == user_id).where(Location.id == location_id)
+            result = db.session.execute(stmt).one_or_none()
+            if result is not None:
+                return _to_dict(result[0])
+        except SQLAlchemyError as err:
+            app.logger.error(f"Failed trying to find a user location id={location_id}. {str(err)}")
+            return None
         return None
 
 

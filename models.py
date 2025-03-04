@@ -4,7 +4,6 @@ from random import choice
 
 from flask_login import UserMixin
 from sqlalchemy import UniqueConstraint, event
-from sqlalchemy.event import listen, listens_for
 
 from app import db
 from sqlalchemy.ext.declarative import declarative_base
@@ -59,7 +58,7 @@ class Preferences(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     default_public = db.Column(db.Boolean(), default=False)
     public_profile = db.Column(db.Boolean(), default=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
 
 class Notification(db.Model):
     __tablename__ = "notifications"
@@ -261,10 +260,9 @@ class InventoryItem(db.Model):
 class ItemType(db.Model):
     __tablename__ = "item_type"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name = db.Column(db.String(50), nullable=True, unique=False)
-    #user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
-
-    user_id = db.Column(db.Integer, nullable=True, unique=False)
+    name = db.Column(db.String(255), nullable=True, unique=False)
+    # user_id = db.Column(db.Integer, nullable=True, unique=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=True)
     __table_args__ = (UniqueConstraint('name', 'user_id', name='_name_userid_uc'),)
 
 

@@ -16,10 +16,10 @@ from flask_login import login_required, current_user
 from app import app
 from routes.index_routes import profile
 from database.database_functions import get_all_user_locations, \
-    get_all_item_types, \
-    find_type_by_text, find_inventory_by_slug, find_location_by_name, \
+    get_all_user_and_system_item_types, \
+    find_item_type_by_text, find_inventory_by_slug, find_location_by_name, \
     add_item_to_inventory, find_all_user_inventories, delete_items, move_items, \
-    get_all_fields, add_new_user_itemtype, \
+    get_all_fields, add_new_user_item_type, \
     get_user_templates, get_item_custom_field_data, \
     get_users_for_inventory, get_user_inventory_by_id, get_or_add_new_location, edit_items_locations, \
     change_item_access_level, link_items, copy_items, find_items_new, __PUBLIC__, __PRIVATE__, \
@@ -155,8 +155,8 @@ def items_load():
 
                                 # add item types
                                 if item_type is not None and item_type != 'none':
-                                    status, add_item_type_msg = add_new_user_itemtype(name=item_type,
-                                                                                      user_id=current_user.id)
+                                    status, add_item_type_msg = add_new_user_item_type(name=item_type,
+                                                                                       user_id=current_user.id)
 
                                 location_id = None
                                 if item_location is not None:
@@ -672,7 +672,7 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
             is_inventory_owner = True
             inventory_access_level = 0
 
-    item_types_ = get_all_item_types()
+    item_types_ = get_all_user_and_system_item_types()
     all_fields = dict(get_all_fields())
 
     data_dict = {}
@@ -812,7 +812,7 @@ def _process_url_query(req_, inventory_user):
 
     # convert the text 'types' to an id
     if requested_item_type_string is not None:
-        item_type_ = find_type_by_text(type_text=requested_item_type_string, user_id=inventory_user.id)
+        item_type_ = find_item_type_by_text(type_text=requested_item_type_string, user_id=inventory_user.id)
         if item_type_ is not None:
             requested_item_type_id = item_type_['id']
         else:

@@ -2,8 +2,9 @@ import bleach
 from flask import Blueprint, jsonify
 from flask_login import login_required, current_user
 from flask import request
-from database.database_functions import get_all_itemtypes_for_user, get_all_user_locations, get_all_user_tags, \
-    get_all_item_types, find_items_new, find_all_my_items, count_all_item_ids_in_inventory, count_all_user_items
+from database.database_functions import get_all_user_item_types, get_all_user_locations, get_all_user_tags, \
+    find_items_new, find_all_my_items, count_all_item_ids_in_inventory, count_all_user_items, \
+    get_all_user_and_system_item_types
 from database.database_functions import find_user_by_username
 from routes.items_routes import _get_inventory, _process_url_query
 
@@ -24,7 +25,7 @@ def my_utility_processor():
 @api_routes.route('/api/item-types', methods=['GET'])
 @login_required
 def user_item_types():
-    user_itemtypes_ = get_all_itemtypes_for_user(user_id=current_user.id)
+    user_itemtypes_ = get_all_user_item_types(user_id=current_user.id)
     return user_itemtypes_
 
 
@@ -159,7 +160,7 @@ def locations():
         loc_array.append(f"tag: {tag_.tag.lower()}")
         new_ret.append({"tag": tag_.tag.lower()})
 
-    item_types_ = get_all_item_types()
+    item_types_ = get_all_user_and_system_item_types(user_id=current_user.id)
     for item_type_ in item_types_:
         loc_array.append(f"type: {item_type_.name.lower()}")
         new_ret.append({"type": item_type_.name.lower()})
