@@ -2,7 +2,7 @@ import unittest
 
 from slugify import slugify
 
-from database.database_functions import get_number_user_lists, add_user_list, find_inventory_by_id, \
+from database.database_functions import get_number_user_lists, find_inventory_by_id, \
     find_inventory_by_slug, delete_list_by_id, edit_inventory_data, get_users_for_inventory, add_user_to_inventory, \
     delete_user_to_inventory, find_inventory_by_access_token
 

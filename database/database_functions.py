@@ -3070,10 +3070,12 @@ def get_user_inventories(current_user_id: int, requesting_user_id: int, access_l
     if not isinstance(requesting_user_id, int) and requesting_user_id is not None:
         return [], False, "requesting_user_id must be an integer"
 
-    with app.app_context():
+    with ((app.app_context())):
 
         # stmt = db.session.query(Inventory, UserInventory).join(UserInventory).filter(UserInventory.user_id==1).all()
-        stmt = db.session.query(Inventory, UserInventory).join(UserInventory)
+        stmt = db.session.query(Inventory, UserInventory, User
+                                ).join(UserInventory, UserInventory.inventory_id == Inventory.id
+                                       ).join(User, User.id == Inventory.owner_id)
 
         if current_user_id is not None and requesting_user_id is not None:
             is_current_user = (current_user_id == requesting_user_id)
@@ -3091,7 +3093,7 @@ def get_user_inventories(current_user_id: int, requesting_user_id: int, access_l
         else:
             # stmt = stmt.filter(UserInventory.user_id == requesting_user_id).filter(UserInventory.access_level != 0)
             stmt = db.session.query(Inventory, UserInventory
-                                    ).join(UserInventory
+                                    ).join(UserInventory, UserInventory.inventory_id == Inventory.id
                                            ).filter(Inventory.owner_id == requesting_user_id
                                                     ).filter(Inventory.access_level == 1)
 
@@ -3099,14 +3101,14 @@ def get_user_inventories(current_user_id: int, requesting_user_id: int, access_l
 
         ret_results = []
 
-        for inv, user_inv in r:
+        for inv, user_inv, owner in r:
             d = {
                 "inventory_id": inv.id,
                 "inventory_name": inv.name,
                 "inventory_description": inv.description,
                 "inventory_slug": inv.slug,
                 "inventory_access_level": inv.access_level,
-                "inventory_owner": inv.owner.username,
+                "inventory_owner": owner.username,
                 "inventory_item_count": len(inv.items),
                 "inventory_type": inv.type,
                 "inventory_show_default_fields": 1 if inv.show_default_fields else 0,
