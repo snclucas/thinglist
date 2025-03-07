@@ -432,7 +432,8 @@ def _create_list(name: str,
 
         inventory_token = uuid.uuid4().hex
         new_inventory = Inventory(name=name, description=description, token=inventory_token,
-                                  slug=slug, owner=to_user, type=inventory_type,
+                                  slug=slug, owner_id=to_user.id, type=inventory_type,
+                                  # slug=slug, owner=to_user, type=inventory_type, SNC
                                   show_default_fields=show_default_fields,
                                   show_item_images=show_item_images,
                                   show_item_type=show_item_type,
@@ -450,7 +451,7 @@ def _create_list(name: str,
         return new_inventory, new_inventory_id
 
 
-def add_user_list(name: str, description: str, inventory_type: int,
+def add_user_list(name: str, description: str, inventory_type: int, user_id: int,
                   show_default_fields: int = True,
                   show_item_images: int = True,
                   show_item_type: int = True,
@@ -458,7 +459,7 @@ def add_user_list(name: str, description: str, inventory_type: int,
                   show_item_tags: int = True,
                   show_item_url: int = False,
                   slug: str = None,
-                  access_level: int = 1, user_id: int = None) -> Tuple[Optional[dict], bool, str]:
+                  access_level: int = 1) -> Tuple[Optional[dict], bool, str]:
     if name == "":
         return None, False, "List name cannot be empty"
 
@@ -1206,6 +1207,22 @@ def get_all_user_and_system_item_types(user_id: int, string_list=True) -> list:
         query_result = db.session.execute(query_statement).all()
         return [row[0] for row in query_result if query_result is not None]
 
+def get_user_or_system_item_type(user_id: int, item_type_name: None) -> ItemType:
+    with app.app_context():
+        query_statement = db.session.query(ItemType)
+        query_statement = query_statement.filter(ItemType.name == item_type_name)
+        query_statement = query_statement.filter(or_(ItemType.user_id == user_id, ItemType.user_id == None))
+        query_result = db.session.execute(query_statement).one_or_none()
+        return query_result
+
+def get_user_item_type(user_id: int, item_type_name: None) -> ItemType:
+    with app.app_context():
+        query_statement = db.session.query(ItemType)
+        query_statement = query_statement.filter(ItemType.name == item_type_name)
+        query_statement = query_statement.filter(ItemType.user_id == user_id)
+        query_result = db.session.execute(query_statement).one_or_none()
+        return query_result[0]
+
 
 def delete_item_types_by_id(itemtype_ids: Union[int, list[int]], user_id: int) -> (bool, str):
     with app.app_context():
@@ -1241,7 +1258,7 @@ def get_user_item_type_count(user_id: int) -> int:
         item_type_count_ = db.session.query(ItemType).filter(ItemType.user_id == user_id).count()
         return item_type_count_
 
-def find_item_type_by_name(item_type_name: str, user_id: int) -> ItemType:
+def find_user_item_type_by_name(item_type_name: str, user_id: int) -> ItemType:
     with app.app_context():
         item_type_ = ItemType.query.filter_by(name=item_type_name).filter_by(user_id=user_id).first()
         return item_type_
@@ -1372,6 +1389,16 @@ def find_location_by_name(location_name: str) -> Location:
     return location_
 
 
+def find_related_items(item_id: int) -> (bool, list[Item]):
+    with app.app_context():
+        try:
+            item_ = Item.query.filter_by(id=item_id).first()
+            return True, item_.related_items
+        except (NoResultFound, InvalidRequestError, SQLAlchemyError) as err:
+            app.logger.error(f"Could not find related items for item with id {item_id} [{str(err)}]")
+            return False, []
+
+
 def unrelate_items_by_id(item1_id: int, item2_id: int) -> (bool, str):
     """
 
@@ -1402,10 +1429,12 @@ def unrelate_items_by_id(item1_id: int, item2_id: int) -> (bool, str):
         if item2_ in item1_.related_items and item1_ in item2_.related_items:
             try:
                 item1_.related_items.remove(item2_)
-                db.session.commit()
+                #db.session.commit()
                 item2_.related_items.remove(item1_)
                 db.session.commit()
-            except SQLAlchemyError:
+                return True, f"Items with ids {item1_id} and {item2_id} unrelated"
+            except (TypeError | SQLAlchemyError) as err:
+                app.logger.error(f"Could not unrelate items with ids {item1_id} and {item2_id} [{str(err)}]")
                 db.session.rollback()
                 return False, f"Could not unrelate items with ids {item1_id} and {item2_id}"
         else:
@@ -2425,12 +2454,38 @@ def add_item_to_inventory(item_id=None, item_name=None, item_desc=None, item_typ
     with app_context:
 
         try:
-
             if custom_fields is None:
                 custom_fields = {}
 
+
+            _item_type_int = None
+            _item_type_str = None
+            if isinstance(item_type, int):
+                _item_type_int = item_type
+            else:
+                _item_type_str = item_type
+
+            # If item_type is none set it to the in-built Not Set item type
             if item_type is None:
-                item_type = "none"
+                item_type_ = db.session.query(ItemType).filter_by(name="Not set").one_or_none()
+                if item_type_ is not None:
+                    _item_type_int = item_type_.id
+
+            else:
+                # check if the user has an item type with the same name
+                item_type_ = get_user_or_system_item_type(user_id=user_id, item_type_name=_item_type_str)
+
+                if item_type_ is None:
+                    # add new user item type
+                    item_type_ = ItemType(name=item_type, user_id=user_id)
+                    db.session.add(item_type_)
+                    db.session.commit()
+                    db.session.flush()
+
+            _item_type_int = item_type_.id
+
+
+
 
             if item_id is not None:
                 new_item = find_item_by_id(user_id=user_id, item_id=item_id)
@@ -2438,7 +2493,7 @@ def add_item_to_inventory(item_id=None, item_name=None, item_desc=None, item_typ
             if item_id is None or new_item is None:
                 # create the new item
                 new_item = Item(name=item_name, description=item_desc, user_id=user_id, quantity=item_quantity,
-                                url=item_url,
+                                url=item_url, item_type=_item_type_int,
                                 location_id=item_location_id, specific_location=item_specific_location)
                 db.session.add(new_item)
                 # get new item ID and set the item slug
@@ -2446,38 +2501,22 @@ def add_item_to_inventory(item_id=None, item_name=None, item_desc=None, item_typ
                 item_slug = f"{str(new_item.id)}-{slugify(item_name)}"
                 new_item.slug = item_slug
 
-            # else:
-            #    new_item = find_item(user_id=user_id, item_id=item_id)
 
-            if item_type is None:
-                item_type = "None"
+            #new_item.item_type = item_type_.id
+            #db.session.commit()
 
-            # set or create the item type
-            if isinstance(item_type, int):
-                new_item.item_type = item_type
-            else:
-                item_type_ = db.session.query(ItemType).filter_by(name=item_type.lower()).filter_by(
-                    user_id=user_id).one_or_none()
 
-                if item_type_ is None:
-                    item_type_ = ItemType(name=item_type, user_id=user_id)
-                    db.session.add(item_type_)
-                    db.session.commit()
-                    db.session.flush()
+            if item_tags is not None:
+                for tag in item_tags:
+                    if tag != '':
+                        tag = tag.strip()
+                        tag = tag.replace(" ", "@#$")
+                        instance = db.session.query(Tag).filter_by(tag=tag).one_or_none()
+                        if not instance:
+                            instance = Tag(tag=tag, user_id=user_id)
 
-                new_item.item_type = item_type_.id
-                db.session.commit()
-
-            for tag in item_tags:
-                if tag != '':
-                    tag = tag.strip()
-                    tag = tag.replace(" ", "@#$")
-                    instance = db.session.query(Tag).filter_by(tag=tag).one_or_none()
-                    if not instance:
-                        instance = Tag(tag=tag, user_id=user_id)
-
-                    if instance not in new_item.tags:
-                        new_item.tags.append(instance)
+                        if instance not in new_item.tags:
+                            new_item.tags.append(instance)
 
             if inventory_id is None or inventory_id == '':
                 default_user_inventory_ = get_user_default_inventory(user_id=user_id)
@@ -3291,6 +3330,7 @@ def get_all_fields():
         return res
 
 
+
 def get_all_user_and_system_fields(user_id: int):
     with app.app_context():
         q_ = db.session.query(Field).filter(or_(Field.user_id == user_id, Field.user_id == None))
@@ -3588,12 +3628,12 @@ def post_user_add_hook(new_user: User):
 
     """
     with app.app_context():
-        _ret = add_user_list(name=f"__default__{new_user.username}",
+        _ret = add_user_list(name=f"{__DEFAULT__}{new_user.username}",
                              description=f"Default inventory for {new_user.username}",
                              access_level=0,
                              inventory_type=1,
                              user_id=new_user.id)
-        get_or_add_new_location(location_name=f"__default__{new_user.id}",
+        get_or_add_new_location(location_name=f"{__DEFAULT__}{new_user.id}",
                                 location_description=f"Default location for {new_user.username}",
                                 to_user_id=new_user.id)
         #add_new_user_itemtype(name=_NONE_, user_id=new_user.id)

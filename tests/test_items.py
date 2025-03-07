@@ -1,9 +1,11 @@
 import unittest
 
 from database.database_functions import add_user_list, get_users_for_inventory, \
-    add_item_to_inventory, find_items_new, delete_list_by_id, find_default_user_location, find_item_type_by_name, \
+    add_item_to_inventory, find_items_new, delete_list_by_id, find_default_user_location, find_user_item_type_by_name, \
     update_item_by_id, find_all_my_items, get_user_item_count, delete_all_user_items, get_user_default_inventory, \
-    get_user_unlisted_item_count
+    get_user_unlisted_item_count, find_related_items, relate_items_by_id, unrelate_items_by_id
+
+from site_globals import __INVENTORY__
 
 from tests.test_parent import TestAppParent
 
@@ -12,6 +14,45 @@ class TestApp(TestAppParent):
 
     def test_delete_all_user_items(self):
         delete_all_user_items(user_id=self.users['simon'].id)
+
+
+
+
+    def test_relate_items(self):
+        new_inventory_data, status, msg = add_user_list(name="test_list",
+                                                        description="tet_list_desc", inventory_type=__INVENTORY__,
+                                                        user_id=self.users['simon'].id)
+        self.assertEqual("success", msg)
+        self.assertEqual(True, status)
+
+        _ret1 = add_item_to_inventory(inventory_id=new_inventory_data["id"], item_name="item1",
+                                     item_desc="item1",
+                                     user_id=self.users['simon'].id)
+
+        _ret2 = add_item_to_inventory(inventory_id=new_inventory_data["id"], item_name="item2",
+                                      item_desc="item2",
+                                      user_id=self.users['simon'].id)
+
+        status, related_items = find_related_items(item_id=_ret1["item"]["id"])
+        self.assertEqual(0, len(related_items))
+        self.assertEqual(True, status)
+
+        relate_items_by_id(item1_id=_ret1["item"]["id"], item2_id=_ret2["item"]["id"])
+
+        status, related_items = find_related_items(item_id=_ret1["item"]["id"])
+        self.assertEqual(1, len(related_items))
+        self.assertEqual(True, status)
+        self.assertEqual(related_items[0].id, _ret2["item"]["id"])
+
+        status, related_items = find_related_items(item_id=_ret2["item"]["id"])
+        self.assertEqual(1, len(related_items))
+        self.assertEqual(True, status)
+        self.assertEqual(related_items[0].id, _ret1["item"]["id"])
+
+        status, msg, unrelate_items_by_id(item1_id=_ret1["item"]["id"], item2_id=_ret2["item"]["id"])
+        self.assertEqual(True, status)
+
+
 
     def test_add_items(self):
         _added_list_data = {}
@@ -46,8 +87,9 @@ class TestApp(TestAppParent):
                                              item_quantity=_item["quantity"], item_url=_item["url"],
                                              user_id=_list['to_user_id'])
 
-                _item_type = find_item_type_by_name(item_type_name=_item["type"],
-                                                    user_id=_list['to_user_id'])
+                # this should be a user item type
+                _item_type = find_user_item_type_by_name(item_type_name=_item["type"],
+                                                         user_id=_list['to_user_id'])
                 self.assertEqual(_item_type.name, _item["type"])
 
                 self.assertEqual("success", _ret["status"])
@@ -71,8 +113,8 @@ class TestApp(TestAppParent):
             _items = find_items_new(inventory_id=_new_list["id"], logged_in_user=_user)
             self.assertEqual(2, len(_items))
 
-            _item_type = find_item_type_by_name(item_type_name="printer",
-                                                user_id=_user.id)
+            _item_type = find_user_item_type_by_name(item_type_name="printer",
+                                                     user_id=_user.id)
 
             new_item_data = {
                 "name": "test_item edited",
@@ -87,8 +129,8 @@ class TestApp(TestAppParent):
             }
             update_item_by_id(item_data=new_item_data, user=_user, item_id=_items[0][0].id)
 
-            _item_type = find_item_type_by_name(item_type_name="personal computer",
-                                                user_id=_user.id)
+            _item_type = find_user_item_type_by_name(item_type_name="personal computer",
+                                                     user_id=_user.id)
             _query_params = {
                 "item_type": _item_type.id
             }

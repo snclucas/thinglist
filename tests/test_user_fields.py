@@ -3,47 +3,10 @@ import unittest
 from database.database_functions import add_field, get_all_user_fields, delete_fields_from_db, \
     get_all_user_and_system_fields, get_all_system_fields
 from database.database_functions import add_user_by_details, remove_user_by_id
+from tests.test_parent import TestAppParent
 
 
-class TestApp(unittest.TestCase):
-    users = {}
-
-    @classmethod
-    def setUpClass(cls):
-        cls.users['simon'] = add_user_by_details(username='simon_test', email='simon_test@example.com',
-                                                 password='password', fail_on_duplicate=False)
-        cls.users['neil'] = add_user_by_details(username='neil_test', email='neil_test@example.com',
-                                                password='password', fail_on_duplicate=False)
-        cls.users['dave'] = add_user_by_details(username='dave_test', email='dave_test@example.com',
-                                                password='password', fail_on_duplicate=False)
-
-        cls.fields_to_add_system = [
-            {"field_name": "systemfield1", "field_type": "text"},
-            {"field_name": "systemfield2", "field_type": "textarea"},
-            {"field_name": "systemfield3", "field_type": "bool"},
-            {"field_name": "systemfield4", "field_type": "url"}
-        ]
-
-        cls.fields_to_add_simon = [
-            {"field_name": "simonfield1", "field_type": "text"},
-            {"field_name": "simonfield2", "field_type": "textarea"},
-            {"field_name": "simonfield3", "field_type": "bool"},
-            {"field_name": "simonfield4", "field_type": "url"}
-        ]
-
-        cls.fields_to_add_dave = [
-            {"field_name": "davefield1", "field_type": "text"},
-            {"field_name": "davefield2", "field_type": "textarea"},
-            {"field_name": "davefield3", "field_type": "bool"},
-            {"field_name": "davefield4", "field_type": "url"}
-        ]
-
-    @classmethod
-    def tearDownClass(cls):
-        for user_name, user in cls.users.items():
-            _ret = remove_user_by_id(user_id=user.id)
-
-
+class TestApp(TestAppParent):
 
     def test_add_user_field(self):
 

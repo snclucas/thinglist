@@ -672,7 +672,7 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
             is_inventory_owner = True
             inventory_access_level = 0
 
-    item_types_ = get_all_user_and_system_item_types()
+    item_types_ = get_all_user_and_system_item_types(user_id=inventory_owner_id)
     all_fields = dict(get_all_fields())
 
     data_dict = {}

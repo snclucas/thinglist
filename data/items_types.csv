@@ -1,75 +1,4 @@
 Name,Description,Category
-Not set,Not set,None
-Computer,Computer,Computers
-Optical drive,Optical drive,Computer peripheral
-"CD-ROM drive, internal","CD-ROM drive, internal",Computer peripheral
-"CD-ROM drive, external","CD-ROM drive, external",Computer peripheral
-CD-RW drive,CD-RW drive,Computer peripheral
-CD-RAM drive,CD-RAM drive,Computer peripheral
-"Tape drive, internal","Tape drive, internal",Computer peripheral
-"Tape drive, external","Tape drive, external",Computer peripheral
-"Mouse, optical","Mouse, optical",Computer peripheral
-"Mouse, ball","Mouse, ball",Computer peripheral
-Joystick,Joystick,Computer peripheral
-"Power supply, modular","Power supply, modular",Power supplies
-"Monitor, CRT","Monitor, CRT",Displays
-"Monitor, LED","Monitor, LED",Displays
-Game console,Game console,Game consoles
-"TV, CRT","TV, CRT",Displays
-"TV, LCD","TV, LCD",Displays
-"Floppy drive, 5.25 inch","Floppy drive, 5.25 inch",Computer peripheral
-"Floppy drive, 3.5 inch","Floppy drive, 3.5 inch",Computer peripheral
-"Floppy drive, 8 inch","Floppy drive, 8 inch",Computer peripheral
-"Hard drive, SSD","Hard drive, SSD",Computer peripheral
-"Hard drive, spinning","Hard drive, spinning",Computer peripheral
-"IC, RAM","IC, RAM",Electronic component
-"IC, ROM","IC, ROM",Electronic component
-"IC, EEPROM","IC, EEPROM",Electronic component
-"Passive component, capacitor","Passive component, capacitor",Electronic component
-Sound card,Sound card,Computer card
-Graphics card (2d),Graphics card (2d),Computer card
-Mini-computer,Mini-computer,Computers
-Graphics card (3d),Graphics card (3d),Computer card
-Graphics card (2d/3d),Graphics card (2d/3d),Computer card
-"Network card, ethernet","Network card, ethernet",Computer card
-"Network card, wifi","Network card, wifi",Computer card
-"Network card, token-ring","Network card, token-ring",Computer card
-SCSI card,SCSI card,Computer card
-Keyboard,Keyboard,Computer peripheral
-Plotter,Plotter,Printer
-Printer (laser),Printer (laser),Printer
-Printer (dot matrix),Printer (dot matrix),Printer
-Printer (ink jet),Printer (ink jet),Printer
-Firewire card,Firewire card,Computer card
-"Cable, FireWire 800, 9 Pin to 9 Pin","Cable, FireWire 800, 9 Pin to 9 Pin",Cables
-"Cable, USB 2.0 A to Mini B","Cable, USB 2.0 A to Mini B",Cables
-"Cable, USB 2.0 A to Micro B","Cable, USB 2.0 A to Micro B",Cables
-"Cable, USB 2.0 A to B","Cable, USB 2.0 A to B",Cables
-"Cable, USB 2.0 A to A Female","Cable, USB 2.0 A to A Female",Cables
-"Cable, USB 3.0 A to MicroB","Cable, USB 3.0 A to MicroB",Cables
-"Cable, USB 3.0 A to B","Cable, USB 3.0 A to B",Cables
-"Cable, Ultra Slim, USB 3.0 A to Micro B","Cable, Ultra Slim, USB 3.0 A to Micro B",Cables
-"Cable, USB 3.0 A to A Female","Cable, USB 3.0 A to A Female",Cables
-"Cable, FireWire 400, 9 Pin to 6 Pin","Cable, FireWire 400, 9 Pin to 6 Pin",Cables
-"Cable, FireWire 400, 6 Pin to 6 Pin","Cable, FireWire 400, 6 Pin to 6 Pin",Cables
-"Cable, DB9 Female to Female Straight-Thru","Cable, DB9 Female to Female Straight-Thru",Cables
-"Cable, DB9 Male to Female Straight-Thru","Cable, DB9 Male to Female Straight-Thru",Cables
-"Cable, DB9 Male to Male Straight-Thru","Cable, DB9 Male to Male Straight-Thru",Cables
-"Serial connection, D-sub 9 pin male to D-sub 9 pin male","Serial connection, D-sub 9 pin male to D-sub 9 pin male",Cables
-"Serial connection, D-sub 9 pin female to D-sub 9 pin female","Serial connection, D-sub 9 pin female to D-sub 9 pin female",Cables
-"Serial connection, D-sub 9 pin female to D-sub 25 pin male","Serial connection, D-sub 9 pin female to D-sub 25 pin male",Cables
-"Serial connection, D-sub 9 pin male to D-sub 9 pin female","Serial connection, D-sub 9 pin male to D-sub 9 pin female",Cables
-"Serial connection, D-sub 37 pin male to D-sub 37 pin male","Serial connection, D-sub 37 pin male to D-sub 37 pin male",Cables
-"Serial connection, D-sub 37 pin male to D-sub 37 pin female","Serial connection, D-sub 37 pin male to D-sub 37 pin female",Cables
-Monitor cable VGA,Monitor cable VGA,Cables
-DisplayPort 1.2 to VGA,DisplayPort 1.2 to VGA,Cables
-DisplayPort 1.1 to VGA,DisplayPort 1.1 to VGA,Cables
-SCART (male) to VGA (female) cable,SCART (male) to VGA (female) cable,Cables
-DVI-A 12+4+1 pins (male) to VGA (male),DVI-A 12+4+1 pins (male) to VGA (male),Cables
-S-ATA 150 cable ,S-ATA 150 cable ,Cables
-"S-ATA 300 cable, flat","S-ATA 300 cable, flat",Cables
-"S-ATA 300 cable, right angled","S-ATA 300 cable, right angled",Cables
-"S-ATA 300 cable, flat connectors","S-ATA 300 cable, flat connectors",Cables
 4000 Series,4000 Series,Electronic component
 74 Series,74 Series,Electronic component
 Analog Comparators,Analog Comparators,Electronic component
@@ -79,8 +8,28 @@ Battery Protection Ics,Battery Protection Ics,Electronic component
 Beads,Beads,Electronic component
 Bridge Rectifiers,Bridge Rectifiers,Electronic component
 "Buffers, Drivers, Receivers, Transceivers","Buffers, Drivers, Receivers, Transceivers",Electronic component
+"Cable, DB9 Female to Female Straight-Thru","Cable, DB9 Female to Female Straight-Thru",Cables
+"Cable, DB9 Male to Female Straight-Thru","Cable, DB9 Male to Female Straight-Thru",Cables
+"Cable, DB9 Male to Male Straight-Thru","Cable, DB9 Male to Male Straight-Thru",Cables
+"Cable, FireWire 400, 6 Pin to 6 Pin","Cable, FireWire 400, 6 Pin to 6 Pin",Cables
+"Cable, FireWire 400, 9 Pin to 6 Pin","Cable, FireWire 400, 9 Pin to 6 Pin",Cables
+"Cable, FireWire 800, 9 Pin to 9 Pin","Cable, FireWire 800, 9 Pin to 9 Pin",Cables
+"Cable, Ultra Slim, USB 3.0 A to Micro B","Cable, Ultra Slim, USB 3.0 A to Micro B",Cables
+"Cable, USB 2.0 A to A Female","Cable, USB 2.0 A to A Female",Cables
+"Cable, USB 2.0 A to B","Cable, USB 2.0 A to B",Cables
+"Cable, USB 2.0 A to Micro B","Cable, USB 2.0 A to Micro B",Cables
+"Cable, USB 2.0 A to Mini B","Cable, USB 2.0 A to Mini B",Cables
+"Cable, USB 3.0 A to A Female","Cable, USB 3.0 A to A Female",Cables
+"Cable, USB 3.0 A to B","Cable, USB 3.0 A to B",Cables
+"Cable, USB 3.0 A to MicroB","Cable, USB 3.0 A to MicroB",Cables
 Can,Can,Electronic component
+CD-RAM drive,CD-RAM drive,Computer peripheral
+"CD-ROM drive, external","CD-ROM drive, external",Computer peripheral
+"CD-ROM drive, internal","CD-ROM drive, internal",Computer peripheral
+CD-RW drive,CD-RW drive,Computer peripheral
+Chemical reagent,Chemical reagent,Chemical
 Chip Resistor - Surface Mount,Chip Resistor - Surface Mount,Electronic component
+Computer,Computer,Computers
 Current Sensors,Current Sensors,Electronic component
 Darlington Transistor Array Driver,Darlington Transistor Array Driver,Electronic component
 Dc-Dc Converters,Dc-Dc Converters,Electronic component
@@ -88,46 +37,154 @@ Digital Isolators,Digital Isolators,Electronic component
 Diodes - General Purpose,Diodes - General Purpose,Electronic component
 Diodes - Rectifiers - Hyperfast,Diodes - Rectifiers - Hyperfast,Electronic component
 Dip Optocouplers,Dip Optocouplers,Electronic component
+DisplayPort 1.1 to VGA,DisplayPort 1.1 to VGA,Cables
+DisplayPort 1.2 to VGA,DisplayPort 1.2 to VGA,Cables
 Driver Ics,Driver Ics,Electronic component
+DVI-A 12+4+1 pins (male) to VGA (male),DVI-A 12+4+1 pins (male) to VGA (male),Cables
 Eeprom,Eeprom,Electronic component
+Element,Element,Chemical
 Ethernet Ics,Ethernet Ics,Electronic component
 Fet Inputamplifiers,Fet Inputamplifiers,Electronic component
+Firewire card,Firewire card,Computer card
 Flash,Flash,Electronic component
+"Floppy drive, 3.5 inch","Floppy drive, 3.5 inch",Computer peripheral
+"Floppy drive, 5.25 inch","Floppy drive, 5.25 inch",Computer peripheral
+"Floppy drive, 8 inch","Floppy drive, 8 inch",Computer peripheral
+Game console,Game console,Game consoles
 Gates And Inverters,Gates And Inverters,Electronic component
 General Purpose Amplifiers,General Purpose Amplifiers,Electronic component
+Graphics card (2d),Graphics card (2d),Computer card
+Graphics card (2d/3d),Graphics card (2d/3d),Computer card
+Graphics card (3d),Graphics card (3d),Computer card
+"Hard drive, spinning","Hard drive, spinning",Computer peripheral
+"Hard drive, SSD","Hard drive, SSD",Computer peripheral
 Hf Inductors,Hf Inductors,Electronic component
+"IC, EEPROM","IC, EEPROM",Electronic component
+"IC, RAM","IC, RAM",Electronic component
+"IC, ROM","IC, ROM",Electronic component
 Inductors (Smd),Inductors (Smd),Electronic component
 Instrumentation Opamps,Instrumentation Opamps,Electronic component
+Joystick,Joystick,Computer peripheral
+Keyboard,Keyboard,Computer peripheral
 Lcd Drivers,Lcd Drivers,Electronic component
 Led Drivers,Led Drivers,Electronic component
 Light Emitting Diodes (Led),Light Emitting Diodes (Led),Electronic component
 Linear Voltage Regulators,Linear Voltage Regulators,Electronic component
 Low Dropout Regulators(Ldo),Low Dropout Regulators(Ldo),Electronic component
 Low Power Opamps,Low Power Opamps,Electronic component
+Mini-computer,Mini-computer,Computers
+Monitor cable VGA,Monitor cable VGA,Cables
+"Monitor, CRT","Monitor, CRT",Displays
+"Monitor, LED","Monitor, LED",Displays
 Mosfet,Mosfet,Electronic component
+"Mouse, ball","Mouse, ball",Computer peripheral
+"Mouse, optical","Mouse, optical",Computer peripheral
 Multilayer Ceramic Capacitors Mlcc - Smd/Smt,Multilayer Ceramic Capacitors Mlcc - Smd/Smt,Electronic component
+"Network card, ethernet","Network card, ethernet",Computer card
+"Network card, token-ring","Network card, token-ring",Computer card
+"Network card, wifi","Network card, wifi",Computer card
+Not set,Not set,None
+Optical drive,Optical drive,Computer peripheral
+"Passive component, capacitor","Passive component, capacitor",Electronic component
+Plotter,Plotter,Printer
 Pmic - Battery Management,Pmic - Battery Management,Electronic component
 Power Management Specialized - Pmic,Power Management Specialized - Pmic,Electronic component
+"Power supply, modular","Power supply, modular",Power supplies
 Precision Opamps,Precision Opamps,Electronic component
+Printer (dot matrix),Printer (dot matrix),Printer
+Printer (ink jet),Printer (ink jet),Printer
+Printer (laser),Printer (laser),Printer
 Real-Time Clocks,Real-Time Clocks,Electronic component
 Resistor Networks & Arrays,Resistor Networks & Arrays,Electronic component
 Rf Transceiver Ics,Rf Transceiver Ics,Electronic component
 Rs232,Rs232,Electronic component
 Rs-485 & Rs-422,Rs-485 & Rs-422,Electronic component
+S-ATA 150 cable ,S-ATA 150 cable ,Cables
+"S-ATA 300 cable, flat","S-ATA 300 cable, flat",Cables
+"S-ATA 300 cable, flat connectors","S-ATA 300 cable, flat connectors",Cables
+"S-ATA 300 cable, right angled","S-ATA 300 cable, right angled",Cables
+SCART (male) to VGA (female) cable,SCART (male) to VGA (female) cable,Cables
 Schottky Barrier Diodes (Sbd),Schottky Barrier Diodes (Sbd),Electronic component
+SCSI card,SCSI card,Computer card
+"Serial connection, D-sub 37 pin male to D-sub 37 pin female","Serial connection, D-sub 37 pin male to D-sub 37 pin female",Cables
+"Serial connection, D-sub 37 pin male to D-sub 37 pin male","Serial connection, D-sub 37 pin male to D-sub 37 pin male",Cables
+"Serial connection, D-sub 9 pin female to D-sub 25 pin male","Serial connection, D-sub 9 pin female to D-sub 25 pin male",Cables
+"Serial connection, D-sub 9 pin female to D-sub 9 pin female","Serial connection, D-sub 9 pin female to D-sub 9 pin female",Cables
+"Serial connection, D-sub 9 pin male to D-sub 9 pin female","Serial connection, D-sub 9 pin male to D-sub 9 pin female",Cables
+"Serial connection, D-sub 9 pin male to D-sub 9 pin male","Serial connection, D-sub 9 pin male to D-sub 9 pin male",Cables
 Smd Crystal Resonators,Smd Crystal Resonators,Electronic component
+Solvent,Solvent,Chemical
+Sound card,Sound card,Computer card
 St Microelectronics,St Microelectronics,Electronic component
 Stc,Stc,Electronic component
 Switching Controllers,Switching Controllers,Electronic component
 Switching Diode,Switching Diode,Electronic component
 Tantalum Capacitors,Tantalum Capacitors,Electronic component
+"Tape drive, external","Tape drive, external",Computer peripheral
+"Tape drive, internal","Tape drive, internal",Computer peripheral
 Ti Mcu,Ti Mcu,Electronic component
 Timer,Timer,Electronic component
 Transistors (Npn/Pnp),Transistors (Npn/Pnp),Electronic component
+"TV, CRT","TV, CRT",Displays
+"TV, LCD","TV, LCD",Displays
 Tvs,Tvs,Electronic component
 Usb,Usb,Electronic component
 Voltage References,Voltage References,Electronic component
 Zener Diodes,Zener Diodes,Electronic component
-Chemical reagent,Chemical reagent,Chemical
-Solvent,Solvent,Chemical
-Element,Element,Chemical
+"Drill, corded","Drill, corded",Power tools
+"Drill, cordless","Drill, cordless",Power tools
+Drill,Drill,Power tools
+"Drill, angle","Drill, angle",Power tools
+"Drill, combi","Drill, combi",Power tools
+"Drill, SDS","Drill, SDS",Power tools
+"Drill, hammer","Drill, hammer",Power tools
+"Drill, pillar","Drill, pillar",Power tools
+"Drill, press","Drill, press",Power tools
+"Drill, table","Drill, table",Power tools
+Saw,Saw,Power tools
+"Saw, circular","Saw, circular",Power tools
+"Saw, mitre","Saw, mitre",Power tools
+"Saw, reciprocating","Saw, reciprocating",Power tools
+"Saw, jigsaw","Saw, jigsaw",Power tools
+"Saw, table","Saw, table",Power tools
+"Saw, tile","Saw, tile",Power tools
+"Saw, plunge","Saw, plunge",Power tools
+"Saw, band","Saw, band",Power tools
+"Saw, scroll","Saw, scroll",Power tools
+"Saw, chop","Saw, chop",Power tools
+Angle grinder,Angle grinder,Power tools
+Sander,Sander,Power tools
+"Sander, orbit","Sander, orbit",Power tools
+"Sander, detail","Sander, detail",Power tools
+"Sander, sheet","Sander, sheet",Power tools
+"Sander, belt","Sander, belt",Power tools
+Lathe,Lathe,Power tools
+"Lathe, wood","Lathe, wood",Power tools
+"Lathe, axminster","Lathe, axminster",Power tools
+Grinder,Grinder,Power tools
+"Grinder, bench","Grinder, bench",Power tools
+Welder,Welder,Power tools
+"Welder, MIG","Welder, MIG",Power tools
+"Welder, Arc","Welder, Arc",Power tools
+"Welder, TIG","Welder, TIG",Power tools
+"Welder, inverter","Welder, inverter",Power tools
+"Welder, portable","Welder, portable",Power tools
+Planer,Planer,Power tools
+"Planer, thickness","Planer, thickness",Power tools
+"Planer, table","Planer, table",Power tools
+Plasma cutter,Plasma cutter,Power tools
+Screwdriver,Screwdriver,Power tools
+"Screwdriver, phillips","Screwdriver, phillips",Power tools
+"Screwdriver, flat","Screwdriver, flat",Power tools
+"Screwdriver, electric","Screwdriver, electric",Power tools
+Nail gun,Nail gun,Power tools
+"Nail gun, cordless","Nail gun, cordless",Power tools
+"Nail gun, brad","Nail gun, brad",Power tools
+"Nail gun, air","Nail gun, air",Power tools
+"Nail gun, electric","Nail gun, electric",Power tools
+"Nail gun, framing","Nail gun, framing",Power tools
+"Nail gun, finish","Nail gun, finish",Power tools
+Router,Router,Power tools
+"Router, plunge","Router, plunge",Power tools
+"Router, palm","Router, palm",Power tools
+"Router, table","Router, table",Power tools

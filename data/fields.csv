@@ -2,6 +2,8 @@ Name,Description,Type
 A/D converter,A/D converter,input
 Additional information,Additional information,textarea
 Affiliation,Affiliation,input
+Air delivery,Air delivery,input
+Air displacement,Air displacement,input
 Airfoil,Airfoil,input
 Airframe  ,Airframe  ,input
 Airframe hours,Airframe hours,input
@@ -27,6 +29,7 @@ Battery life,Battery life,input
 Baud rate,Baud rate,input
 Beam,Beam,input
 Berths,Berths,input
+BTU,BTU,input
 Binding,Binding,input
 Block,Block,input
 Board number,Board number,input
@@ -61,6 +64,7 @@ Country,Country,input
 CPU,CPU,input
 Creator,Creator,input
 Crossover frequency,Crossover frequency,input
+Coverage,Coverage,input
 Cruise speed,Cruise speed,input
 D/A converter,D/A converter,input
 DAC,DAC,input
@@ -78,13 +82,16 @@ Digital outputs,Digital outputs,input
 Dimensions,Dimensions,input
 Director,Director,input
 Disaplacement,Disaplacement,input
+Disc bore,Disc bore,input
 Discipline,Discipline,input
 Disk number,Disk number,input
 Displacement,Displacement,input
 Display Bit Depth,Display Bit Depth,input
 Draught,Draught,input
+Drive type,Drive type,input
 Drive units,Drive units,input
 Dry weight,Dry weight,input
+Dry capacity,Dry capacity,input
 Dynamic range,Dynamic range,input
 Edition,Edition,input
 End production date,End production date,input
@@ -94,9 +101,11 @@ Engine make,Engine make,input
 Engine model,Engine model,input
 Engine type,Engine type,input
 Engine usage,Engine usage,input
+Evaporation type,Evaporation type,input
 Exterior Material,Exterior Material,input
 Failure rate,Failure rate,input
 Family,Family,input
+Finderscope,Finderscope,input
 Firmware,Firmware,input
 Floppy drive,Floppy drive,input
 Focal Length,Focal Length,input
@@ -115,10 +124,14 @@ Gain,Gain,input
 Gauge,Gauge,input
 Genre,Genre,input
 Group,Group,input
+Handmade,Handmade,bool
 Headroom extension,Headroom extension,input
+Head type,Head type,input
+Heat output,Heat output,input
 Heads,Heads,input
 Height,Height,input
 Holding tanks,Holding tanks,input
+Hours,Hours,input
 Hull material,Hull material,input
 Hull type,Hull type,input
 Ideology,Ideology,input
@@ -136,6 +149,7 @@ Keel type,Keel type,input
 Language,Language,input
 Leader,Leader,input
 Length,Length,input
+Lining Color,Lining Color,input
 LOA,LOA,input
 Manufacture date,Manufacture date,input
 Manufacturer,Manufacturer,input
@@ -144,6 +158,9 @@ Material,Material,input
 Max Number of Colors,Max Number of Colors,input
 Maximum Aperture,Maximum Aperture,input
 Maximum DC Current,Maximum DC Current,input
+Maximum Magnification,Maximum Magnification,input
+Maximum Resolution,Maximum Resolution,input
+Maximum load,Maximum load,input
 Maximum speed,Maximum speed,input
 Media type,Media type,input
 Mileage,Mileage,input
@@ -151,12 +168,14 @@ Model,Model,input
 Monoisotopic mass,Monoisotopic mass,input
 Mount ,Mount ,input
 Mounting style,Mounting style,input
+MPN,MPN,input
 Noise reduction,Noise reduction,input
 Number of births,Number of births,input
 Number of cabins,Number of cabins,input
 Number of pages,Number of pages,input
 Number of pins,Number of pins,input
 Number of tracks,Number of tracks,input
+Objective Lens Diameter,Objective Lens Diameter,input
 Operating pressure,Operating pressure,input
 Operating System,Operating System,input
 Operating temperature (max),Operating temperature (max),input
@@ -170,6 +189,7 @@ Pages,Pages,input
 Panel,Panel,input
 Parents,Parents,input
 Part number,Part number,input
+Pattern,Pattern,input
 Period,Period,input
 Platform,Platform,input
 Play time,Play time,input
@@ -242,6 +262,7 @@ Speaker load impedance,Speaker load impedance,input
 Species,Species,input
 Spouse,Spouse,input
 Stall speed,Stall speed,input
+Standard,Standard,input
 Status,Status,input
 Strength,Strength,input
 Studio,Studio,input
@@ -252,6 +273,8 @@ Supply voltage (range),Supply voltage (range),input
 System,System,input
 System number,System number,input
 System requirements,System requirements,textarea
+Tank capacity,Tank capacity,input
+Tank pressure,Tank pressure,input
 Tape speed,Tape speed,input
 Taper,Taper,input
 TDP,TDP,input
@@ -282,12 +305,4 @@ Wingspan,Wingspan,input
 Wow and flutter,Wow and flutter,input
 Year build,Year build,input
 Zipcode,Zipcode,input
-MPN,MPN,input
-Finderscope,Finderscope,input
-Maximum Magnification,Maximum Magnification,input
-Objective Lens Diameter,Objective Lens Diameter,input
-Maximum Resolution,Maximum Resolution,input
-Pattern,Pattern,input
-Lining Color,Lining Color,input
-Handmade,Handmade,bool
-Hours,Hours,input
+Weatherproof,Weatherproof,bool

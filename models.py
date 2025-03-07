@@ -116,8 +116,7 @@ class Inventory(db.Model):
     name = db.Column(db.String(50))
     slug = db.Column(db.String(50), nullable=True, unique=False)
     description = db.Column(db.String(255))
-    owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True, nullable=False)
-    owner = db.relationship(User, load_on_pending=True, lazy='subquery')
+    owner_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), primary_key=True, nullable=False)
     users = db.relationship('User', secondary='inventory_users', back_populates='inventories', lazy='subquery', cascade="all,delete")
     items = db.relationship('Item', secondary='inventory_items', back_populates='inventories', lazy='subquery', cascade="all,delete")
     default_fields = db.Column(db.String(1000), default="-1")
@@ -134,30 +133,14 @@ class Inventory(db.Model):
     show_item_url = db.Column(db.Boolean(), nullable=False, unique=False, default=True)
     invtags = db.relationship('Invtag', secondary='inventory_tags', back_populates='inventories', lazy='subquery')
 
-
-# @listens_for(Inventory, 'after_insert')
-# def add_acl(mapper, connect, target):
-#     from flask_login import current_user
-#     from site_globals import __OWNER__
-#     if isinstance(target, Inventory):
-#         acl = AccessControl(user_id=target.owner.id, entity="inventory", access_level=__OWNER__)
-#         db.session.add(acl)
-#         db.session.commit()
-#
-#     d = current_user
-#     d = 3
-#     #acl = AccessControl(user_id=user_id, entity=entity, access_level=access_level)
-#     #db.session.add(acl)
-#     #db.session.commit()
-
-
-#listen(Inventory, 'after_insert', add_acl)
-
+    __table_args__ = (UniqueConstraint('slug', 'owner_id', name='_item_field_uc'),)
+   # __table_args__ = (UniqueConstraint('slug', 'owner_id', name='_item_field_uc'),
+                      #)
 
 class Relateditems(db.Model):
-    __tablename__ = "friendships"
-    item_id = db.Column(db.Integer, db.ForeignKey('items.id'), primary_key=True)
-    related_item_id = db.Column(db.Integer, db.ForeignKey('items.id'), primary_key=True)
+    __tablename__ = "related_items"
+    item_id = db.Column(db.Integer, db.ForeignKey('items.id', ondelete='CASCADE'), primary_key=True)
+    related_item_id = db.Column(db.Integer, db.ForeignKey('items.id', ondelete='CASCADE'), primary_key=True)
 
 
 class Item(db.Model):
@@ -165,7 +148,7 @@ class Item(db.Model):
     __searchable__ = ['name', 'description']
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    item_type = db.Column(db.Integer, db.ForeignKey('item_type.id'), nullable=True)
+    item_type = db.Column(db.Integer, db.ForeignKey('item_type.id'), nullable=False)
     name = db.Column(db.String(255), nullable=False, unique=False)
     slug = db.Column(db.String(255), nullable=True, unique=False)
     description = db.Column(db.String(10000), nullable=True, unique=False)
@@ -211,16 +194,6 @@ class ItemField(db.Model):
     __table_args__ = (UniqueConstraint('field_id', 'item_id', name='_item_field_uc'),
                       )
 
-
-# class AccessControl(db.Model):
-#     __tablename__ = "acl"
-#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-#     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-#     entity = db.Column(db.String(255), nullable=True, unique=False)
-#     access_level = db.Column(db.Integer, default=0)
-
-
-
 class Image(db.Model):
     __tablename__ = "images"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -251,7 +224,7 @@ class InventoryItem(db.Model):
     __tablename__ = "inventory_items"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     inventory_id = db.Column(db.Integer, db.ForeignKey('inventories.id'))
-    item_id = db.Column(db.Integer, db.ForeignKey('items.id'))
+    item_id = db.Column(db.Integer, db.ForeignKey('items.id', ondelete='CASCADE'))
     access_level = db.Column(db.Integer, default=0)
     is_link = db.Column(db.Boolean(), default=False)
     __table_args__ = (UniqueConstraint('item_id', 'inventory_id', name='_item_id_inventory_id_uc'),)
@@ -300,14 +273,6 @@ class InventoryTag(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     inventory_id = db.Column(db.Integer, db.ForeignKey('inventories.id', ondelete='CASCADE'))
     tag_id = db.Column(db.Integer, db.ForeignKey('invtags.id', ondelete='CASCADE'))
-
-
-
-
-
-
-
-
 
 
 class UserLocation(db.Model):
