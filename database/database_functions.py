@@ -2240,8 +2240,7 @@ def move_items(item_ids: list, user: User, inventory_id: int) -> dict:
 
             stmt = select(InventoryItem) \
                 .join(Item, Item.id == InventoryItem.item_id) \
-                .where(InventoryItem.inventory_id == 1) \
-                .where(Item.user_id == 1) \
+                .where(Item.user_id == user.id) \
                 .where(InventoryItem.item_id.in_(item_ids))
             results_ = db.session.execute(stmt).all()
 
