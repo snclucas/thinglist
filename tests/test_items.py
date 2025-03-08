@@ -149,6 +149,9 @@ class TestApp(TestAppParent):
 
         return _added_list_data
 
+
+
+
     def test_delete_list(self):
         new_inventory_data = self.test_add_items()
 

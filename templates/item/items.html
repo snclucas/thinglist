@@ -260,14 +260,14 @@
 
                 if (optionText === "all") {
                     if (searchParams.size > 0) {
-                        window.location.href = "{{ url_for('items.items_with_username_and_inventory', list_username = username, inventory_slug = 'all') | replace('%40', '@')}}?" + searchParams.toString()
+                        window.location.href = "{{ url_for('items.items_with_username_and_inventory', list_username = list_username, inventory_slug = 'all') | replace('%40', '@')}}?" + searchParams.toString()
                     } else {
-                        window.location.href = "{{ url_for('items.items_with_username_and_inventory', list_username = username, inventory_slug = 'all') | replace('%40', '@')}}?" + searchParams.toString()
+                        window.location.href = "{{ url_for('items.items_with_username_and_inventory', list_username = list_username, inventory_slug = 'all') | replace('%40', '@')}}?" + searchParams.toString()
                     }
                 } else if (optionText === "default") {
-                    window.location.href = "{{ url_for('items.items_with_username_and_inventory',list_username = username, inventory_slug = 'default') |replace('%40', '@')}}?" + searchParams.toString()
+                    window.location.href = "{{ url_for('items.items_with_username_and_inventory',list_username = list_username, inventory_slug = 'default') |replace('%40', '@')}}?" + searchParams.toString()
                 } else {
-                    window.location.href = "{{ url_for('items.items_with_username_and_inventory',list_username = username, inventory_slug = 'INV') |replace('%40', '@')}}?".replace("INV", optionValue) + searchParams.toString()
+                    window.location.href = "{{ url_for('items.items_with_username_and_inventory',list_username = list_username, inventory_slug = 'INV') |replace('%40', '@')}}?".replace("INV", optionValue) + searchParams.toString()
                 }
 
             });

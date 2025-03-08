@@ -144,9 +144,10 @@ def add_inventory():
     else:
         inventory_name_ = bleach.clean(inventory_name_)
 
-    if inventory_description_ is None:
-        inventory_description_ = ""
-    inventory_description_ = bleach.clean(inventory_description_)
+    if inventory_description_ is None or inventory_description_ == "":
+        inventory_description_ = inventory_name_
+    else:
+        inventory_description_ = bleach.clean(inventory_description_)
 
     # 1- inventory, 2 - list, 3- url list
     inventory_type_ = request.form.get("inventory_type", __INVENTORY__)
@@ -429,20 +430,43 @@ def delete_from_inventory(username: str, inventory_slug: str, item_id):
 @inv.route('/list/additem', methods=['POST'])
 @login_required
 def add_to_inventory():
+    item_name = request.form.get("name")
+    item_description = request.form.get("description")
+    if item_name is None or item_name == "" or item_name == " ":
+        flash("Item name cannot be empty")
+        return redirect(url_for('inv.lists'))
+    else:
+        item_name = bleach.clean(item_name)
 
-    item_name = bleach.clean(request.form.get("name"))
-    item_description = bleach.clean(request.form.get("description"))
+    if item_description is not None:
+        item_description = bleach.clean(request.form.get("description"))
+
     inventory_id = request.form.get("inventory_id")
     item_quantity = request.form.get("quantity", 1)
+    item_location = request.form.get("location_id").lower()
+    try:
+        inventory_id = bleach.clean(inventory_id)
+        inventory_id = int(inventory_id)
+        item_quantity = bleach.clean(item_quantity)
+        item_quantity = int(item_quantity)
+        item_location = bleach.clean(item_location)
+        item_location = int(item_location)
+    except ValueError:
+        flash("Issue adding item to inventory")
+        return redirect(url_for('inv.lists'))
+
     item_url = request.form.get("url", "")
     item_url = bleach.clean(item_url)
 
     username = request.form.get("username").lower()
+    username = bleach.clean(username)
     inventory_slug = request.form.get("inventory_slug").lower()
+    inventory_slug = bleach.clean(inventory_slug)
     item_type = request.form.get("type").lower()
+    item_type = bleach.clean(item_type)
     if item_type == '':
-        item_type = 'none'
-    item_location = request.form.get("location_id").lower()
+        item_type = None
+
     item_specific_location = bleach.clean(request.form.get("specific_location")).lower()
     item_tags = bleach.clean(request.form.get("tags")).lower()
     item_tags = item_tags.lower().split(",")

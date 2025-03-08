@@ -36,8 +36,13 @@
 
             <label class="form-label" for="item_location">Location:</label>
             <select class="form-select" id="item_location" name="location_id">
-                {% for option in user_locations %}
-                    <option value="{{ option.id }}">{{ option.name }}</option>
+                {% for user_location_option in user_locations %}
+                    {% if __DEFAULT__ in user_location_option.name %}
+                        {% set location_name = "Default/None set" %}
+                    {% else %}
+                        {% set location_name = item_location['name'] %}
+                    {% endif %}
+                    <option value="{{ user_location_option.id }}">{{ location_name}}</option>
                 {% endfor %}
             </select>
 
@@ -74,9 +79,10 @@
                     <input type="text" class="form-control" name="{{ field.field }}" id="form_item_{{ field.field }}"
                            placeholder=""
                            value="{{ field.value }}">
-                {% elif field.type == "textarea"  %}
-                        <textarea  class="form-control" name="{{ field.field }}" id="form_item_{{ field.field }}" rows="4" cols="50">{{ field.value }}</textarea>
-                {% elif field.type == "bool"  %}
+                {% elif field.type == "textarea" %}
+                    <textarea class="form-control" name="{{ field.field }}" id="form_item_{{ field.field }}" rows="4"
+                              cols="50">{{ field.value }}</textarea>
+                {% elif field.type == "bool" %}
                     <select class="form-select" name="{{ field.field }}" id="form_item_{{ field.field }}">
                         <option value=1 selected>True</option>
                         <option value=0>False</option>

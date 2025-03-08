@@ -3027,7 +3027,6 @@ def get_user_public_lists(for_user_id: int) -> list:
                 "inventory_description": inv.description,
                 "inventory_slug": inv.slug,
                 "inventory_access_level": inv.access_level,
-                "inventory_owner": inv.owner.username,
                 "inventory_item_count": len(inv.items),
                 "inventory_type": inv.type,
                 "userinventory_access_level": __PRIVATE__
@@ -3035,7 +3034,6 @@ def get_user_public_lists(for_user_id: int) -> list:
             ret_results.append(d)
 
         return ret_results
-
 
 def get_user_inventories(current_user_id: int, requesting_user_id: int, access_level: int = -1) -> Tuple[list, bool, str]:
     """

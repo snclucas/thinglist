@@ -5,7 +5,7 @@ from flask_login import login_required, current_user
 from app import app
 from database.database_functions import get_user_inventories, get_user_item_count, get_user_templates, \
     get_all_user_item_types, delete_notification_by_id, get_number_user_locations, \
-    get_all_user_fields
+    get_all_user_fields, get_user_public_lists
 from database.database_functions import find_user_by_username
 
 main = Blueprint('main', __name__)
@@ -84,35 +84,47 @@ def profile(username):
     :param username: The username of the profile being accessed.
     :return: The rendered profile page template with the user's information.
     """
+    username = bleach.clean(username)
     user_is_authenticated = current_user.is_authenticated
     current_user_id = None
     requesting_user_id = None
 
+    if username == current_user.username:
 
-    # -1 for the default None item type
-    num_item_types = len(get_all_user_item_types(user_id=current_user.id, string_list=False))
-    num_items = get_user_item_count(user_id=current_user.id)
-    num_field_templates = len(get_user_templates(user_id=current_user.id))
-    num_user_locations = get_number_user_locations(user_id=current_user.id)
-    num_user_fields = len(get_all_user_fields(user_id=current_user.id))
+        # -1 for the default None item type
+        num_item_types = len(get_all_user_item_types(user_id=current_user.id, string_list=False))
+        num_items = get_user_item_count(user_id=current_user.id)
+        num_field_templates = len(get_user_templates(user_id=current_user.id))
+        num_user_locations = get_number_user_locations(user_id=current_user.id)
+        num_user_fields = len(get_all_user_fields(user_id=current_user.id))
 
-    if user_is_authenticated:
-        current_user_id = current_user.id
-        if username != current_user.username:
-            user_ = find_user_by_username(username=username)
-            if user_ is not None:
-                requesting_user_id = user_.id
-        else:
-            requesting_user_id = current_user.id
+        if user_is_authenticated:
+            current_user_id = current_user.id
+            if username != current_user.username:
+                user_ = find_user_by_username(username=username)
+                if user_ is not None:
+                    requesting_user_id = user_.id
+            else:
+                requesting_user_id = current_user.id
 
-    user_inventories, status, msg = (
-        get_user_inventories(current_user_id=current_user_id, requesting_user_id=requesting_user_id,
-                                            access_level=-1))
+        user_inventories, status, msg = (
+            get_user_inventories(current_user_id=current_user_id, requesting_user_id=requesting_user_id,
+                                                access_level=-1))
 
-    user_notifications = current_user.notifications
-    # -1 to remove the default inventory
-    return render_template('profile.html', name=current_user.username, num_items=num_items,
-                           num_item_types=num_item_types, list_username=username, user_inventories=user_inventories,
-                           num_field_templates=num_field_templates, num_user_locations=num_user_locations,
-                           user_notifications=user_notifications, user_is_authenticated=user_is_authenticated,
-                           num_inventories=len(list(user_inventories))-1, num_user_fields=num_user_fields)
+        user_notifications = current_user.notifications
+        # -1 to remove the default inventory
+        return render_template(template_name_or_list='profile.html', name=current_user.username, num_items=num_items,
+                               num_item_types=num_item_types, list_username=username, user_inventories=user_inventories,
+                               num_field_templates=num_field_templates, num_user_locations=num_user_locations,
+                               user_notifications=user_notifications, user_is_authenticated=user_is_authenticated,
+                               num_inventories=len(list(user_inventories))-1, num_user_fields=num_user_fields)
+
+    else:
+        user_ = find_user_by_username(username=username)
+        if user_ is not None:
+            _user_preferences = user_.preferences
+            if _user_preferences.public_profile:
+                _users_public_lists = get_user_public_lists(for_user_id=user_.id)
+                return render_template(template_name_or_list='users_public_profile.html')
+            else:
+                return redirect(url_for(endpoint='main.index'))

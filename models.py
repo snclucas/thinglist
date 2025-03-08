@@ -39,8 +39,10 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(50), nullable=True, unique=True)
     password = db.Column(db.String(255), nullable=False, server_default='')
     email = db.Column(db.String(255), nullable=False, unique=True)
-    preferences = db.relationship("Preferences", uselist=False, backref="users")
+    preferences = db.relationship("Preferences", uselist=False, backref="users", lazy='joined')
     is_active = db.Column(db.Boolean(), default=True)
+    is_banned = db.Column(db.Boolean(), default=False)
+    is_suspended = db.Column(db.Boolean(), default=False)
     is_admin = db.Column(db.Boolean(), default=False)
     user_created = db.Column(db.DateTime(), default=datetime.datetime.now)
     email_confirmed_at = db.Column(db.DateTime(), default=None)
@@ -51,6 +53,7 @@ class User(UserMixin, db.Model):
     activated = db.Column(db.Boolean(), nullable=True, unique=False, default=False)
     token = db.Column(db.String(255), nullable=True, unique=False)
     token_expires = db.Column(db.DateTime(), default=datetime.datetime.now)
+    profile_text = db.Column(db.String(255), nullable=True, unique=False)
 
 
 class Preferences(db.Model):

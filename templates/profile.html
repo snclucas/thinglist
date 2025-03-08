@@ -16,12 +16,43 @@
             <div class="row">
 
                 <div class="row">
-                    <div class="dfd text-center">
-                        <i class="grey large-icon mb-2 fas fa-th-list"></i> <br>
-                        <i class="grey large-icon mb-2 fas fa-th-list"></i> <br>
-                        <i class="grey large-icon mb-2 fas fa-th-list"></i> <br>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <a class="nav-link"
+                               href="{{ url_for('items.items_with_username', list_username=list_username) }}">
+                                <div class="content">
+                                    <div class="row">
+                                        <div class="dfd text-center">
+                                            <i class="grey large-icon mb-2 fas fa-plus-circle"></i>
+                                            <p class="text-muted">ADD A THING</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
                     </div>
+
+                    <div class="col-md-6">
+                        <div class="card">
+                            <a class="nav-link"
+                               href="{{ url_for('items.items_with_username', list_username=list_username) }}">
+                                <div class="content">
+                                    <div class="row">
+                                        <div class="dfd text-center">
+                                            <i class="grey large-icon mb-2 fas fa-plus"></i>
+                                            <p class="text-muted">ADD A LIST</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+
                 </div>
+
+
+
+
 
                 <div class="row">
 
