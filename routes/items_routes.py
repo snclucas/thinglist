@@ -689,7 +689,7 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
         view = "list"
 
 
-    return render_template(template_name_or_list='item/items.html',
+    return render_template(template_name_or_list='items/items.html',
                            inventory_id=inventory_id,
                            current_username=current_username,
                            list_username=list_username,

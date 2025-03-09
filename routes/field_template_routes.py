@@ -43,7 +43,7 @@ def sort_template(template_id):
 
         od = collections.OrderedDict(sorted(selected_field_ids.items()))
 
-        return render_template(template_name_or_list='field_template/_sort_template_fields.html', field_template_name=user_template_[0].name,
+        return render_template(template_name_or_list='field_template/partials/_sort_template_fields.html', field_template_name=user_template_[0].name,
                                username=current_user.username, all_fields=all_fields, user_template=user_template_,
                                selected_field_ids=selected_field_ids, template_id=template_id, fields=od)
 

@@ -44,13 +44,13 @@
                                 <div class="col-md-12">
                                     <div class="collapse" id="collapseItemTypeHelp" aria-expanded="false">
                                         <div class="card card-body">
-                                            {% include 'types/_item_type_help.html' %}
+                                            {% include 'types/partials/_item_type_help.html' %}
                                         </div>
                                     </div>
 
                                     <div class="collapse" id="collapseAddItemType" aria-expanded="false">
                                 <div class="card card-body">
-                                    {% include 'types/_add_itemtypes_form.html' %}
+                                    {% include 'types/partials/_add_itemtypes_form.html' %}
                                 </div>
                             </div>
 
@@ -68,7 +68,7 @@
                                         </div>
                                     </div>
 
-                            {% include 'types/_item_types_table.html' %}
+                            {% include 'types/partials/_item_types_table.html' %}
 
                             <form id="form-export-itemtypes" method="POST" style="display: none;"
                                   action="{{ url_for("types.itemtypes_save", username=username) }}">

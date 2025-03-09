@@ -46,10 +46,10 @@
 
                             <div class="row">
                                 <div class="col-md-6 order-sm-first order-last">
-                                    {% include 'item/items_partials/_items_header.html' %}
+                                    {% include 'items/partials/_items_header.html' %}
                                 </div>
                                 <div class="col-md-6">
-                                    {% include 'item/items_partials/_items_header_button_bar.html' %}
+                                    {% include 'items/partials/_items_header_button_bar.html' %}
                                 </div>
                             </div>
 
@@ -58,7 +58,7 @@
                                     <div class="collapse" id="collapseButtonBar" aria-expanded="false">
                                         <hr>
                                         <div class="text-center">
-                                            {% include 'item/items_partials/_buttton_panel.html' %}
+                                            {% include 'items/partials/_buttton_panel.html' %}
                                         </div>
                                     </div>
                                 </div>
@@ -67,16 +67,16 @@
 
                             <div class="row">
                                 <div class="col-md-12">
-                                    {% include 'item/items_partials/_items_forms.html' %}
+                                    {% include 'items/partials/_items_forms.html' %}
                                 </div>
                             </div>
 
                             <div class="row">
                                 <div class="col-md-6 show-big">
-                                    {% include 'item/items_partials/_items_view_buttons.html' %}
+                                    {% include 'items/partials/_items_view_buttons.html' %}
                                 </div>
                                 <div class="col-md-6">
-                                    {% include 'item/items_partials/_list_filter_form.html' %}
+                                    {% include 'items/partials/_list_filter_form.html' %}
                                 </div>
                             </div>
 
@@ -84,9 +84,9 @@
                                 <div class="col-md-12">
 
                                     {% if view == "list" %}
-                                        {% include 'item/_item_list_as_inventory.html' %}
+                                        {% include 'items/partials/_item_list_as_inventory.html' %}
                                     {% else %}
-                                        {% include 'item/_item_grid_as_inventory.html' %}
+                                        {% include 'items/partials/_item_grid_as_inventory.html' %}
                                     {% endif %}
 
                                 </div>
@@ -108,7 +108,7 @@
         const urlParams = new URLSearchParams(window.location.search);
     </script>
 
-    {% include 'item/js_list_inventory.html' %}
+    {% include 'items/js_list_inventory.html' %}
 
     <script>
         $(document).ready(function () {

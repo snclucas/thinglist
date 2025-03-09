@@ -25,7 +25,7 @@
         <div class="container">
             <div class="card">
                 <div class="card-body">
-                    {% include 'item/item_partials/_item_heading.html' %}
+                    {% include 'item/partials/_item_heading.html' %}
 
                     <div class="row">
                         <div class="col-md-12">
@@ -33,7 +33,7 @@
                                 <div class="collapse" id="collapseButtonBar" aria-expanded="false">
                                     <div class="row">
                                         <div class="col-md-12">
-                                            {% include 'item/_item_button_bar.html' %}
+                                            {% include 'item/partials/_item_button_bar.html' %}
                                             <hr>
                                         </div>
                                     </div>
@@ -47,7 +47,7 @@
 
                             <div class="row">
                                 <div class="col-md-12">
-                                    {% include 'item/item_partials/_default_fields.html' %}
+                                    {% include 'item/partials/_default_fields.html' %}
                                     <br>
                                 </div>
                             </div>
@@ -57,13 +57,13 @@
 
                             <div class="row">
                                 <div class="col-md-12">
-                                    {% include 'item/item_partials/_master_image.html' %}
+                                    {% include 'item/partials/_master_image.html' %}
                                 </div>
                             </div>
                             {% if inventory.type == __INVENTORY__ %}
                                 <div class="row">
                                     <div class="col-md-12">
-                                        {% include 'item/item_partials/_custom_fields.html' %}
+                                        {% include 'item/partials/_custom_fields.html' %}
                                     </div>
                                 </div>
                             {% endif %}
@@ -71,7 +71,7 @@
                             <div class="row">
                                 <div class="col-md-12">
 
-                                    {% include 'item/item_partials/_item_tags.html' %}
+                                    {% include 'item/partials/_item_tags.html' %}
 
                                     <br>
                                 </div>
@@ -84,7 +84,7 @@
                         <div class="col-md-12">
                             <hr>
                             {% if inventory.show_item_images == True %}
-                                {% include 'item/_item_masonary_images.html' %}
+                                {% include 'item/partials/_item_masonary_images.html' %}
                             {% endif %}
 
                             <div class="text-center">

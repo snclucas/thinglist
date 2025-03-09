@@ -1,36 +1,36 @@
 <div class="collapse" id="collapseFilter" aria-expanded="false">
-    {% include 'item/items_partials/_filter_form.html' %}
+    {% include 'items/partials/_filter_form.html' %}
 </div>
 {% if user_is_authenticated and (is_inventory_owner or inventory_access_level == __COLLABORATOR__) %}
 
     <div class="collapse" id="collapseItemsHelp" aria-expanded="false">
         <div class="card card-body">
-            {% include 'item/_items_help.html' %}
+            {% include 'items/partials/_items_help.html' %}
         </div>
     </div>
     <div class="collapse" id="collapseItemFields" aria-expanded="false">
-        {% include 'item/_inventory_field_template.html' %}
+        {% include 'items/partials/_inventory_field_template.html' %}
     </div>
     <div class="collapse" id="moveInventory" aria-expanded="false">
         <div class="card card-body">
-            {% include 'item/items_partials/_move_item_form.html' %}
+            {% include 'items/partials/_move_item_form.html' %}
         </div>
     </div>
 
     <div class="collapse" id="collapseManageUserAccess" aria-expanded="false">
         <div class="card card-body">
-            {% include 'item/_manage_inventory_users.html' %}
+            {% include 'items/partials/_manage_inventory_users.html' %}
         </div>
     </div>
 
     <div class="collapse" id="bulkEditItems" aria-expanded="false">
         <div class="card card-body">
-            {% include 'item/_bulk_edit_item_form.html' %}
+            {% include 'items/partials/_bulk_edit_item_form.html' %}
         </div>
     </div>
     <div class="collapse" id="collapseAddItem" aria-expanded="false">
         <div class="card card-body">
-            {% include 'item/items_partials/_add_item_form.html' %}
+            {% include 'items/partials/_add_item_form.html' %}
         </div>
     </div>
 
@@ -49,7 +49,7 @@
     </div>
 
     <div class="collapse" id="shareItems" aria-expanded="false">
-        {% include 'item/items_partials/_share_items.html' %}
+        {% include 'items/partials/_share_items.html' %}
     </div>
     <div class="collapse" id="collapseDeleteItems" aria-expanded="false">
         <div class="text-center">
