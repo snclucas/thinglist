@@ -137,7 +137,7 @@ def item_with_username_and_inventory(list_username: str, inventory_slug: str, it
 
     return render_template(template_name_or_list='item/item.html', name=list_username,
                            inventory_owner_id=inventory_owner_id, item_fields=item_fields,
-                           all_item_fields=all_item_fields,
+                           all_item_fields=all_item_fields, list_username=list_username,
                            all_fields=all_fields, inventory_slug=inventory_.slug, inventory=inventory_,
                            item=item_, username=list_username, item_type=item_type_string,
                            all_item_types=all_item_types_,
@@ -150,8 +150,8 @@ def item_with_username_and_inventory(list_username: str, inventory_slug: str, it
 def edit_item(item_id):
     form_data = dict(request.form)
     del form_data["csrf_token"]
-    item_id = form_data["item_id"]
-    del form_data["item_id"]
+    #item_id = form_data["item_id"]
+    #del form_data["item_id"]
 
     item_slug = form_data["item_slug"]
     del form_data["item_slug"]
@@ -159,8 +159,8 @@ def edit_item(item_id):
     inventory_slug = form_data["inventory_slug"]
     del form_data["inventory_slug"]
 
-    username = form_data["username"]
-    del form_data["username"]
+    username = form_data["list_username"]
+    del form_data["list_username"]
 
     item_name = request.form.get("item_name")
     item_description = request.form.get("item_description")
@@ -205,7 +205,7 @@ def edit_item(item_id):
 
     form_data = {int(k): v for k, v in form_data.items()}
 
-    update_item_fields(data=form_data, item_id=int(item_id))
+
 
     new_item_data = {
         "id": item_id,
@@ -224,10 +224,11 @@ def edit_item(item_id):
     if update_result["status"] == "success":
         item_dict = update_result["item"]
         new_item_slug = item_dict['slug']
+        update_item_fields(data=form_data, item_id=int(item_id))
     else:
         flash("Error updating item")
 
-    return redirect(url_for('item.item_with_username_and_inventory',
+    return redirect(url_for(endpoint='item.item_with_username_and_inventory',
                             list_username=username,
                             inventory_slug=inventory_slug,
                             item_slug=new_item_slug))
