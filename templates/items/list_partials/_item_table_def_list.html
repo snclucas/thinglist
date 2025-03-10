@@ -1,6 +1,4 @@
-THIS IS A LIST
-
-{% if data_dict | length >= 0 %}
+{% if data_dict | length > 0 %}
     <hr>
     <div>
         <table class="table collapse show dataTable display compact" style="width:100%" id="items-table">
@@ -29,14 +27,5 @@ THIS IS A LIST
         </table>
     </div>
 {% else %}
-    <hr>
-    <div class="row">
-        <div class="col-md-12">
-            <div class=" text-center">
-                <p>You can add a new item by clicking the <i class="fas fa-plus"></i> icon at the top.</p>
-                <p>You can import items (CSV) by clicking the <i class="fas fa-ellipsis-v"></i>
-                    to open the button panel and then clicking the <i class="fas fa-file-import"></i> icon.</p>
-            </div>
-        </div>
-    </div>
+    {% include 'items/new/_empty_list_help.html' %}
 {% endif %}

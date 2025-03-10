@@ -40,7 +40,7 @@
                     {% if __DEFAULT__ in user_location_option.name %}
                         {% set location_name = "Default/None set" %}
                     {% else %}
-                        {% set location_name = item_location['name'] %}
+                        {% set location_name = user_location_option['name'] %}
                     {% endif %}
                     <option value="{{ user_location_option.id }}">{{ location_name}}</option>
                 {% endfor %}

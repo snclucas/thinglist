@@ -2,6 +2,18 @@
 
 {% if inventory is not none %}
     {% set inv_table_type = inventory.type %}
+
+    {% if inventory.type == __LIST__ %}
+        {% set inv_table_type_string = "list" %}
+        {% elif inventory.type == __INVENTORY__ %}
+        {% set inv_table_type_string = "inventory" %}
+        {% elif inventory.type == __URL_LIST__ %}
+        {% set inv_table_type_string = "url_list" %}
+        {% else %}
+    {% endif %}
+
+
+
     {% if __DEFAULT__ in inventory.name %}
         {% set inv_name = "Default/None" %}
         {% set inv_desc = "Default/None" %}
@@ -13,8 +25,12 @@
     {% set inv_table_type = __LIST_ALL__ %}
     {% set inv_name = "All" %}
     {% set inv_desc = "All items" %}
-
+    {% set inv_table_type_string = "list_all" %}
 {% endif %}
+
+{% set html_file_to_include = 'items/list_partials/_item_table_def_' + inv_table_type_string|string + '.html' %}
+{% set js_file_to_include = 'items/list_partials/_js_item_table_def_' + inv_table_type_string|string + '.html' %}
+
 
 {% block title %}
     ThingList
@@ -82,13 +98,7 @@
 
                             <div class="row">
                                 <div class="col-md-12">
-
-                                    {% if view == "list" %}
-                                        {% include 'items/partials/_item_list_as_inventory.html' %}
-                                    {% else %}
-                                        {% include 'items/partials/_item_grid_as_inventory.html' %}
-                                    {% endif %}
-
+                                    {% include html_file_to_include %}
                                 </div>
                             </div>
                         </div>
@@ -108,7 +118,7 @@
         const urlParams = new URLSearchParams(window.location.search);
     </script>
 
-    {% include 'items/js_list_inventory.html' %}
+    {% include js_file_to_include %}
 
     <script>
         $(document).ready(function () {

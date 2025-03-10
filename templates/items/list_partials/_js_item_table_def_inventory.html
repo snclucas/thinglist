@@ -1,0 +1,113 @@
+<script>
+    $(document).ready(function () {
+        const truncate = (input) => input.length > 5 ? `${input.substring(0, 5)}...` : input;
+
+        const user_items_url = {{ url_for('api.items', username=list_username, inventory_slug=inventory_slug)  |  tojson|safe}} + "?" + urlParams.toString()
+
+
+        const table = new DataTable('#items-table', {
+            language: {
+                emptyTable: 'No items :('
+            },
+            "searching": true,
+            paging: true,
+            ordering: true,
+            info: true,
+            rowReorder: true,
+            colReorder: true,
+            responsive: {
+                details: false
+            },
+            stateSave: false,
+            serverSide: true,
+            pageLength: 25,
+            columnDefs: [
+                { // Item name
+                    target: 'coldef-name',
+                    searchable: true,
+                    "render": function (item) {
+                        let item_url = {{ url_for('item.item_with_username_and_inventory', list_username=list_username, inventory_slug=inventory_slug, item_slug='ITEMSSLUG')  |  tojson}}.replace("ITEMSSLUG", item["slug"])
+                        let return_string = "<a href=\"" + item_url + "\">" + item["name"] + "</a>";
+                        return return_string;
+                    }
+                },
+                    { // Item type
+                        target: 'coldef-type',
+                        searchable: true
+                    },
+                {   // Item tags
+                    target: 'coldef-tags',
+                    searchable: true, //name, name2, slug, description, tags, location, type, id
+                    "render": function (tag_array) {
+                        let return_string = "";
+                        $.each(tag_array, function (tag_index, tag_text) {
+                            return_string += "<a href=\"" + "{{ url_for('items.items_with_username_and_inventory', list_username=list_username, inventory_slug=inventory_slug) | replace('%40', '@') }}?tags=" + tag_text + "\"  >  <span class=\"tag_list\">" + tag_text + "</span>  </a>";
+                        });
+                        return return_string;
+                    }
+                },
+                {% if user_is_authenticated %}
+                    { // Item location
+                        target: 'coldef-loc',
+                        searchable: true,
+                        "render": function (location_dict) {
+                            let _list_location = "Default/None set";
+                            if (location_dict["location"].includes("{{__DEFAULT__}}")) {
+                                _list_location = "Default/None set";
+                            } else {
+                                _list_location = location_dict["location"];
+                            }
+                            if (location_dict["specific_location"] !== "None") {
+                                return _list_location + "<br>" + location_dict["specific_location"];
+                            } else {
+                                return _list_location;
+                            }
+                        }
+                    },
+                    {% if is_inventory_owner or inventory_access_level == __COLLABORATOR__ %}
+                        { // Checkbox
+                            target: 'coldef-checkboxes',
+                            sortable: false,
+                            className: 'dt-body-right',
+                            "render": function (item_id) {
+                                return "<input class=\"form-check-input\" type=\"checkbox\" data-item-id=\"" + item_id + "\" id=\"selected-item-" + item_id + "\">";
+                            }
+                        }
+                    {% endif %}
+                {% endif %}
+            ],
+            processing: true,
+            serverSide: true,
+            columns: [
+                {name: 'coldef-name', data: 'name', width: '30px'},
+
+                    {name: 'coldef-type', data: 'type', width: '10px'},
+                    {% if user_is_authenticated %}
+                        {name: 'coldef-loc', data: 'location', width: '20px'},
+                    {% endif %}
+
+                {name: 'coldef-tags', data: 'tags', width: '20px'},
+                {% if user_is_authenticated %}
+                    {% if is_inventory_owner or inventory_access_level == __COLLABORATOR__ %}
+                        {name: 'coldef-checkboxes', data: 'id', width: '10px'}
+                    {% endif %}
+                {% endif %}
+            ],
+            ajax: {
+                url: user_items_url,
+                type: 'GET',
+                dataSrc: 'data',
+                data: function (d) {
+                    d.view = "{{ view }}";
+
+                },
+                //success: function (data) {
+                //    $("#item-count").html(data.data.length);
+                //}
+            },
+
+        });
+
+    });
+
+</script>

@@ -42,9 +42,9 @@
         </div>
         <div class="col-sm-10">
             <select class=" form-select" id="inventory_type" name="inventory_type" aria-label="Default select example">
-                <option value="1" selected>Inventory</option>
-                <option value="2">List</option>
-                <option value="3">URL list</option>
+                <option value="{{ __INVENTORY__ }}" selected>Inventory</option>
+                <option value="{{ __LIST__ }}">List</option>
+                <option value="{{ __URL_LIST__ }}">URL list</option>
             </select>
             <div id="emailHelp" class="form-text">Physical inventory or simple list of things</div>
         </div>

@@ -3,6 +3,7 @@ import string
 from random import choice
 
 from flask_login import UserMixin
+from slugify import slugify
 from sqlalchemy import UniqueConstraint, event
 
 from app import db
@@ -237,9 +238,14 @@ class ItemType(db.Model):
     __tablename__ = "item_type"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(255), nullable=True, unique=False)
+    slug = db.Column(db.String(255), nullable=True, unique=False)
     # user_id = db.Column(db.Integer, nullable=True, unique=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=True)
     __table_args__ = (UniqueConstraint('name', 'user_id', name='_name_userid_uc'),)
+
+@event.listens_for(ItemType, 'before_insert')
+def create_item_type_slug(mapper, connect, target):
+    target.slug = slugify(target.name)
 
 
 class Tag(db.Model):
