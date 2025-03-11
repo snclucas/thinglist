@@ -88,8 +88,10 @@ def login():
         else:
             flash("Unable to log you in")
 
-    allow_registrations = (int(app.config['ALLOW_REGISTRATIONS']) == 1)
-    return render_template(template_name_or_list="auth/login.html", allow_registrations=allow_registrations)
+    else:
+
+        allow_registrations = (int(app.config['ALLOW_REGISTRATIONS']) == 1)
+        return render_template(template_name_or_list="auth/login.html", allow_registrations=allow_registrations)
 
 
 @auth_flask_login.route(rule="/activate-user/<token>", methods=["GET"])

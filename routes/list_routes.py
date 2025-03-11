@@ -441,7 +441,9 @@ def add_to_inventory():
     if item_description is not None:
         item_description = bleach.clean(request.form.get("description"))
 
-    inventory_id = request.form.get("inventory_id")
+    inventory_id = request.form.get("inventory_id", -1)
+    if inventory_id == '':
+        inventory_id = "-1"
     item_quantity = request.form.get("quantity", 1)
     item_location = request.form.get("location_id").lower()
     try:
@@ -485,7 +487,7 @@ def add_to_inventory():
 
     if inventory_id == '' or inventory_slug == '' or inventory_id is None or inventory_slug is None:
         return redirect(url_for(endpoint='items.items_with_username',
-                                username=username))
+                                list_username=username))
     else:
         return redirect(url_for(endpoint='items.items_with_username_and_inventory',
                                 list_username=username, inventory_slug=inventory_slug))

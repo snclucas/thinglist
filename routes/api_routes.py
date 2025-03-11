@@ -7,6 +7,7 @@ from database.database_functions import get_all_user_item_types, get_all_user_lo
     get_all_user_and_system_item_types
 from database.database_functions import find_user_by_username
 from routes.items_routes import _get_inventory, _process_url_query
+from site_globals import __DEFAULT__
 
 api_routes = Blueprint('api', __name__)
 
@@ -114,6 +115,7 @@ def items(username=None, inventory_slug=None):
     else:
         num_items_in_inventory = count_all_user_items(user_id=requested_user.id)
 
+    _already_found_list = []
     ret_items = []
     for row in items_:
         item_ = row[0]
@@ -127,16 +129,23 @@ def items(username=None, inventory_slug=None):
             if item_.specific_location is not None:
                 location["specific_location"] = item_.specific_location
 
-        ret_items.append({
-            "name": {"name": item_.name, "slug": item_.slug, "id": item_.id, "description": item_.description},
-            #"description": {"description": item_.description, "url": item_.url},
-            "description": {"description": item_.description, "url": item_.url},
-            "inventories": ", ".join([inv.name for inv in item_.inventories]),
-            "tags": tag_arr,
-            "location": location,
-            "type": row[1],
-            "id": item_.id
-        })
+        # process item list names
+        _list_inventories = []
+        for _inv in item_.inventories:
+            _list_inventories.append("Default" if __DEFAULT__ in _inv.name else _inv.name)
+
+        # used to remove duplicates resulting from item links
+        if item_.slug not in _already_found_list:
+            ret_items.append({
+                "name": {"name": item_.name, "slug": item_.slug, "id": item_.id, "description": item_.description},
+                "description": {"description": item_.description, "url": item_.url},
+                "inventories": ", ".join(_list_inventories),
+                "tags": tag_arr,
+                "location": location,
+                "type": row[1],
+                "id": item_.id
+            })
+            _already_found_list.append(item_.slug)
 
     return jsonify({
         "data": ret_items,

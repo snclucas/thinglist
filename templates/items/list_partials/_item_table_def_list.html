@@ -1,31 +1,27 @@
-{% if data_dict | length > 0 %}
-    <hr>
-    <div>
-        <table class="table collapse show dataTable display compact" style="width:100%" id="items-table">
-            <thead>
-            <tr>
-                <th data-priority="1">Name</th>
-                <th>Type</th>
-                {% if user_is_authenticated %}
-                    {% if inventory_slug == "all" %}
-                        <th>Inventory</th>
-                    {% endif %}
+<hr>
+<div>
+    <table class="table collapse show dataTable display compact" style="width:100%" id="items-table">
+        <thead>
+        <tr>
+            <th data-priority="1">Name</th>
+            <th>Type</th>
+            {% if user_is_authenticated %}
+                {% if inventory_slug == "all" %}
+                    <th>Inventory</th>
                 {% endif %}
-                <th>Tags</th>
-                {% if user_is_authenticated %}
-                    {% if is_inventory_owner or inventory_access_level == 1 %}
-                        <th class="dt-head-right">
-                            <input class="form-check-input" type="checkbox" value="" id="all-selected-items"> All on page |
-                            <input class="form-check-input" type="checkbox" value="" id="total-all-selected-items"> All
-                        </th>
-                    {% endif %}
+            {% endif %}
+            <th>Tags</th>
+            {% if user_is_authenticated %}
+                {% if is_inventory_owner or inventory_access_level == 1 %}
+                    <th class="dt-head-right">
+                        <input class="form-check-input" type="checkbox" value="" id="all-selected-items"> All on page |
+                        <input class="form-check-input" type="checkbox" value="" id="total-all-selected-items"> All
+                    </th>
                 {% endif %}
-            </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
-    </div>
-{% else %}
-    {% include 'items/new/_empty_list_help.html' %}
-{% endif %}
+            {% endif %}
+        </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</div>

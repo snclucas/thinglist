@@ -2517,7 +2517,7 @@ def add_item_to_inventory(item_id=None, item_name=None, item_desc=None, item_typ
                         if instance not in new_item.tags:
                             new_item.tags.append(instance)
 
-            if inventory_id is None or inventory_id == '':
+            if inventory_id is None or inventory_id == '' or inventory_id == -1:
                 default_user_inventory_ = get_user_default_inventory(user_id=user_id)
                 if default_user_inventory_ is not None:
                     default_user_inventory_id_ = default_user_inventory_.id

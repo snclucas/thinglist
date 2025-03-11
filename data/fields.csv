@@ -2,6 +2,7 @@ Name,Description,Type
 A/D converter,A/D converter,input
 Additional information,Additional information,textarea
 Affiliation,Affiliation,input
+Age,Age,input
 Air delivery,Air delivery,input
 Air displacement,Air displacement,input
 Airfoil,Airfoil,input
@@ -29,25 +30,36 @@ Battery life,Battery life,input
 Baud rate,Baud rate,input
 Beam,Beam,input
 Berths,Berths,input
-BTU,BTU,input
+Binding,Binding,input
 Binding,Binding,input
 Block,Block,input
 Board number,Board number,input
 Born,Born,input
 Brand,Brand,input
 Breed,Breed,input
+Breeder,Breeder,input
+Brilliance,Brilliance,input
+BTU,BTU,input
 Budget,Budget,input
 Buyer,Buyer,input
+Cabinet size,Cabinet size,input
+Cabinet type,Cabinet type,input
 Capacitance,Capacitance,input
 Capacity,Capacity,input
+Carat,Carat,input
 CAS latency,CAS latency,input
 CAS number,CAS number,input
 Channel separation,Channel separation,input
 Chemical formula,Chemical formula,input
 Chipset,Chipset,input
+Circulated,Circulated,bool
+Clarity,Clarity,input
 Class,Class,input
 Codename,Codename,input
 Colour,Colour,input
+Commemorative,Commemorative,bool
+Composer,Composer,input
+Composition,Composition,input
 Condition,Condition,input
 Configuration,Configuration,input
 Connector type,Connector type,input
@@ -60,18 +72,23 @@ Core material,Core material,input
 Cores,Cores,input
 Cost,Cost,input
 Cost/Unit,Cost/Unit,input
+Counterfeit,Counterfeit,bool
 Country,Country,input
+Coverage,Coverage,input
 CPU,CPU,input
 Creator,Creator,input
 Crossover frequency,Crossover frequency,input
-Coverage,Coverage,input
 Cruise speed,Cruise speed,input
+Crystal structure,Crystal structure,input
+Culet,Culet,input
 D/A converter,D/A converter,input
 DAC,DAC,input
 Damping factor,Damping factor,input
 Data retention,Data retention,input
+Datasheet link,Datasheet link,URL
 Date code, Date code, input
 DC supply voltage (VDD),DC supply voltage (VDD),input
+Denomination,Denomination,input
 Denomination,Denomination,input
 Department,Department,input
 Depth,Depth,input
@@ -87,11 +104,12 @@ Discipline,Discipline,input
 Disk number,Disk number,input
 Displacement,Displacement,input
 Display Bit Depth,Display Bit Depth,input
+Display type,Display type,input
 Draught,Draught,input
 Drive type,Drive type,input
 Drive units,Drive units,input
-Dry weight,Dry weight,input
 Dry capacity,Dry capacity,input
+Dry weight,Dry weight,input
 Dynamic range,Dynamic range,input
 Edition,Edition,input
 End production date,End production date,input
@@ -101,9 +119,12 @@ Engine make,Engine make,input
 Engine model,Engine model,input
 Engine type,Engine type,input
 Engine usage,Engine usage,input
+Era,Era,input
 Evaporation type,Evaporation type,input
 Exterior Material,Exterior Material,input
+Face value,Face value,input
 Failure rate,Failure rate,input
+Fair trade,Fair trade,bool
 Family,Family,input
 Finderscope,Finderscope,input
 Firmware,Firmware,input
@@ -123,19 +144,25 @@ Function,Function,input
 Gain,Gain,input
 Gauge,Gauge,input
 Genre,Genre,input
+Genuine,Genuine,bool
+Girdle,Girdle,input
+Grade,Grade,input
 Group,Group,input
 Handmade,Handmade,bool
-Headroom extension,Headroom extension,input
+Hardness,Hardness,input
 Head type,Head type,input
-Heat output,Heat output,input
+Headroom extension,Headroom extension,input
 Heads,Heads,input
+Heat output,Heat output,input
 Height,Height,input
 Holding tanks,Holding tanks,input
 Hours,Hours,input
+Housing type,Housing type,input
 Hull material,Hull material,input
 Hull type,Hull type,input
 Ideology,Ideology,input
 Impedance,Impedance,input
+Imperfections,Imperfections,bool
 Index,Index,input
 Inductance,Inductance,input
 Input sensitivity,Input sensitivity,input
@@ -145,12 +172,16 @@ ISBN,ISBN,input
 ISBN-10,ISBN-10,input
 ISBN-13,ISBN-13,input
 Issue date,Issue date,input
+Issuing authority,Issuing authority,input
 Keel type,Keel type,input
 Language,Language,input
 Leader,Leader,input
 Length,Length,input
+Lifespan,Lifespan,input
+Limited edition,Limited edition,bool
 Lining Color,Lining Color,input
 LOA,LOA,input
+Luster,Luster,input
 Manufacture date,Manufacture date,input
 Manufacturer,Manufacturer,input
 Market,Market,input
@@ -158,17 +189,19 @@ Material,Material,input
 Max Number of Colors,Max Number of Colors,input
 Maximum Aperture,Maximum Aperture,input
 Maximum DC Current,Maximum DC Current,input
+Maximum load,Maximum load,input
 Maximum Magnification,Maximum Magnification,input
 Maximum Resolution,Maximum Resolution,input
-Maximum load,Maximum load,input
 Maximum speed,Maximum speed,input
 Media type,Media type,input
 Mileage,Mileage,input
+Minting year,Minting year,input
 Model,Model,input
 Monoisotopic mass,Monoisotopic mass,input
 Mount ,Mount ,input
 Mounting style,Mounting style,input
 MPN,MPN,input
+Music label,Music label,input
 Noise reduction,Noise reduction,input
 Number of births,Number of births,input
 Number of cabins,Number of cabins,input
@@ -176,17 +209,20 @@ Number of pages,Number of pages,input
 Number of pins,Number of pins,input
 Number of tracks,Number of tracks,input
 Objective Lens Diameter,Objective Lens Diameter,input
+Obverse design,Obverse design,input
 Operating pressure,Operating pressure,input
 Operating System,Operating System,input
 Operating temperature (max),Operating temperature (max),input
 Operating temperature (min),Operating temperature (min),input
 Operating temperature (range),Operating temperature (range),input
+Orientation,Orientation,input
 Origin,Origin,input
 OS grid reference,OS grid reference,input
 Output voltage,Output voltage,input
 Package,Package,input
 Pages,Pages,input
 Panel,Panel,input
+Paper type,Paper type,input
 Parents,Parents,input
 Part number,Part number,input
 Pattern,Pattern,input
@@ -196,14 +232,20 @@ Play time,Play time,input
 POST string,POST string,input
 Postcode,Postcode,input
 Power,Power,input
+"Power dissipation, ave","Power dissipation, ave",input
+"Power dissipation, max","Power dissipation, max",input
+"Power dissipation, min","Power dissipation, min",input
 Power output,Power output,input
 Power rating,Power rating,input
 Processor,Processor,input
 Producer,Producer,input
 Product key,Product key,input
+Production company,Production company,input
+Proof,Proof,input
 Prop hours,Prop hours,input
 Prop make,Prop make,input
 Propulsion,Propulsion,input
+Provenance,Provenance,input
 Published date,Published date,input
 Publisher,Publisher,input
 Pull resistance,Pull resistance,input
@@ -215,11 +257,13 @@ Radius,Radius,input
 RAM,RAM,input
 RAM,RAM,input
 Range,Range,input
+Rarity,Rarity,input
 Rate of climb,Rate of climb,input
 Rating,Rating,input
 Record label,Record label,input
 Recording time,Recording time,input
 Reference,Reference,input
+Refractive index,Refractive index,input
 Refresh rate,Refresh rate,input
 Reg number,Reg number,input
 Region,Region,input
@@ -227,7 +271,11 @@ Relatives,Relatives,input
 Release year,Release year,input
 Reliability,Reliability,input
 Resistance,Resistance,input
+Response time,Response time,input
+Restored,Restored,bool
+Reverse design,Reverse design,input
 Rotation rate,Rotation rate,input
+Running time,Running time,input
 S/N improvement,S/N improvement,input
 Safety,Safety,input
 Sampling frequency,Sampling frequency,input
@@ -249,6 +297,7 @@ Shade,Shade,input
 Shaft base,Shaft base,input
 Signal word,Signal word,input
 Signal-to-noise,Signal-to-noise,input
+Signature,Signature,bool
 Size,Size,input
 SKU,SKU,input
 Slot  ,Slot  ,input
@@ -286,7 +335,9 @@ Top speed,Top speed,input
 Total harmonic distortion,Total harmonic distortion,input
 Track system,Track system,input
 Transmission,Transmission,input
+Uncirculated,Uncirculated,bool
 URL,URL,URL
+Variety,Variety,input
 Vessel type,Vessel type,input
 Video chip,Video chip,input
 Video output ,Video output ,input
@@ -296,7 +347,9 @@ Voltage,Voltage,input
 Voltage Rating AC,Voltage Rating AC,input
 Voltage Rating DC,Voltage Rating DC,input
 Volume,Volume,input
+Watermark,Watermark,bool
 Wavelength,Wavelength,input
+Weatherproof,Weatherproof,bool
 Weight,Weight,input
 Wheelbase,Wheelbase,input
 Width,Width,input
@@ -305,4 +358,6 @@ Wingspan,Wingspan,input
 Wow and flutter,Wow and flutter,input
 Year build,Year build,input
 Zipcode,Zipcode,input
-Weatherproof,Weatherproof,bool
+Open source,Open source,input
+Closed source,Closed source,input
+Proprietary,Proprietary,input

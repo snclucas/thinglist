@@ -29,7 +29,7 @@ from database.database_functions import get_all_user_locations, \
 from database.database_functions import find_user_by_username
 from routes.items_loader import process_field_sets, process_images
 
-from site_globals import _COPY_, _MOVE_
+from site_globals import _COPY_, _MOVE_, __ALL__
 
 items_routes = Blueprint('items', __name__)
 
@@ -417,7 +417,7 @@ def items_save():
 
     inventory_list = []
 
-    if inventory_slug == "all":
+    if inventory_slug == __ALL__:
         user_inventories, status, msg = (
             get_user_inventories(current_user_id=current_user.id, requesting_user_id=current_user.id))
         for ui in user_inventories:
@@ -675,7 +675,6 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
     item_types_ = get_all_user_and_system_item_types(user_id=inventory_owner_id)
     all_fields = dict(get_all_fields())
 
-    data_dict = {}
     inventory_id = -1
     if inventory_ is not None:
         inventory_id = inventory_.id
@@ -695,7 +694,6 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
                            list_username=list_username,
                            inventory_owner_id=inventory_owner_id,
                            inventory=inventory_,
-                           data_dict=data_dict,
                            item_types=item_types_,
                            inventory_templates=inventory_templates,
                            inventory_field_template=inventory_field_template,
