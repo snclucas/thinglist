@@ -203,13 +203,12 @@ def add_inventory():
 @inv.route(rule='/list/delete', methods=['POST'])
 @login_required
 def del_inventory():
-    if request.method == 'POST':
-        json_data = request.json
-        inventory_ids = json_data['inventory_ids']
-        inventory_ids = [int(bleach.clean(str(x))) for x in inventory_ids]
-        delete_list_by_id(inventory_ids=inventory_ids, user_id=current_user.id)
+    json_data = request.json
+    inventory_ids = json_data['inventory_ids']
+    inventory_ids = [int(bleach.clean(str(x))) for x in inventory_ids]
+    delete_list_by_id(inventory_ids=inventory_ids, user_id=current_user.id)
 
-        return redirect(url_for('inv.lists'))
+    return redirect(url_for('inv.lists'))
 
 
 

@@ -27,8 +27,12 @@
                     searchable: true,
                     "render": function (item) {
                         let item_url = {{ url_for('item.item_with_username_and_inventory', list_username=list_username, inventory_slug=inventory_slug, item_slug='ITEMSSLUG')  |  tojson}}.replace("ITEMSSLUG", item["slug"])
-                        let return_string = "<a href=\"" + item_url + "\">" + item["name"] + "</a>";
-                        return return_string;
+                        if (item["is_link"] == 1) {
+                            return "<a href=\"" + item_url + "\">" + item["name"] + "</a> <span class=\"fas fa-arrows-alt-h fa-1x\"></span>";
+                        } else {
+                            return "<a href=\"" + item_url + "\">" + item["name"] + "</a>";
+                        }
+
                     }
                 },
                     { // Item type

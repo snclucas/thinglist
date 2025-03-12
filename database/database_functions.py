@@ -2008,7 +2008,7 @@ def get_related_items(item_id: int):
         or_(Relateditems.item_id == item_id, Relateditems.related_item_id == item_id)).all()
 
 
-def get_items_to_delete(user_id: int, item_ids: list):
+def get_items_to_delete(user_id: int, item_ids: list, inventory_id: int = None):
     """
 
     Method: get_items_to_delete
@@ -2032,8 +2032,13 @@ def get_items_to_delete(user_id: int, item_ids: list):
     if len(item_ids) == 0:
         return 0
 
-    stmt = select(Item).where(user_id == Item.user_id, Item.id.in_(item_ids))
-    return db.session.execute(stmt).all()
+
+    query = db.session.query(Item, InventoryItem)
+    query = query.join(InventoryItem, InventoryItem.item_id == Item.id)
+    if inventory_id is not None:
+        query = query.filter(InventoryItem.inventory_id == inventory_id)
+    query = query.where(user_id == Item.user_id, Item.id.in_(item_ids))
+    return db.session.execute(query).all()
 
 
 def delete_all_user_items(user_id: int):
@@ -2078,30 +2083,35 @@ def delete_items(item_ids: list, user_id: int, inventory_id: int = None) -> int:
         # if item IDs = [-1] then delete all items
         if len(item_ids) == 1 and item_ids[0] == -1:
             item_ids = get_all_item_ids_in_inventory(user_id=user_id, inventory_id=inventory_id)
-            items_to_delete = get_items_to_delete(user_id=user_id, item_ids=item_ids)
+            items_to_delete = get_items_to_delete(user_id=user_id, item_ids=item_ids, inventory_id=inventory_id)
         else:
-            items_to_delete = get_items_to_delete(user_id=user_id, item_ids=item_ids)
+            items_to_delete = get_items_to_delete(user_id=user_id, item_ids=item_ids, inventory_id=inventory_id)
 
         number_items_deleted = 0
 
-        for item_ in items_to_delete:
-            item_ = item_[0]
+        for item_, inventory_item_ in items_to_delete:
+            #item_ = item_[0]
             if item_ is not None:
                 # check if this item is in multiple directories
                 # if so, only remove the link to this item from the current inventory
+
+                #if this is a link we need to delete the InventoryItem but no the item itself
+                if inventory_item_.is_link is True:
+                    db.session.delete(inventory_item_)
+                    status, msg = _commit()
+                    if not status:
+                        app.logger.error(f"Could not delete item(s) link: {str(e)}")
+                    return 0
+
                 if inventory_id is not None:
 
                     for itinv in item_.inventories:
                         if itinv.id == inventory_id:
                             item_.inventories.remove(itinv)
 
-                    try:
-                        db.session.commit()
-                    except SQLAlchemyError as e:
-                        app.logger.error(f"Could not delete item {item_.id}: {str(e)}")
-                        d = 3
-
-                    number_items_deleted += 1
+                    status, msg = _commit()
+                    if status:
+                        number_items_deleted += 1
 
                 # remove related item relationships
                 related_items = get_related_items(item_.id)
@@ -2114,14 +2124,9 @@ def delete_items(item_ids: list, user_id: int, inventory_id: int = None) -> int:
                 db.session.delete(item_)
                 number_items_deleted += 1
 
-        try:
-            db.session.commit()
-            return number_items_deleted
-        except SQLAlchemyError as e:
-            app.logger.error(f"Could not delete items: {str(e)}")
-            db.session.rollback()
+        status, msg = _commit()
+        return number_items_deleted
 
-    return number_items_deleted
 
 
 def edit_items_locations(item_ids: list, user: User, location_id: int, specific_location: str) -> (bool, str):
@@ -2431,8 +2436,14 @@ def get_user_default_item_type(user_id: int):
         return user_default_item_type
 
 
-def commit():
-    db.session.commit()
+def _commit() -> (bool, str):
+    try:
+        db.session.commit()
+        return True, "success"
+    except Exception as error: #noqa
+        app.logger.error(f"Could not commit changes: {str(error)}")
+        db.session.rollback()
+        return True, "Could not edit list"
 
 
 def add_item_to_inventory(item_id=None, item_name=None, item_desc=None, item_type=None, item_tags=None,

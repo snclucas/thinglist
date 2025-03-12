@@ -120,6 +120,7 @@ def items(username=None, inventory_slug=None):
     for row in items_:
         item_ = row[0]
         tag_arr = []
+        is_link = row[4]
         for tag in item_.tags:
             tag_arr.append(tag.tag.replace("@#$", " "))
 
@@ -137,7 +138,8 @@ def items(username=None, inventory_slug=None):
         # used to remove duplicates resulting from item links
         if item_.slug not in _already_found_list:
             ret_items.append({
-                "name": {"name": item_.name, "slug": item_.slug, "id": item_.id, "description": item_.description},
+                "name": {"name": item_.name, "slug": item_.slug, "id": item_.id, "description": item_.description,
+                         "is_link": is_link},
                 "description": {"description": item_.description, "url": item_.url},
                 "inventories": ", ".join(_list_inventories),
                 "tags": tag_arr,
