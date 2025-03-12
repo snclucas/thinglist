@@ -69,7 +69,7 @@
                     {% if item.related_items | length > 0 %}
                         {% for rel_item in item.related_items %}
                             <strong><a
-                                    href="{{ url_for('item.item_with_username_and_inventory', username=username, inventory_slug=inventory_slug, item_slug=rel_item.slug) | replace('%40', '@') }}">{{ rel_item.name }}</a></strong>
+                                    href="{{ url_for('item.item_with_username_and_inventory', list_username=username, inventory_slug=inventory_slug, item_slug=rel_item.slug) | replace('%40', '@') }}">{{ rel_item.name }}</a></strong>
 
                             {% if user_is_authenticated %}
                                 <span id="delete-related-{{ rel_item.id }}"

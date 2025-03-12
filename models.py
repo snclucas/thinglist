@@ -1,6 +1,7 @@
 import datetime
 import string
 from random import choice
+from secrets import token_urlsafe
 
 from flask_login import UserMixin
 from slugify import slugify
@@ -135,7 +136,9 @@ class Inventory(db.Model):
     show_item_type = db.Column(db.Boolean(), nullable=False, unique=False, default=True)
     show_item_tags = db.Column(db.Boolean(), nullable=False, unique=False, default=True)
     show_item_url = db.Column(db.Boolean(), nullable=False, unique=False, default=True)
+    inventory_token = db.Column(db.String(255), nullable=True, unique=True)
     invtags = db.relationship('Invtag', secondary='inventory_tags', back_populates='inventories', lazy='subquery')
+
 
     __table_args__ = (UniqueConstraint('slug', 'owner_id', name='_item_field_uc'),)
    # __table_args__ = (UniqueConstraint('slug', 'owner_id', name='_item_field_uc'),
@@ -167,6 +170,7 @@ class Item(db.Model):
     main_image = db.Column(db.String(255), nullable=True, unique=False)
     fields = db.relationship('Field', secondary='item_fields', back_populates='items', lazy='subquery')
     short_code = db.Column(db.String(255), nullable=True, unique=True)
+    item_token = db.Column(db.String(255), nullable=True, unique=True)
 
     # this relationship is used for persistence
     related_items = db.relationship("Item", secondary=Relateditems.__table__,
@@ -174,6 +178,14 @@ class Item(db.Model):
                                     secondaryjoin=id == Relateditems.related_item_id,
                                     )
 
+
+@event.listens_for(Item, 'before_insert')
+def create_item_unique_token(mapper, connect, target):
+    target.item_token = token_urlsafe()
+
+@event.listens_for(Inventory, 'before_insert')
+def create_inventory_unique_token(mapper, connect, target):
+    target.inventory_token = token_urlsafe()
 
 @event.listens_for(Item, 'before_insert')
 def create_item_short_code(mapper, connect, target):
