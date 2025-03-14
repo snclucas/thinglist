@@ -23,7 +23,7 @@ from database.database_functions import find_user_by_username
 
 from utils import correct_image_orientation, generate_item_image_filename
 
-from site_globals import __PUBLIC__, __VIEWER__
+from site_globals import __PUBLIC__, __VIEWER__, __DEFAULT__
 
 item_routes = Blueprint('item', __name__)
 
@@ -39,20 +39,7 @@ def my_utility_processor():
     return dict(item_tag_to_string=item_tag_to_string)
 
 
-
-
-# @item_routes.route('/item/save-pdf', methods=['POST'])
-# @login_required
-# def items_save_pdf():
-#     if request.method == 'POST':
-#         html = item_with_username_and_inventory()
-#
-#         return render_pdf(HTML(string=html))
-
-        #return item_with_username_and_inventory()
-
-
-@item_routes.route('/@<list_username>/<inventory_slug>/<item_slug>')
+@item_routes.route('/@<string:list_username>/<string:inventory_slug>/<string:item_slug>')
 def item_with_username_and_inventory(list_username: str, inventory_slug: str, item_slug: str):
     inventory_owner_username = bleach.clean(list_username)
     inventory_owner = None
@@ -72,7 +59,7 @@ def item_with_username_and_inventory(list_username: str, inventory_slug: str, it
 
         # check for default inventory
         if inventory_slug == "d":
-            inventory_slug = f"default-{list_username}"
+            inventory_slug = f"{__DEFAULT__}-{list_username}"
 
     else:
         requested_user = None
