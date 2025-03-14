@@ -279,7 +279,7 @@ def save_inventory_template():
 
     result = save_inventory_fieldtemplate(inventory_id=inventory_id,
                                           inventory_template=inventory_template, user_id=current_user.id)
-
+    #fix field templates - set back to None if requested and remove the feild data
     if not result:
         flash("Error saving inventory template")
 

@@ -1,4 +1,5 @@
 import json
+import re
 import uuid
 
 import bleach
@@ -16,6 +17,7 @@ from database.database_functions import get_user_inventories, delete_item_from_i
 from database.database_functions import find_user_by_username
 
 from site_globals import __INVENTORY__, __LIST__, __URL_LIST__, __PUBLIC__, __PRIVATE__, __VIEWER__, __READ_ONLY__
+from utils import CLEANR
 
 inv = Blueprint('inv', __name__)
 
@@ -465,16 +467,19 @@ def add_to_inventory():
     inventory_slug = bleach.clean(inventory_slug)
     item_type = request.form.get("type").lower()
     item_type = bleach.clean(item_type)
-    if item_type == '':
+    # strip to exclude just spaces
+    if item_type.strip() == '':
         item_type = None
 
     item_specific_location = bleach.clean(request.form.get("specific_location")).lower()
     item_tags = bleach.clean(request.form.get("tags")).lower()
     item_tags = item_tags.lower().split(",")
+    # remove HTML tags
+    item_tags = [re.sub(CLEANR, '', it) for it in item_tags]
 
     item_custom_fields = dict(request.form)
     to_remove = ['username', 'name', 'id', 'description', 'inventory_id', 'location_id',
-                 'inventory_slug', 'specific_location', 'csrf_token', 'tags', 'type']
+                 'inventory_slug', 'specific_location', 'csrf_token', 'tags', 'type', 'quantity', 'url']
     for field in to_remove:
         del item_custom_fields[field]
 

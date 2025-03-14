@@ -1,5 +1,4 @@
 {% if is_inventory_owner or inventory_access_level == __COLLABORATOR__ %}
-
     {% if user_is_authenticated %}
         <select class="form-select" id="inventory_filter" name="inventory_filter">
             {% if inventory_slug == "all" %}
@@ -24,5 +23,4 @@
             {% endfor %}
         </select>
     {% endif %}
-
 {% endif %}

@@ -1,8 +1,11 @@
 import random
+import re
 import string
 
 from PIL import Image
 
+
+CLEANR = re.compile('<.*?>|&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-f]{1,6});')
 
 def correct_image_orientation(image: Image):
     if hasattr(image, '_getexif'):

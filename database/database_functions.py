@@ -2004,9 +2004,15 @@ def get_related_items(item_id: int):
     if item_id is None:
         app.logger.error("Item cannot be None")
         return []
-    return Relateditems.query.filter(
-        or_(Relateditems.item_id == item_id, Relateditems.related_item_id == item_id)).all()
+    #return Relateditems.query.filter(
+    #    or_(Relateditems.item_id == item_id, Relateditems.related_item_id == item_id)).all()
+    #_related_items =  Relateditems.query.filter(Relateditems.item_id == item_id).all()
 
+    _related_items = (db.session.query(Relateditems, Item)
+                      .join(Item, Item.id == Relateditems.related_item_id)
+                      .filter(Relateditems.item_id == item_id).all())
+
+    return _related_items
 
 def get_items_to_delete(user_id: int, item_ids: list, inventory_id: int = None):
     """
@@ -2477,7 +2483,7 @@ def add_item_to_inventory(item_id=None, item_name=None, item_desc=None, item_typ
 
             # If item_type is none set it to the in-built Not Set item type
             if item_type is None:
-                item_type_ = db.session.query(ItemType).filter_by(name="Not set").one_or_none()
+                item_type_ = db.session.query(ItemType).filter_by(slug="not-set").filter_by(user_id=None).one_or_none()
                 if item_type_ is not None:
                     _item_type_int = item_type_.id
 
@@ -3213,6 +3219,7 @@ def save_inventory_fieldtemplate(inventory_id: int, inventory_template: int, use
     """
     with app.app_context():
         inventory_, user_inventory_ = find_inventory_by_id(inventory_id=inventory_id, user_id=user_id)
+        inventory_ = db.session.merge(inventory_)
         if inventory_ is None or user_inventory_ is None:
             app.logger.error(f"System failed to find inventory with ID: {inventory_id}")
             return False, "Failed to find inventory"
@@ -3222,6 +3229,7 @@ def save_inventory_fieldtemplate(inventory_id: int, inventory_template: int, use
 
             template_ = db.session.query(FieldTemplate).filter(FieldTemplate.id == inventory_template).one_or_none()
             if template_ is not None:
+                template_ = db.session.merge(template_)
                 temp_fields = template_.fields
                 field_ids = [x.id for x in temp_fields]
 
@@ -3638,12 +3646,12 @@ def post_user_add_hook(new_user: User):
 
     """
     with app.app_context():
-        _ret = add_user_list(name=f"{__DEFAULT__}{new_user.username}",
+        _ret = add_user_list(name=f"{__DEFAULT__}_{new_user.username}",
                              description=f"Default inventory for {new_user.username}",
                              access_level=0,
                              inventory_type=1,
                              user_id=new_user.id)
-        get_or_add_new_location(location_name=f"{__DEFAULT__}{new_user.id}",
+        get_or_add_new_location(location_name=f"{__DEFAULT__}_{new_user.username}",
                                 location_description=f"Default location for {new_user.username}",
                                 to_user_id=new_user.id)
         #add_new_user_itemtype(name=_NONE_, user_id=new_user.id)

@@ -1,5 +1,5 @@
 _NONE_ = "None"
-__DEFAULT__ = "__DEFAULT__"
+__DEFAULT__ = "default"
 __ALL__ = "all"
 
 __PRIVATE__ = 0

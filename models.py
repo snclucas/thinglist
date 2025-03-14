@@ -163,7 +163,8 @@ class Item(db.Model):
     quantity = db.Column(db.Integer, nullable=False, unique=False, default=1)
     inventories = db.relationship('Inventory', secondary='inventory_items', back_populates='items', lazy='subquery')
     tags = db.relationship('Tag', secondary='item_tags', back_populates='items', lazy='subquery')
-    location_id = db.Column(db.Integer, db.ForeignKey('locations.id'), primary_key=True, default=1)
+    #location_id = db.Column(db.Integer, db.ForeignKey('locations.id'), primary_key=True, default=None, nullable=True)
+    location_id = db.Column(db.Integer, db.ForeignKey('locations.id'), default=None, nullable=False)
     specific_location = db.Column(db.String(50), nullable=True, unique=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
     images = db.relationship('Image', secondary='item_images', back_populates='items', lazy='subquery')
@@ -251,7 +252,6 @@ class ItemType(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(255), nullable=True, unique=False)
     slug = db.Column(db.String(255), nullable=True, unique=False)
-    # user_id = db.Column(db.Integer, nullable=True, unique=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=True)
     __table_args__ = (UniqueConstraint('name', 'user_id', name='_name_userid_uc'),)
 

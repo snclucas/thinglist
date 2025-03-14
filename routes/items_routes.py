@@ -29,7 +29,7 @@ from database.database_functions import get_all_user_locations, \
 from database.database_functions import find_user_by_username
 from routes.items_loader import process_field_sets, process_images
 
-from site_globals import _COPY_, _MOVE_, __ALL__
+from site_globals import _COPY_, _MOVE_, __ALL__, __DEFAULT__
 
 items_routes = Blueprint('items', __name__)
 
@@ -458,15 +458,20 @@ def items_save():
                 d = 3
 
 
-        headers_ = ["id", "name", "description", "tags", "type", "location", "specific location", "quantity"]
+        headers_ = ["id", "name", "description", "tags", "type",
+                    "location", "specific location", "quantity", "url"]
         headers_.extend(field_set)
 
         if inventory_ is not None:
             json_output = {
-                "inventory": {"id": inventory_id, "name": inventory_.name, "description": inventory_.description,
+                "inventory": {
+                    #"id": inventory_id,
+                    "inventory_token": inventory_.inventory_token,
+                    "name": inventory_.name,
+                    "description": inventory_.description,
                               "slug": inv_slug,
                               "custom_field_set": wewe,
-                              "std_fields": headers_,
+                              "standard_fields": headers_,
                               "field_set": {
                                   "name": inventory_field_template_name,
                                   "fields": list(field_set),
@@ -483,10 +488,10 @@ def items_save():
             item_custom_fields_ = get_item_fields(item_id=item_.id)
 
             related_items_ = get_related_items(item_id=item_.id)
-            related_items_dict = {}
+            related_items_list = []
             if len(related_items_) > 0:
-                for related_item in related_items_:
-                    related_items_dict[related_item.item_id] = related_item.related_item_id
+                for _r, related_item in related_items_:
+                    related_items_list.append(related_item.item_token)
 
             ddd = {}
             for field_data in item_custom_fields_:
@@ -496,7 +501,8 @@ def items_save():
                 ddd[field_.slug] = item_field_.value
 
             tmp_json = {
-                "id": item_.id,
+                #"id": item_.id,
+                "item_token": item_.item_token,
                 "name": item_.name,
                 "slug": item_.slug,
                 "description": item_.description,
@@ -507,7 +513,7 @@ def items_save():
                 "quantity": item_.quantity,
                 "is_link": row["item_is_link"],
                 "custom_fields": ddd,
-                "related_items": related_items_dict
+                "related_items": related_items_list
             }
 
             current_user_id = str(current_user.id)
@@ -623,7 +629,12 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
         if inventory_owner is not None:
             inventory_owner_id = inventory_owner.id
 
-    inventory_id, inventory_, inventory_field_template = _get_inventory(inventory_slug=inventory_slug,
+    if inventory_slug == __DEFAULT__:
+        _inventory_slug = f"default-{list_username}"
+    else:
+        _inventory_slug = inventory_slug
+
+    inventory_id, inventory_, inventory_field_template = _get_inventory(inventory_slug=_inventory_slug,
                                                                         inventory_owner_id=inventory_owner_id,
                                                                         logged_in_user_id=logged_in_user_id)
 
@@ -633,10 +644,10 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
             users_in_this_inventory = {}
 
     if inventory_ is None and inventory_slug != "all":
-        return render_template('404.html', message="No such inventory"), 404
+        return render_template(template_name_or_list='404.html', message="No such inventory"), 404
 
     if not user_is_authenticated and inventory_.access_level == __PRIVATE__:
-        return render_template('404.html', message="No such inventory"), 404
+        return render_template(template_name_or_list='404.html', message="No such inventory"), 404
 
     if not user_is_authenticated and inventory_.access_level == __PUBLIC__:
         is_inventory_owner = False
