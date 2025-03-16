@@ -179,11 +179,6 @@ class Item(db.Model):
                                     secondaryjoin=id == Relateditems.related_item_id,
                                     )
 
-
-@event.listens_for(Item, 'before_insert')
-def create_item_unique_token(mapper, connect, target):
-    target.item_token = token_urlsafe()
-
 @event.listens_for(Inventory, 'before_insert')
 def create_inventory_unique_token(mapper, connect, target):
     target.inventory_token = token_urlsafe()
@@ -251,7 +246,7 @@ class ItemType(db.Model):
     __tablename__ = "item_type"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(255), nullable=True, unique=False)
-    slug = db.Column(db.String(255), nullable=True, unique=False)
+    slug = db.Column(db.String(255), nullable=True, unique=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=True)
     __table_args__ = (UniqueConstraint('name', 'user_id', name='_name_userid_uc'),)
 

@@ -11,7 +11,7 @@ from database.database_functions import get_user_inventories, delete_item_from_i
     add_item_to_inventory, \
     find_inventory_by_slug, \
     edit_inventory_data, \
-    delete_list_by_id, add_user_to_inventory, delete_user_to_inventory, find_inventory_by_id, add_user_list, \
+    delete_lists_by_id, add_user_to_inventory, delete_user_to_inventory, find_inventory_by_id, add_user_list, \
     regenerate_inventory_token, find_inventory_by_access_token, add_user_to_inventory_from_token, \
     get_user_public_lists, get_user_unlisted_item_count
 from database.database_functions import find_user_by_username
@@ -208,7 +208,7 @@ def del_inventory():
     json_data = request.json
     inventory_ids = json_data['inventory_ids']
     inventory_ids = [int(bleach.clean(str(x))) for x in inventory_ids]
-    delete_list_by_id(inventory_ids=inventory_ids, user_id=current_user.id)
+    delete_lists_by_id(inventory_ids=inventory_ids, user_id=current_user.id)
 
     return redirect(url_for('inv.lists'))
 

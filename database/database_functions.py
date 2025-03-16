@@ -4,6 +4,8 @@ import os
 import uuid
 from typing import Union, List, Tuple, Optional, Dict
 
+from secrets import token_urlsafe
+
 from slugify import slugify
 from sqlalchemy import select, and_, ClauseElement, or_, text
 from sqlalchemy.exc import SQLAlchemyError, NoResultFound, InvalidRequestError
@@ -27,12 +29,14 @@ def drop_then_create():
 
 
 def _to_dict(object_: db.Model) -> dict:
+    if isinstance(object_, dict):
+        return object_
     _dict = object_.__dict__
     _dict.pop('_sa_instance_state', None)
     return _dict
 
 
-def activate_user_in_db(user_id: int) -> bool:
+def activate_user(user_id: int) -> bool:
     with app.app_context():
         try:
             user_ = db.session.query(User).filter(User.id == user_id).one()
@@ -86,6 +90,9 @@ def add_user_by_details(username: str, email: str, password: str, fail_on_duplic
 
 
 def remove_user_by_id(user_id: int) -> (bool, str):
+    if user_id is None:
+        return False, "User ID cannot be None"
+
     with app.app_context():
         try:
             user_ = User.query.filter_by(id=user_id).first()
@@ -95,6 +102,7 @@ def remove_user_by_id(user_id: int) -> (bool, str):
             db.session.commit()
             return True, f"User with ID {user_id} removed successfully"
         except SQLAlchemyError as e:
+            app.logger.error(f"Error removing user by ID {user_id}: {str(e)}")
             return False, str(e)
 
 
@@ -107,10 +115,10 @@ def find_user(username_or_email: str) -> Optional[User]:
         Optional[User]: Returns the found User object if a match is found, otherwise returns None.
     """
     with app.app_context():
-        user = find_user_by_username(username=username_or_email)
-        if not user:
-            user = find_user_by_email(email=username_or_email)
-        return user
+        user_ = find_user_by_username(username=username_or_email)
+        if not user_: # not found by username, try email
+            user_ = find_user_by_email(email=username_or_email)
+        return user_
 
 
 def find_user_by_username(username: str) -> Optional[User]:
@@ -181,14 +189,18 @@ def find_user_by_token(token: str) -> Optional[User]:
         return user
 
 
-def find_user_by_id(user_id: int) -> User:
+def find_user_by_id(user_id: int) -> Optional[User]:
     with app.app_context():
-        user_ = db.session.query(User).filter(User.id == user_id).one()
-        db.session.flush()
-        db.session.expunge_all()
-        db.session.close()
-        return user_
-
+        try:
+            user_ = db.session.query(User).filter(User.id == user_id).one()
+            db.session.flush()
+            db.session.expunge_all()
+            db.session.close()
+            return user_
+        except (NoResultFound, InvalidRequestError, SQLAlchemyError) as e:
+            err_msg = f"Error finding user by ID: {str(e)}"
+            app.logger.error(err_msg)
+            return None
 
 def save_new_user(user_: User, fail_on_duplicate: bool = True) -> Tuple[bool, str, Optional[User]]:
     """
@@ -293,26 +305,12 @@ def find_inventory_by_access_token(access_token: str) -> Optional[Inventory]:
             return inventory_
 
 
-def find_inventory_by_slug(inventory_slug: str,
-                           inventory_owner_id: int = None,
-                           viewing_user_id: int = None) -> Tuple[Optional[Inventory], Optional[UserInventory]]:
-    """
-    Find inventory by slug.
 
-    Searches for an inventory using its unique slug. Optionally, you can provide the owner's ID and the ID of the viewing user.
 
-    :param inventory_slug: The slug of the inventory to find.
-    :type inventory_slug: str
-    :param inventory_owner_id: The ID of the owner of the inventory (optional).
-    :type inventory_owner_id: int, default None
-    :param viewing_user_id: The ID of the viewing user (optional).
-    :type viewing_user_id: int, default None
-    :return: A tuple containing the found inventory and user inventory (if applicable).
-    :rtype: Tuple[Optional[Inventory], Optional[UserInventory]]
-    """
+def _find_inventory_by(_q_str, _q_str_val, _q, _qa, inventory_owner_id, viewing_user_id) -> Tuple[Optional[Inventory], Optional[UserInventory]]:
     with app.app_context():
-        if not isinstance(inventory_slug, str):
-            err_msg = f"Error finding inventory by slug: supplied inventory_slug is not a string"
+        if not isinstance(_q_str_val, str):
+            err_msg = f"Error finding inventory by {_q_str}: supplied token is not a string"
             app.logger.error(err_msg)
             return None, None
 
@@ -325,7 +323,7 @@ def find_inventory_by_slug(inventory_slug: str,
 
         # do some new code here to fix
         # try to find a user inventory for the user and the inventory id
-        inventory_ = Inventory.query.filter(Inventory.slug == inventory_slug).one_or_none()
+        inventory_ = Inventory.query.filter(_q == _qa).one_or_none()
         if not inventory_:
             return None, None
 
@@ -352,6 +350,49 @@ def find_inventory_by_slug(inventory_slug: str,
                     return inventory_, None
                 else:
                     return None, None
+
+
+def find_inventory_by_token(inventory_token: str,
+                           inventory_owner_id: int = None,
+                           viewing_user_id: int = None) -> Tuple[Optional[Inventory], Optional[UserInventory]]:
+    """
+    Find inventory by slug.
+
+    Searches for an inventory using its unique slug. Optionally, you can provide the owner's ID and the ID of the viewing user.
+
+    :param inventory_token: The slug of the inventory to find.
+    :type inventory_token: str
+    :param inventory_owner_id: The ID of the owner of the inventory (optional).
+    :type inventory_owner_id: int, default None
+    :param viewing_user_id: The ID of the viewing user (optional).
+    :type viewing_user_id: int, default None
+    :return: A tuple containing the found inventory and user inventory (if applicable).
+    :rtype: Tuple[Optional[Inventory], Optional[UserInventory]]
+    """
+    return _find_inventory_by(_q_str="token", _q_str_val=inventory_token, _q=Inventory.inventory_token,
+                       _qa=inventory_token, inventory_owner_id=inventory_owner_id, viewing_user_id=viewing_user_id)
+
+
+def find_inventory_by_slug(inventory_slug: str,
+                           inventory_owner_id: int = None,
+                           viewing_user_id: int = None) -> Tuple[Optional[Inventory], Optional[UserInventory]]:
+    """
+    Find inventory by slug.
+
+    Searches for an inventory using its unique slug. Optionally, you can provide the owner's ID and the ID of the viewing user.
+
+    :param inventory_slug: The slug of the inventory to find.
+    :type inventory_slug: str
+    :param inventory_owner_id: The ID of the owner of the inventory (optional).
+    :type inventory_owner_id: int, default None
+    :param viewing_user_id: The ID of the viewing user (optional).
+    :type viewing_user_id: int, default None
+    :return: A tuple containing the found inventory and user inventory (if applicable).
+    :rtype: Tuple[Optional[Inventory], Optional[UserInventory]]
+    """
+    return _find_inventory_by(_q_str="slug", _q_str_val=inventory_slug, _q=Inventory.slug,
+                              _qa=inventory_slug, inventory_owner_id=inventory_owner_id,
+                              viewing_user_id=viewing_user_id)
 
 
 def find_template_by_id(template_id: int) -> Optional[FieldTemplate]:
@@ -412,7 +453,7 @@ def _create_list(name: str,
                  show_item_tags: int = 1,
                  show_item_url: int = 1,
                  to_user: User = None,
-                 access_level: int = __PRIVATE__):
+                 access_level: int = __PRIVATE__, token=None):
     """
     Create a new inventory.
 
@@ -433,7 +474,6 @@ def _create_list(name: str,
         inventory_token = uuid.uuid4().hex
         new_inventory = Inventory(name=name, description=description, token=inventory_token,
                                   slug=slug, owner_id=to_user.id, type=inventory_type,
-                                  # slug=slug, owner=to_user, type=inventory_type, SNC
                                   show_default_fields=show_default_fields,
                                   show_item_images=show_item_images,
                                   show_item_type=show_item_type,
@@ -448,6 +488,9 @@ def _create_list(name: str,
         to_user.inventories.append(new_inventory)
         db.session.commit()
         db.session.expunge_all()
+        if token is not None:
+            new_inventory.inventory_token = token
+            db.session.commit()
         return new_inventory, new_inventory_id
 
 
@@ -459,7 +502,7 @@ def add_user_list(name: str, description: str, inventory_type: int, user_id: int
                   show_item_tags: int = True,
                   show_item_url: int = False,
                   slug: str = None,
-                  access_level: int = 1) -> Tuple[Optional[dict], bool, str]:
+                  access_level: int = 1, token=None) -> Tuple[Optional[dict], bool, str]:
     if name == "":
         return None, False, "List name cannot be empty"
 
@@ -481,11 +524,8 @@ def add_user_list(name: str, description: str, inventory_type: int, user_id: int
                                                            show_item_url=show_item_url,
                                                            show_item_location=show_item_location,
                                                            show_item_tags=show_item_tags,
-                                                           slug=slug, to_user=to_user, access_level=access_level)
-
-            # acl = AccessControl(user_id=to_user.id, entity="inventory", access_level=__OWNER__)
-            # db.session.add(acl)
-            # db.session.commit()
+                                                           slug=slug, to_user=to_user, access_level=access_level,
+                                                           token=token)
 
             result_return_value = {
                 "id": new_inventory_id,
@@ -499,8 +539,11 @@ def add_user_list(name: str, description: str, inventory_type: int, user_id: int
             return result_return_value, True, "success"
 
         except SQLAlchemyError as error:
+            app.logger.error(f"Error adding list: {str(error)}")
             return None, True, "Could not add list"
 
+def _get_user_default_inventory_name(username: str) -> str:
+    return f"{__DEFAULT__}_{username}"
 
 def get_number_user_lists(user_id: int) -> int:
     with app.app_context():
@@ -511,7 +554,7 @@ def get_user_default_inventory(user_id: int) -> Optional[Inventory]:
     with app.app_context():
         # Find user default inventory
         user_ = find_user_by_id(user_id=user_id)
-        user_default_inventory_ = Inventory.query.filter_by(name=f"{__DEFAULT__}{user_.username}").filter_by().first()
+        user_default_inventory_ = Inventory.query.filter_by(name=_get_user_default_inventory_name(user_.username)).filter_by().first()
         return user_default_inventory_
 
 def get_user_unlisted_items(user_id: int):
@@ -539,10 +582,10 @@ def delete_all_user_lists(user_id: int):
         if __DEFAULT__ not in list_["inventory_name"]:
             list_ids_.append(list_["inventory_id"])
 
-    delete_list_by_id(inventory_ids = list_ids_, user_id = user_id)
+    delete_lists_by_id(inventory_ids = list_ids_, user_id = user_id)
 
 
-def delete_list_by_id(inventory_ids: List[int], user_id: int) -> (bool, str):
+def delete_lists_by_id(inventory_ids: Union[int, List[int]], user_id: int) -> (bool, str):
     """
     If the User has Items within the Inventory - re-link Items to Users default Inventory via the ItemInventory table
     Delete the UserInventory for the user
@@ -616,11 +659,18 @@ def delete_notification_by_id(notification_id: int, user: User):
         if notification_ is not None:
             db.session.delete(notification_)
             # user.notifications.remove(notification_)
-            db.session.commit()
-            return {
-                "success": True,
-                "message": f"Removed notification with ID {notification_.id} from user @{user.username}"
-            }
+            try:
+                db.session.commit()
+                return {
+                    "success": True,
+                    "message": f"Removed notification with ID {notification_.id} from user @{user.username}"
+                }
+            except SQLAlchemyError as error:
+                app.logger.error(f"Error removing notification with ID {notification_id} from user @{user.username}: {str(error)}")
+                return {
+                    "success": False,
+                    "message": f"Error removing notification with ID {notification_id} from user @{user.username}: {str(error)}"
+                }
 
         return {
             "success": False,
@@ -667,8 +717,6 @@ def get_item_custom_field_data(user_id: int, item_list=None):
                 slugs.append(row[3])
 
         return sdsd, slugs, sdsd2
-
-
 
 
 def _find_field_by_name(field_name: str):
@@ -846,7 +894,7 @@ def find_all_my_items(logged_in_user_id: User):
         return results_
 
 
-def find_field_by_name(field_name: str) -> dict:
+def find_field_by_name(field_name: str) -> Field:
     with app.app_context():
         field_slug = slugify(field_name)
         field_ = Field.query.filter(Field.slug == field_slug).one_or_none()
@@ -1207,10 +1255,11 @@ def get_all_user_and_system_item_types(user_id: int, string_list=True) -> list:
         query_result = db.session.execute(query_statement).all()
         return [row[0] for row in query_result if query_result is not None]
 
-def get_user_or_system_item_type(user_id: int, item_type_name: None) -> ItemType:
+def get_user_or_system_item_type(user_id: int, item_type_name_or_slug: str) -> ItemType:
+    item_type_name_or_slug = slugify(item_type_name_or_slug)
     with app.app_context():
         query_statement = db.session.query(ItemType)
-        query_statement = query_statement.filter(ItemType.name == item_type_name)
+        query_statement = query_statement.filter(ItemType.slug == item_type_name_or_slug)
         query_statement = query_statement.filter(or_(ItemType.user_id == user_id, ItemType.user_id == None))
         query_result = db.session.execute(query_statement).one_or_none()
         return query_result
@@ -1263,7 +1312,7 @@ def find_user_item_type_by_name(item_type_name: str, user_id: int) -> ItemType:
         item_type_ = ItemType.query.filter_by(name=item_type_name).filter_by(user_id=user_id).first()
         return item_type_
 
-def add_new_user_item_type(name: str, user_id: int) -> (bool, str, dict):
+def get_or_add_new_user_item_type(name: str=None, user_id: int=None) -> (bool, str, dict):
     with app.app_context():
         if name is None or name == "":
             app.logger.error(f"System tried to add user item with name {name} for user {user_id}")
@@ -1275,8 +1324,8 @@ def add_new_user_item_type(name: str, user_id: int) -> (bool, str, dict):
 
         # convert to lower case
         name = name.lower().strip()
-
-        existing_item_type_ = find_item_type_by_text(type_text=name, user_id=user_id)
+        _slug = slugify(name)
+        existing_item_type_ = find_item_type_by_slug(slug=_slug, user_id=user_id)
 
         if existing_item_type_ is None:
             new_item_type_ = ItemType(name=name.lower(), user_id=user_id)
@@ -1309,6 +1358,16 @@ def find_item_type_by_text(type_text: str, user_id: int = None) -> Optional[dict
 
         return None
 
+
+def find_item_type_by_slug(slug: str, user_id: int = None) -> Optional[dict]:
+    with app.app_context():
+        item_type_ = ItemType.query.filter_by(slug=slug.lower().strip()) \
+            .filter(or_(ItemType.user_id == user_id, ItemType.user_id == None)).one_or_none()
+
+        if item_type_ is not None:
+            return _to_dict(item_type_)
+
+        return None
 
 def get_user_item_count(user_id: int):
     with app.app_context():
@@ -1801,29 +1860,141 @@ def _get_itemtype_id(item_data: dict, user_id: str) -> Optional[int]:
     - int: The ID of the item type. If the item type does not exist, it creates a new one and returns its ID.
 
     """
-    if 'item_type' not in item_data:
-        return None
+    with app.app_context():
+        if 'item_type' not in item_data:
+            return None
 
-    if item_data['item_type'] is None:
-        return None
+        if item_data['item_type'] is None:
+            return None
 
-    if item_data['item_type'] == "":
-        return None
+        if item_data['item_type'] == "":
+            return None
 
-    if user_id is None:
-        return None
+        if user_id is None:
+            return None
 
-    if not isinstance(item_data, dict):
-        return None
+        if not isinstance(item_data, dict):
+            return None
+        #this is broken
+        select_itemtype = select(ItemType).where(ItemType.name == item_data['item_type']).where(ItemType.user_id == user_id)
+        itemtype_result = db.session.execute(select_itemtype).first()
+        if itemtype_result is None:
+            new_itemtype_ = ItemType(name=item_data['item_type'], user_id=user_id)
+            db.session.add(new_itemtype_)
+            db.session.flush()
+            return new_itemtype_.id
+        return itemtype_result[0].id
 
-    select_itemtype = select(ItemType).where(ItemType.name == item_data['item_type']).where(ItemType.user_id == user_id)
-    itemtype_result = db.session.execute(select_itemtype).first()
-    if itemtype_result is None:
-        new_itemtype_ = ItemType(name=item_data['item_type'], user_id=user_id)
-        db.session.add(new_itemtype_)
-        db.session.flush()
-        return new_itemtype_.id
-    return itemtype_result[0].id
+
+def update_item_by_token(item_data: dict, item_token: str, user: User) -> Dict[str, Union[str, Dict[str, Union[int, str]]]]:
+    if item_token is None:
+        return {
+            "status": "error",
+            "message": "Item ID cannot be None",
+            "item": None
+        }
+
+    if user is None:
+        return {
+            "status": "error",
+            "message": "User cannot be None",
+            "item": None
+        }
+
+    with app.app_context():
+        db.session.expire_on_commit = False
+
+        select_statement = select(Item).where(Item.item_token == item_token)#.where(Item.user_id == user.id)
+
+        item_result = db.session.execute(select_statement).one_or_none()
+
+        if item_result is None:
+            return_data = {
+                "status": "error",
+                "message": "Not found",
+                "item": None
+            }
+            return return_data
+
+        _found = True
+        if item_result[0].user_id != user.id:
+            _found = False
+            for _inv in item_result[0].inventories:
+                for _user in _inv.users:
+                    if _user.id == user.id:
+                        _found = True
+
+        if not _found:
+            return_data = {
+                "status": "error",
+                "message": "",
+                "item": None
+            }
+            return return_data
+
+        item_result[0].name = item_data['name']
+        item_result[0].slug = f"{str(item_result[0].id)}-{slugify(item_data['name'])}"
+        item_result[0].description = item_data['description']
+        item_result[0].quantity = item_data['item_quantity']
+        item_result[0].location_id = item_data['item_location']
+        item_result[0].url = item_data.get('item_url', None)
+        item_result[0].specific_location = item_data['item_specific_location']
+
+        item_tags = item_data['item_tags']
+        tags_objects = []
+        if not isinstance(item_data['item_tags'], list):
+            item_tags = [t.strip().replace(" ", "@#$") for t in item_data['item_tags'].split(",")]
+
+        for tag in item_tags:
+            instance = db.session.query(Tag).filter_by(tag=tag).one_or_none()
+            if not instance:
+                instance = Tag(tag=tag, user_id=user.id)
+            if instance is not None:
+                tags_objects.append(instance)
+
+        item_result[0].tags = tags_objects
+
+        _item_type = item_data.get('item_type', None)
+        if isinstance(_item_type, int):
+            item_result[0].item_type = _item_type
+        elif isinstance(_item_type, str):
+                status, msg, added_item_type = get_or_add_new_user_item_type(name=_item_type,
+                                                                             user_id=user.id)
+                if status:
+                    item_result[0].item_type = added_item_type['id']
+                else:
+                    # set ity to default "Not Set"
+                    item_result[0].item_type = get_or_add_new_user_item_type(name=None, user_id=None)
+
+        try:
+            db.session.commit()
+            return_data = {
+                "status": "success",
+                "message": "",
+                "item": {
+                    "id": item_result[0].id,
+                    "name": item_result[0].name,
+                    "slug": item_result[0].slug,
+                    "description": item_result[0].description,
+                    "user_id": item_result[0].user_id,
+                }
+            }
+            return return_data
+        except SQLAlchemyError as ex:
+            db.session.rollback()
+            app.logger.error(f"Could not update item with item_token {item_token} for user {user.username} : {str(ex)}")
+            return_data = {
+                "status": "error",
+                "message": "",
+                "item": {
+                    "id": None,
+                    "name": None,
+                    "slug": None,
+                    "description": None,
+                    "user_id": None,
+                }
+            }
+            return return_data
 
 
 def update_item_by_id(item_data: dict, item_id: int, user: User) -> Dict[str, Union[str, Dict[str, Union[int, str]]]]:
@@ -2106,7 +2277,7 @@ def delete_items(item_ids: list, user_id: int, inventory_id: int = None) -> int:
                     db.session.delete(inventory_item_)
                     status, msg = _commit()
                     if not status:
-                        app.logger.error(f"Could not delete item(s) link: {str(e)}")
+                        app.logger.error(f"Could not delete item(s) link: {msg}")
                     return 0
 
                 if inventory_id is not None:
@@ -2452,9 +2623,9 @@ def _commit() -> (bool, str):
         return True, "Could not edit list"
 
 
-def add_item_to_inventory(item_id=None, item_name=None, item_desc=None, item_type=None, item_tags=None,
+def add_item_to_inventory(item_id=None, item_name=None, item_desc=None, item_type_name_or_id=None, item_tags=None,
                           inventory_id=None, user_id=None, item_quantity=1, item_url=None,
-                          item_location_id=None, item_specific_location="", custom_fields=None) -> dict:
+                          item_location_id=None, item_specific_location="", custom_fields=None, item_token=None) -> dict:
 
 
     if item_name is None:
@@ -2476,42 +2647,46 @@ def add_item_to_inventory(item_id=None, item_name=None, item_desc=None, item_typ
 
             _item_type_int = None
             _item_type_str = None
-            if isinstance(item_type, int):
-                _item_type_int = item_type
+            if isinstance(item_type_name_or_id, int):
+                _item_type_int = item_type_name_or_id
             else:
-                _item_type_str = item_type
+                _item_type_str = item_type_name_or_id
 
             # If item_type is none set it to the in-built Not Set item type
-            if item_type is None:
+            if item_type_name_or_id is None:
                 item_type_ = db.session.query(ItemType).filter_by(slug="not-set").filter_by(user_id=None).one_or_none()
                 if item_type_ is not None:
                     _item_type_int = item_type_.id
 
             else:
                 # check if the user has an item type with the same name
-                item_type_ = get_user_or_system_item_type(user_id=user_id, item_type_name=_item_type_str)
+                item_type_ = get_user_or_system_item_type(user_id=user_id, item_type_name_or_slug=_item_type_str)
 
                 if item_type_ is None:
                     # add new user item type
-                    item_type_ = ItemType(name=item_type, user_id=user_id)
+                    item_type_ = ItemType(name=_item_type_str, user_id=user_id)
                     db.session.add(item_type_)
                     db.session.commit()
                     db.session.flush()
 
-            _item_type_int = item_type_.id
+            _item_type_int = item_type_[0].id
 
 
 
 
-            if item_id is not None:
-                new_item = find_item_by_id(user_id=user_id, item_id=item_id)
+            if item_token is not None:
+                new_item = find_item_by_token(user_id=user_id, item_token=item_token)
 
-            if item_id is None or new_item is None:
+            if item_token is None or new_item is None:
                 # create the new item
                 new_item = Item(name=item_name, description=item_desc, user_id=user_id, quantity=item_quantity,
                                 url=item_url, item_type=_item_type_int,
                                 location_id=item_location_id, specific_location=item_specific_location)
                 db.session.add(new_item)
+                if item_token is not None:
+                    new_item.item_token = item_token
+                else:
+                    new_item.token = token_urlsafe()
                 # get new item ID and set the item slug
                 db.session.flush()
                 item_slug = f"{str(new_item.id)}-{slugify(item_name)}"
@@ -2576,7 +2751,8 @@ def add_item_to_inventory(item_id=None, item_name=None, item_desc=None, item_typ
         except Exception as e:
             return_data = {
                 "status": "error",
-                "item": {}
+                "item": {},
+                "msg": str(e)
             }
             # log this error
 
@@ -2791,6 +2967,10 @@ def save_user_inventory_view(user_id: int, inventory_id: int, view: int):
             user_inventory_[0].view = view
             db.session.commit()
 
+
+def find_item_by_token(item_token: str, user_id: int) -> Item:
+    item_ = Item.query.filter_by(item_token=item_token).filter_by(user_id=user_id).first()
+    return item_
 
 def find_item_by_slug(item_slug: str, user_id: int) -> Item:
     item_ = Item.query.filter_by(slug=item_slug).filter_by(user_id=user_id).first()
@@ -3496,7 +3676,8 @@ def add_field(field_name: str, field_type: str, user_id: int):
                              user_id=user_id, slug=slug)
 
 
-def edit_field_by_id(field_id: int, field_name: str, field_type: str, user_id: int):
+def edit_user_field_by_id(field_id: int, field_name: str, field_type: str, user_id: int) -> bool:
+
     if field_id is None:
         return False
     if field_name is None:
@@ -3513,15 +3694,24 @@ def edit_field_by_id(field_id: int, field_name: str, field_type: str, user_id: i
         return False
 
 
-def delete_field_by_field_name(field_name: str, user_id: int) -> bool:
-    with app.app_context():
-        field_ = Field.query.filter_by(field=field_name, user_id=user_id).one_or_none()
-        if field_ is not None:
-            db.session.delete(field_)
-            db.session.commit()
-            return True
+def delete_user_field_by_field_name(field_name: str, user_id: int) -> (bool, str):
+    if user_id is None:
+        return False, "No user ID provided"
+    if field_name is None:
+        return False, "No field name provided"
 
-        return False
+    with app.app_context():
+        try:
+            field_ = Field.query.filter_by(field=field_name, user_id=user_id).one_or_none()
+            if field_ is not None:
+                db.session.delete(field_)
+                db.session.commit()
+                return True
+        except SQLAlchemyError as err:
+            app.logger.error(f"Failed to delete field by name: {str(err)}")
+            return False, "Failed to delete field by name"
+
+        return False, "Failed to delete field by name"
 
 
 def add_new_item_field(item: Item, custom_fields: dict, user_id: int, app_context=None):

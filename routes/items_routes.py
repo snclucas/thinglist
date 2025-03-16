@@ -19,13 +19,14 @@ from database.database_functions import get_all_user_locations, \
     get_all_user_and_system_item_types, \
     find_item_type_by_text, find_inventory_by_slug, find_location_by_name, \
     add_item_to_inventory, find_all_user_inventories, delete_items, move_items, \
-    get_all_fields, add_new_user_item_type, \
+    get_all_fields, get_or_add_new_user_item_type, \
     get_user_templates, get_item_custom_field_data, \
     get_users_for_inventory, get_user_inventory_by_id, get_or_add_new_location, edit_items_locations, \
     change_item_access_level, link_items, copy_items, find_items_new, __PUBLIC__, __PRIVATE__, \
     get_user_inventories, add_user_list, \
     get_item_fields, find_template_by_id, save_user_inventory_view, \
-    get_related_items, get_all_item_ids_in_inventory, update_item_by_id, find_item_by_slug
+    get_related_items, get_all_item_ids_in_inventory, update_item_by_id, find_item_by_slug, find_inventory_by_token, \
+    get_user_default_inventory, find_item_by_token, update_item_by_token
 from database.database_functions import find_user_by_username
 from routes.items_loader import process_field_sets, process_images
 
@@ -89,15 +90,23 @@ def items_load():
                         if inventory_slug_ is None:
                             continue
 
-                        inventory_slug_ = bleach.clean(inventory_slug_)
+                        inventory_token_ = inventory_data.get("inventory_token", None)
+                        if inventory_token_ is None:
+                            continue
 
-                        # look for the inventory by slug
-                        found_inv, found_userinv = find_inventory_by_slug(inventory_slug=inventory_slug_,
-                                                                          inventory_owner_id=current_user.id,
-                                                                          viewing_user_id=current_user.id)
+                        inventory_slug_ = bleach.clean(inventory_slug_)
+                        inventory_token_ = bleach.clean(inventory_token_)
+
+                        if __DEFAULT__ in inventory_slug_:
+                            found_inv = get_user_default_inventory(user_id=current_user.id)
+                        else:
+                            # look for the inventory by slug (was by slub before)
+                            found_inv, found_userinv = find_inventory_by_token(inventory_token=inventory_token_,
+                                                                              inventory_owner_id=current_user.id,
+                                                                              viewing_user_id=current_user.id)
 
                         if found_inv is None:
-                            load_log += f"<br>Inventory {inventory_slug_} not found. Creating it...<br>"
+                            load_log += f"<br>Inventory {inventory_token_} not found. Creating it...<br>"
                             inventory_name = bleach.clean(inventory_data.get("name"))
                             inventory_description = bleach.clean(inventory_data.get("description"))
                             inventory_type = int(bleach.clean(str(inventory_data.get("type", 1))))
@@ -108,7 +117,8 @@ def items_load():
                                                                    inventory_type=inventory_type,
                                                                    slug=inventory_slug_,
                                                                    access_level=inventory_access_level,
-                                                                   user_id=current_user.id)
+                                                                   user_id=current_user.id,
+                                                                   token=inventory_token_)
                             if not status:
                                 load_log += f"Error creating inventory {inventory_slug_}.<br>"
                                 continue
@@ -121,6 +131,7 @@ def items_load():
                                 "description": found_inv.description,
                                 "slug": found_inv.slug,
                                 "type": found_inv.type,
+                                "token": found_inv.inventory_token,
                                 "access_level": found_inv.access_level,
                                 "owner_id": found_inv.owner_id
                             }
@@ -139,24 +150,26 @@ def items_load():
                         item_count = 0
                         if "items" in inventory_data:
                             for item in inventory_data["items"]:
-                                item_id = int(bleach.clean(str(item.get("id"))))
+                                item_token = bleach.clean(str(item.get("item_token")))
                                 if not overwrite_or_not_from_form:
-                                    item_id = None
+                                    item_token = None
                                 item_name = bleach.clean(item.get("name"))
                                 item_slug = bleach.clean(item.get("slug"))
                                 item_description = bleach.clean(item.get("description"))
-                                item_type = item.get("type", "none")
-                                if item_type is not None:
-                                    item_type = bleach.clean(item_type)
+                                item_type_slug = item.get("type_slug", "none")
+                                if item_type_slug is not None:
+                                    item_type_slug = bleach.clean(item_type_slug)
                                 item_quantity = int(bleach.clean(str(item.get("quantity"))))
                                 item_tags = [bleach.clean(str(x)) for x in item.get("tags")]
                                 item_location = bleach.clean(item.get("location"))
                                 item_specific_location = bleach.clean(item.get("specific_location"))
 
+                                item_type_name = None
                                 # add item types
-                                if item_type is not None and item_type != 'none':
-                                    status, add_item_type_msg = add_new_user_item_type(name=item_type,
-                                                                                       user_id=current_user.id)
+                                if item_type_slug is not None and item_type_slug != 'none':
+                                    status, msg, added_item_type = get_or_add_new_user_item_type(name=item_type_slug,
+                                                                                                 user_id=current_user.id)
+                                    item_type_name = added_item_type["name"]
 
                                 location_id = None
                                 if item_location is not None:
@@ -183,37 +196,37 @@ def items_load():
                                 custom_fields = item.get("custom_fields", {})
 
                                 if overwrite_or_not_from_form:
-                                    potential_item = find_item_by_slug(item_slug=item_slug, user_id=current_user.id)
+                                    potential_item = find_item_by_token(item_token=item_token, user_id=current_user.id)
                                     if potential_item is None:
-                                        new_item_ = add_item_to_inventory(item_id=item_id, item_name=item_name,
+                                        new_item_ = add_item_to_inventory(item_name=item_name,
                                                                           item_desc=item_description,
-                                                                          item_type=item_type,
+                                                                          item_type_name_or_id=item_type_name,
                                                                           item_quantity=item_quantity,
                                                                           item_tags=tag_array,
                                                                           inventory_id=inventory_id,
                                                                           item_location_id=location_id,
                                                                           item_specific_location=item_specific_location,
                                                                           user_id=current_user.id,
-                                                                          custom_fields=custom_fields)
+                                                                          custom_fields=custom_fields, item_token=item_token)
                                         item_count += 1
                                     else:
                                         new_item_data = {
-                                            "id": item_id,
+                                            "id": potential_item.id,
                                             "name": item_name,
                                             "description": item_description,
-                                            "item_type": item_type,
+                                            "item_type": added_item_type["id"],
                                             "item_quantity": item_quantity,
                                             "item_location": item_location,
                                             "item_specific_location": item_specific_location,
                                             "item_tags": item_tags
                                         }
-                                        new_item_ = update_item_by_id(item_data=new_item_data, item_id=int(item_id),
+                                        new_item_ = update_item_by_token(item_data=new_item_data, item_token=potential_item.item_token,
                                                                           user=current_user)
                                         load_log += f"&nbsp;&nbsp;&nbsp;&nbsp;... item {item_name} found and updated if different.<br>"
                                 else:
-                                    new_item_ = add_item_to_inventory(item_id=item_id, item_name=item_name,
+                                    new_item_ = add_item_to_inventory(item_name=item_name,
                                                                       item_desc=item_description,
-                                                                      item_type=item_type, item_quantity=item_quantity,
+                                                                      item_type_name_or_id=item_type_name, item_quantity=item_quantity,
                                                                       item_tags=tag_array, inventory_id=inventory_id,
                                                                       item_location_id=location_id,
                                                                       item_specific_location=item_specific_location,
@@ -223,7 +236,8 @@ def items_load():
 
                                 if new_item_["status"] != "error":
                                     # save images
-                                    process_images(item, new_item_, item_id, current_user, app)
+                                    _new_item_id = new_item_["item"]["id"]
+                                    process_images(item, new_item_, _new_item_id, current_user, app)
 
                                 if new_item_["status"] == "error":
                                     flash("Sorry, there was an error importing these things.")

@@ -1,7 +1,7 @@
 import unittest
 
 from database.database_functions import add_user_list, get_users_for_inventory, \
-    add_item_to_inventory, find_items_new, delete_list_by_id, find_default_user_location, find_user_item_type_by_name, \
+    add_item_to_inventory, find_items_new, delete_lists_by_id, find_default_user_location, find_user_item_type_by_name, \
     update_item_by_id, find_all_my_items, get_user_item_count, delete_all_user_items, get_user_default_inventory, \
     get_user_unlisted_item_count, find_related_items, relate_items_by_id, unrelate_items_by_id
 
@@ -166,8 +166,8 @@ class TestApp(TestAppParent):
         self.assertEqual(0, _user_unlisted_items)
 
         # if this list is deleted, the items should be reassigned to the users default list
-        status, msg = delete_list_by_id(inventory_ids=new_inventory_data["id"],
-                                        user_id=self.users['simon'].id)
+        status, msg = delete_lists_by_id(inventory_ids=new_inventory_data["id"],
+                                         user_id=self.users['simon'].id)
         self.assertEqual(True, status)
 
         # now there should be 2 unlisted items

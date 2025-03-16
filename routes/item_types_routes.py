@@ -9,7 +9,7 @@ from flask_login import login_required, current_user
 from app import app
 
 from database.database_functions import get_all_user_item_types, find_item_type_by_text, \
-    add_new_user_item_type, delete_item_types_by_id
+    get_or_add_new_user_item_type, delete_item_types_by_id
 
 types = Blueprint('types', __name__)
 
@@ -40,7 +40,7 @@ def add_item_type():
     potential_item_type_ = find_item_type_by_text(type_text=item_type_name)
 
     if potential_item_type_ is None:
-        add_new_user_item_type(name=item_type_name, user_id=current_user.id)
+        get_or_add_new_user_item_type(name=item_type_name, user_id=current_user.id)
 
     return redirect(url_for('types.item_types'))
 
@@ -90,7 +90,7 @@ def itemtypes_load():
                     if item_type != "None":
                         potential_item_type_ = find_item_type_by_text(type_text=item_type)
                         if potential_item_type_ is None:
-                            add_new_user_item_type(name=item_type, user_id=current_user.id)
+                            get_or_add_new_user_item_type(name=item_type, user_id=current_user.id)
 
                 line_count += 1
 

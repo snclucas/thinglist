@@ -1,6 +1,6 @@
 import unittest
 
-from database.database_functions import add_new_user_item_type, \
+from database.database_functions import get_or_add_new_user_item_type, \
     get_user_item_type_count, delete_item_types_by_id, find_item_type_by_text
 from tests.test_parent import TestAppParent
 
@@ -13,7 +13,7 @@ class TestApp(TestAppParent):
 
         new_item_type_name = "test_item_type"
 
-        status, msg, item_type_dict = add_new_user_item_type(name=new_item_type_name, user_id=self.users['simon'].id)
+        status, msg, item_type_dict = get_or_add_new_user_item_type(name=new_item_type_name, user_id=self.users['simon'].id)
         self.assertEqual(True, status)
 
         _user_item_count = get_user_item_type_count(user_id=self.users['simon'].id)

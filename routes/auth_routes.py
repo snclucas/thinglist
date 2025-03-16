@@ -9,7 +9,7 @@ from flask_login import (login_required, login_user, logout_user, confirm_login,
 
 from database.database_functions import update_user_password_by_token, update_user_token_by_email, \
     update_user_password_by_user_id, post_user_add_hook
-from database.database_functions import activate_user_in_db, find_user, find_user_by_username, find_user_by_email, \
+from database.database_functions import activate_user, find_user, find_user_by_username, find_user_by_email, \
     find_user_by_token, save_new_user
 from email_utils import send_email
 from models import User
@@ -113,7 +113,7 @@ def activate_user(token):
             flash("Expired registration request")
             return render_template(template)
 
-        activate_user_in_db(user_id=user_.id)
+        activate_user(user_id=user_.id)
         flash("You are now an activated Thing Master!")
 
     return render_template(template)

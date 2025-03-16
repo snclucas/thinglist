@@ -3,7 +3,7 @@ import unittest
 from slugify import slugify
 
 from database.database_functions import get_number_user_lists, find_inventory_by_id, \
-    find_inventory_by_slug, delete_list_by_id, edit_inventory_data, get_users_for_inventory, add_user_to_inventory, \
+    find_inventory_by_slug, delete_lists_by_id, edit_inventory_data, get_users_for_inventory, add_user_to_inventory, \
     delete_user_to_inventory, find_inventory_by_access_token
 
 from site_globals import __LIST__, __COLLABORATOR__, __PUBLIC__
@@ -182,8 +182,8 @@ class TestApp(TestAppParent):
 
 
 
-        status, msg = delete_list_by_id(inventory_ids=new_inventory_data["id"],
-                                        user_id=list_data['to_user_id'])
+        status, msg = delete_lists_by_id(inventory_ids=new_inventory_data["id"],
+                                         user_id=list_data['to_user_id'])
         self.assertEqual(True, status)
 
         _num_lists = get_number_user_lists(user_id=self.users['simon'].id)
