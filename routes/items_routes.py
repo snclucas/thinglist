@@ -25,12 +25,12 @@ from database.database_functions import get_all_user_locations, \
     change_item_access_level, link_items, copy_items, find_items_new, __PUBLIC__, __PRIVATE__, \
     get_user_inventories, add_user_list, \
     get_item_fields, find_template_by_id, save_user_inventory_view, \
-    get_related_items, get_all_item_ids_in_inventory, update_item_by_id, find_item_by_slug, find_inventory_by_token, \
+    get_related_items, get_all_item_ids_in_inventory, find_inventory_by_token, \
     get_user_default_inventory, find_item_by_token, update_item_by_token
 from database.database_functions import find_user_by_username
 from routes.items_loader import process_field_sets, process_images
 
-from site_globals import _COPY_, _MOVE_, __ALL__, __DEFAULT__
+from site_globals import _COPY_, _MOVE_, __ALL__, __DEFAULT__, __NOT_FOUND__, __ERROR__
 
 items_routes = Blueprint('items', __name__)
 
@@ -78,6 +78,7 @@ def items_load():
                     try:
                         data = json.load(f)
                     except JSONDecodeError as e:
+                        app.logger.error(f"Error loading JSON file: {str(e)}")
                         flash("Uploaded file does not seem to be a valid JSON file.")
                         return profile(username=username)
 
@@ -154,7 +155,6 @@ def items_load():
                                 if not overwrite_or_not_from_form:
                                     item_token = None
                                 item_name = bleach.clean(item.get("name"))
-                                item_slug = bleach.clean(item.get("slug"))
                                 item_description = bleach.clean(item.get("description"))
                                 item_type_slug = item.get("type_slug", "none")
                                 if item_type_slug is not None:
@@ -234,7 +234,7 @@ def items_load():
                                                                       custom_fields=custom_fields)
                                     item_count += 1
 
-                                if new_item_["status"] != "error":
+                                if new_item_["status"] != __ERROR__:
                                     # save images
                                     _new_item_id = new_item_["item"]["id"]
                                     process_images(item, new_item_, _new_item_id, current_user, app)
@@ -249,7 +249,8 @@ def items_load():
 
             except Exception as ex:
                 app.logger.error(f"Error importing items: {str(ex)}")
-    except Exception as e:
+    except Exception as ex:
+        app.logger.error(f"Error importing items: {str(ex)}")
         traceback.print_exc()
 
     flash(message=load_log)
@@ -458,7 +459,6 @@ def items_save():
             inventory_field_template_name = None
 
         field_set = set()
-        field_set2 = list()
 
         for dn, dv in dd.items():
             dv_lower = [x.lower() for x in list(dv.keys())]
@@ -469,7 +469,6 @@ def items_save():
 
             for df in dvvv:
                 wewe[df['slug']] = df
-                d = 3
 
 
         headers_ = ["id", "name", "description", "tags", "type",
@@ -511,7 +510,7 @@ def items_save():
             for field_data in item_custom_fields_:
                 field_ = field_data[0]
                 item_field_ = field_data[1]
-                template_field_ = field_data[2]
+                #template_field_ = field_data[2]
                 ddd[field_.slug] = item_field_.value
 
             tmp_json = {
@@ -592,7 +591,7 @@ def items_with_username(list_username=None):
     :param list_username: The username of the user whose items are to be retrieved.
     :return: A response containing the items belonging to the user with the specified username.
     """
-    return items_with_username_and_inventory(list_username=list_username, inventory_slug="all")
+    return items_with_username_and_inventory(list_username=list_username, inventory_slug=__ALL__)
 
 
 @items_routes.route(rule='/@<string:list_username>/<string:inventory_slug>', methods=['GET'])
@@ -606,7 +605,7 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
     inventory_owner = None
     inventory_owner_id = None
 
-    logged_in_user = None
+    #logged_in_user = None
     requested_user = None
     logged_in_user_id = None
 
@@ -644,7 +643,7 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
             inventory_owner_id = inventory_owner.id
 
     if inventory_slug == __DEFAULT__:
-        _inventory_slug = f"default-{list_username}"
+        _inventory_slug = f"{__DEFAULT__}-{list_username}"
     else:
         _inventory_slug = inventory_slug
 
@@ -657,11 +656,11 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
         if users_in_this_inventory is None:
             users_in_this_inventory = {}
 
-    if inventory_ is None and inventory_slug != "all":
-        return render_template(template_name_or_list='404.html', message="No such inventory"), 404
+    if inventory_ is None and inventory_slug != __ALL__:
+        return render_template(template_name_or_list='404.html', message="No such inventory"), __NOT_FOUND__
 
     if not user_is_authenticated and inventory_.access_level == __PRIVATE__:
-        return render_template(template_name_or_list='404.html', message="No such inventory"), 404
+        return render_template(template_name_or_list='404.html', message="No such inventory"), __NOT_FOUND__
 
     if not user_is_authenticated and inventory_.access_level == __PUBLIC__:
         is_inventory_owner = False
@@ -671,7 +670,7 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
         # Get the user inventory entry
         # 0 - owner
         # 1 - view
-        if inventory_slug != "all":
+        if inventory_slug != __ALL__:
             user_inventory_ = get_user_inventory_by_id(user_id=current_user.id, inventory_id=inventory_id)
             if user_inventory_ is not None:
                 inventory_access_level = user_inventory_[0].access_level
@@ -740,16 +739,16 @@ def items_with_inventory(inventory_slug=None):
 
 
 def _get_inventory(inventory_slug: str, logged_in_user_id: int, inventory_owner_id: int):
-    if inventory_slug == "default":
-        inventory_slug_to_use = f"default-{current_user.username}"
+    if inventory_slug == __DEFAULT__:
+        inventory_slug_to_use = f"{__DEFAULT__}-{current_user.username}"
     elif inventory_slug is None or inventory_slug == '':
-        inventory_slug_to_use = 'all'
+        inventory_slug_to_use = __ALL__
     else:
         inventory_slug_to_use = inventory_slug
 
     field_template_ = None
 
-    if inventory_slug_to_use != "all":
+    if inventory_slug_to_use != __ALL__:
         inventory_, user_inventory_ = find_inventory_by_slug(inventory_slug=inventory_slug_to_use,
                                                              inventory_owner_id=inventory_owner_id,
                                                              viewing_user_id=logged_in_user_id)
@@ -798,14 +797,14 @@ def find_items_query(requested_username: str, logged_in_user, inventory_id: int,
             location_ = i[2]
             item_access_level_ = i[3]
             item_is_link_ = i[4]
-            user_inventory_ = i[5]
+            #user_inventory_ = i[5]
         else:
             item_ = i[0]
             types_ = i[1]
             location_ = i[2]
             item_access_level_ = i[3]
             item_is_link_ = i[4]
-            user_inventory_ = None
+            #user_inventory_ = None
 
         item_id_list.append(item_.id)
         dat = {"item": item_, "types": types_, "location": location_,
@@ -874,7 +873,6 @@ def del_items():
     Returns:
     - None
     """
-    user_is_authenticated = current_user.is_authenticated
 
     if request.json and all(key in request.json for key in ('item_ids', 'username')):
         json_data = request.json

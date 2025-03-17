@@ -16,7 +16,8 @@ from database.database_functions import get_user_inventories, delete_item_from_i
     get_user_public_lists, get_user_unlisted_item_count
 from database.database_functions import find_user_by_username
 
-from site_globals import __INVENTORY__, __LIST__, __URL_LIST__, __PUBLIC__, __PRIVATE__, __VIEWER__, __READ_ONLY__
+from site_globals import __INVENTORY__, __LIST__, __URL_LIST__, __PUBLIC__, __PRIVATE__, __VIEWER__, __READ_ONLY__, \
+    __NOT_FOUND__, __OK__, __BAD_REQUEST__
 from utils import CLEANR
 
 inv = Blueprint('inv', __name__)
@@ -78,7 +79,7 @@ def inventories_for_username(list_username):
                 requesting_user_id = user_.id
                 list_username = user_.username
             else:
-                return render_template(template_name_or_list='404.html', message="No such inventory"), 404
+                return render_template(template_name_or_list='404.html', message="No such inventory"), __NOT_FOUND__
         else:
             requesting_user_id = current_user.id
             list_username = current_user.username
@@ -95,7 +96,7 @@ def inventories_for_username(list_username):
     lists_ = user_invs + public_lists
 
     if len(lists_) == 0:
-        return render_template(template_name_or_list='404.html', message="No inventories"), 404
+        return render_template(template_name_or_list='404.html', message="No inventories"), __NOT_FOUND__
 
     number_inventories = len(lists_) - 1  # -1 to count for the 'hidden' default inventory
 
@@ -121,7 +122,7 @@ def list_by_id(inventory_id: int):
             return redirect(url_for(endpoint='items.items_with_username_and_inventory',
                                     list_username=current_user.username, inventory_slug=inventory_.slug))
 
-    return render_template(template_name_or_list='404.html', message="No such inventory"), 404
+    return render_template(template_name_or_list='404.html', message="No such inventory"), __NOT_FOUND__
 
 
 @inv.route(rule='/list/add', methods=['POST'])
@@ -332,11 +333,11 @@ def regenerate_token():
                                         new_token=new_token)
 
     if status:
-        return json.dumps({'success': True, "new-token": new_token}), 200, \
+        return json.dumps({'success': True, "new-token": new_token}), __OK__, \
                {'ContentType': 'application/json'}
     else:
         app.logger.error(msg)
-        return json.dumps({'success': False, "new-token": ""}), 400, \
+        return json.dumps({'success': False, "new-token": ""}), __BAD_REQUEST__, \
                {'ContentType': 'application/json'}
 
 

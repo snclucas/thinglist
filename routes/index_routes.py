@@ -8,6 +8,8 @@ from database.database_functions import get_user_inventories, get_user_item_coun
     get_all_user_fields, get_user_public_lists
 from database.database_functions import find_user_by_username
 
+from site_globals import __BAD_REQUEST__
+
 main = Blueprint('main', __name__)
 
 
@@ -71,7 +73,7 @@ def del_notification():
         username = json_data['username']
         notification_id = json_data.get('notification_id')
         if notification_id is None:
-            return "Missing 'notification_id'", 400
+            return "Missing 'notification_id'", __BAD_REQUEST__
         delete_notification_by_id(notification_id=notification_id, user=current_user)
 
         return redirect(url_for(endpoint='main.profile', username=username))

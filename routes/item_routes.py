@@ -23,7 +23,7 @@ from database.database_functions import find_user_by_username
 
 from utils import correct_image_orientation, generate_item_image_filename
 
-from site_globals import __PUBLIC__, __VIEWER__, __DEFAULT__
+from site_globals import __PUBLIC__, __VIEWER__, __DEFAULT__, __BAD_REQUEST__, __OK__, __NOT_FOUND__
 
 item_routes = Blueprint('item', __name__)
 
@@ -62,7 +62,6 @@ def item_with_username_and_inventory(list_username: str, inventory_slug: str, it
             inventory_slug = f"{__DEFAULT__}-{list_username}"
 
     else:
-        requested_user = None
         requested_user_id = None
 
     if inventory_owner is None:
@@ -76,12 +75,14 @@ def item_with_username_and_inventory(list_username: str, inventory_slug: str, it
                                                          viewing_user_id=requested_user_id)
 
     if inventory_ is None:
-        return render_template(template_name_or_list='404.html', message="No such item or you do not have access to this item"), 404
+        return render_template(template_name_or_list='404.html',
+                               message="No such item or you do not have access to this item"), __NOT_FOUND__
 
     item_access_level = __VIEWER__
     if user_inventory_ is None:
         if inventory_.access_level != __PUBLIC__:
-            return render_template(template_name_or_list='404.html', message="No such item or you do not have access to this item"), 404
+            return render_template(template_name_or_list='404.html',
+                                   message="No such item or you do not have access to this item"), __NOT_FOUND__
     else:
         item_access_level = user_inventory_.access_level
 
@@ -92,7 +93,8 @@ def item_with_username_and_inventory(list_username: str, inventory_slug: str, it
         item_, item_type_string, inventory_item_ = None, None, None
 
     if item_ is None or inventory_item_ is None:
-        return render_template(template_name_or_list='404.html', message="No such item or you do not have access to this item"), 404
+        return render_template(template_name_or_list='404.html',
+                               message="No such item or you do not have access to this item"), __NOT_FOUND__
 
     item_fields = get_item_fields(item_id=item_.id)
 
@@ -282,7 +284,7 @@ def relate_items():
     item_slug = request.form.get("item_slug")
 
     if item_id is None or relateditem_slug is None or inventory_slug is None or item_slug is None:
-        return jsonify({"message": "All fields are required"}), 400
+        return jsonify({"message": "All fields are required"}), __BAD_REQUEST__
 
     item_id = bleach.clean(item_id)
     item_id = int(item_id)
@@ -292,7 +294,7 @@ def relate_items():
 
     relateditem_ = find_item_by_slug(item_slug=relateditem_slug, user_id=current_user.id)
     if relateditem_ is None:
-        return jsonify({"message": "No such item"}), 404
+        return jsonify({"message": "No such item"}), __NOT_FOUND__
 
     if relateditem_.id != item_id:
         relate_items_by_id(item1_id=item_id, item2_id=relateditem_.id)
@@ -315,22 +317,24 @@ def unrelate_items():
         item1 = int(item1_id)
         item2 = int(item2_id)
         status, message = unrelate_items_by_id(item1_id=item1, item2_id=item2)
-        return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
+        return json.dumps({'success': True}), __OK__, {'ContentType': 'application/json'}
     else:
-        return json.dumps({'success': False}), 200, {'ContentType': 'application/json'}
+        return json.dumps({'success': False}), __OK__, {'ContentType': 'application/json'}
 
 
 @item_routes.route(rule="/item/images/remove", methods=["POST"])
 def delete_images():
     json_data = request.json
-    item_id = json_data['item_id']
-    item_id = int(bleach.clean(str(item_id)))
+    item_id = json_data.get('item_id', None)
+    item_slug = json_data.get('item_slug', None)
+    inventory_slug = json_data.get('inventory_slug', None)
 
-    item_slug = json_data['item_slug']
-    item_slug = bleach.clean(str(item_slug))
-
-    inventory_slug = json_data['inventory_slug']
-    inventory_slug = bleach.clean(str(inventory_slug))
+    if item_id is not None and item_slug is not None and inventory_slug is not None:
+        item_id = int(bleach.clean(str(item_id)))
+        item_slug = bleach.clean(str(item_slug))
+        inventory_slug = bleach.clean(str(inventory_slug))
+    else:
+        return jsonify({"message": "Item ID is required"}), __BAD_REQUEST__
 
     username = json_data['username']
     username = bleach.clean(str(username))
@@ -343,7 +347,7 @@ def delete_images():
     if not status:
         flash(message=f"There was a problem deleting the images")
 
-    return redirect(url_for('item.item_with_username_and_inventory',
+    return redirect(url_for(endpoint='item.item_with_username_and_inventory',
                             list_username=username,
                             inventory_slug=inventory_slug,
                             item_slug=item_slug))
@@ -382,7 +386,7 @@ def set_main_image():
     username = json_data.get('username')
 
     if not all([main_image, item_slug, inventory_slug, item_id, username]):
-        return jsonify({"message": "All fields are required"}), 400
+        return jsonify({"message": "All fields are required"}), __BAD_REQUEST__
 
     main_image = main_image.replace('/uploads/', '')
 
@@ -445,9 +449,9 @@ def upload():
         image = correct_image_orientation(image=image)
 
         image = image.convert('RGB')
-        image.thumbnail((600, 600))
+        image.thumbnail((app.config['PROCESS_IMAGE_WIDTH'], app.config['PROCESS_IMAGE_HEIGHT']))
         in_mem_file = BytesIO()
-        image.save(in_mem_file, format="JPEG")
+        image.save(in_mem_file, format=app.config['PROCESS_IMAGE_FORMAT'])
         in_mem_file.seek(0)
 
         user_id = str(current_user.id)
