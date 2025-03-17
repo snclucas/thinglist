@@ -85,8 +85,12 @@ def login():
                 return redirect(url_for('main.profile', username=user.username).replace('%40', '@'))
             else:
                 flash("Unable to log you in")
+                allow_registrations = (int(app.config['ALLOW_REGISTRATIONS']) == 1)
+                return render_template(template_name_or_list="auth/login.html", allow_registrations=allow_registrations)
         else:
             flash("Unable to log you in")
+            allow_registrations = (int(app.config['ALLOW_REGISTRATIONS']) == 1)
+            return render_template(template_name_or_list="auth/login.html", allow_registrations=allow_registrations)
 
     else:
 
