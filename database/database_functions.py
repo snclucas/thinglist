@@ -1414,7 +1414,8 @@ def find_tag(tag: str) -> User:
 
 def find_default_user_location(user_id: int) -> Location:
     with app.app_context():
-        location_ = Location.query.filter_by(user_id=user_id).filter_by(name=f"__DEFAULT__{user_id}").first()
+        _user = find_user_by_id(user_id=user_id)
+        location_ = Location.query.filter_by(user_id=user_id).filter_by(name=f"{__DEFAULT__}_{_user.username}").first()
         return location_
 
 
@@ -1881,6 +1882,7 @@ def _get_itemtype_id(item_data: dict, user_id: str) -> Optional[int]:
         if itemtype_result is None:
             new_itemtype_ = ItemType(name=item_data['item_type'], user_id=user_id)
             db.session.add(new_itemtype_)
+            db.session.commit()
             db.session.flush()
             return new_itemtype_.id
         return itemtype_result[0].id
@@ -2669,7 +2671,7 @@ def add_item_to_inventory(item_id=None, item_name=None, item_desc=None, item_typ
                     db.session.commit()
                     db.session.flush()
 
-            _item_type_int = item_type_[0].id
+            _item_type_int = item_type_.id
 
 
 

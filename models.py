@@ -246,9 +246,9 @@ class ItemType(db.Model):
     __tablename__ = "item_type"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(255), nullable=True, unique=False)
-    slug = db.Column(db.String(255), nullable=True, unique=True)
+    slug = db.Column(db.String(255), nullable=True, unique=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=True)
-    __table_args__ = (UniqueConstraint('name', 'user_id', name='_name_userid_uc'),)
+    __table_args__ = (UniqueConstraint('slug', 'user_id', name='_name_userid_uc'),)
 
 @event.listens_for(ItemType, 'before_insert')
 def create_item_type_slug(mapper, connect, target):

@@ -81,7 +81,7 @@ class TestApp(TestAppParent):
 
             for _item in self.items_to_add[_user_of_list.id]:
                 _ret = add_item_to_inventory(inventory_id=new_inventory_data["id"], item_name=_item["name"],
-                                             item_desc=_item["description"], item_type=_item["type"],
+                                             item_desc=_item["description"], item_type_name_or_id=_item["type"],
                                              item_specific_location=_item["specific_location"],
                                              item_tags=_item["tags"],
                                              item_quantity=_item["quantity"], item_url=_item["url"],
