@@ -36,6 +36,20 @@
 
         <link href='http://fonts.googleapis.com/css?family=Roboto:400,300,700' rel='stylesheet' type='text/css'>
 
+        <script>
+
+                function email(name, domain, extension) {
+                    if (!document.write) return false;
+                    if (document.write) {
+                        var name;
+                        var domain;
+                        var extension;
+                        document.write('<a href="' + 'mailto:' + name + '@' + domain + '.' + extension + '">' + name + '@' + domain + '.' + extension + '<\/a>');
+                    }
+                }
+
+        </script>
+
     {% endblock %}
 </head>
 
@@ -60,10 +74,12 @@
     <script src="{{ url_for('static', filename='assets/js/init.js') }}"></script>
 
 
+
+
     <div id="footer">
 
         <div class="container text-center">
-           <p> © 2023 ThingList.org | <a href="{{ url_for("main.about") }}">About</a></p>
+            <p> © 2023 ThingList.org | <a href="{{ url_for("main.about") }}">About</a></p>
         </div>
     </div>
 
