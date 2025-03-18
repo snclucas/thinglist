@@ -31,6 +31,8 @@
 
                     {% if allow_registrations %}
                         <p class="mb-0 text-muted"> <a href="/register">Don't have account yet?</a></p>
+                    {% else %}
+                        <p class="mb-0 text-muted">Sorry, we will be accepting new registrations soon!</p>
                     {% endif %}
 
                     {% include '_flash_messages.html' %}
