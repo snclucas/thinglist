@@ -420,6 +420,24 @@ def items_manage():
             return items_load()
 
 
+
+def items_save_better():
+
+    filename = f"{current_user.username}_ALL_export.json"
+
+    inventory_list = []
+    user_inventories, status, msg = (
+            get_user_inventories(current_user_id=current_user.id, requesting_user_id=current_user.id))
+    for ui in user_inventories:
+        inventory_list.append(ui["inventory_slug"])
+
+
+
+
+
+
+
+
 @items_routes.route(rule='/items/save', methods=['POST'])
 @login_required
 def items_save():
@@ -441,14 +459,18 @@ def items_save():
         inventory_list = [inventory_slug]
 
     entire_json = []
+
+    # loop over all inventory slugs
     for inv_slug in inventory_list:
 
         inventory_id, inventory_, inventory_default_fields = _get_inventory(inventory_slug=inv_slug,
                                                                             logged_in_user_id=current_user.id,
                                                                             inventory_owner_id=current_user.id)
 
-        data_dict, item_id_list = find_items_query(current_user.username,
-                                                   current_user, inventory_id, request_params=request_params)
+        data_dict, item_id_list = find_items_query(requested_username=current_user.username,
+                                                   logged_in_user=current_user,
+                                                   inventory_id=inventory_id,
+                                                   request_params=request_params)
 
         dd, slugs, newdd = get_item_custom_field_data(user_id=current_user.id, item_list=item_id_list)
 
@@ -530,30 +552,7 @@ def items_save():
             }
 
             current_user_id = str(current_user.id)
-            item_images = []
-            # save images
-            for img in item_.images:
-                tmp_img_dict = {"is_main": False}
-                img_path = os.path.join(app.config['USER_IMAGES_BASE_PATH'],
-                                        current_user_id,
-                                        img.image_filename)
-
-                import base64
-
-                with open(img_path, "rb") as image_file:
-                    encoded_string = base64.b64encode(image_file.read())
-                    raw = encoded_string.decode("utf-8")
-                    tmp_img_dict["image_data"] = raw
-
-                raw = raw.encode("utf-8")
-                key = app.config['IMAGE_SECRET_KEY'].encode('utf-8')
-                hashed = hmac.new(key, raw, hashlib.sha1)
-                img_hmac_hash = base64.encodebytes(hashed.digest()).decode('utf-8')
-                tmp_img_dict["image_hash"] = img_hmac_hash
-
-                item_images.append(tmp_img_dict)
-
-            tmp_json["images"] = item_images
+            proc_img(current_user_id, item_, tmp_json)
 
             json_output["inventory"]["items"].append(tmp_json)
 
@@ -564,6 +563,32 @@ def items_save():
     output.headers["Content-types"] = "text/json"
 
     return output
+
+
+def proc_img(current_user_id, item_, tmp_json):
+    item_images = []
+    # save images
+    for img in item_.images:
+        tmp_img_dict = {"is_main": False}
+        img_path = os.path.join(app.config['USER_IMAGES_BASE_PATH'],
+                                current_user_id,
+                                img.image_filename)
+
+        import base64
+
+        with open(img_path, "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read())
+            raw = encoded_string.decode("utf-8")
+            tmp_img_dict["image_data"] = raw
+
+        raw = raw.encode("utf-8")
+        key = app.config['IMAGE_SECRET_KEY'].encode('utf-8')
+        hashed = hmac.new(key, raw, hashlib.sha1)
+        img_hmac_hash = base64.encodebytes(hashed.digest()).decode('utf-8')
+        tmp_img_dict["image_hash"] = img_hmac_hash
+
+        item_images.append(tmp_img_dict)
+    tmp_json["images"] = item_images
 
 
 @items_routes.route('/items')
@@ -585,7 +610,7 @@ def items():
     return redirect(url_for(endpoint='items.items_with_username', list_username=username).replace('%40', '@'))
 
 
-@items_routes.route('/@<string:list_username>/items')
+@items_routes.route(rule='/@<string:list_username>/items', methods=['GET'])
 def items_with_username(list_username=None):
     """
     :param list_username: The username of the user whose items are to be retrieved.
@@ -605,21 +630,16 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
     inventory_owner = None
     inventory_owner_id = None
 
-    #logged_in_user = None
     requested_user = None
     logged_in_user_id = None
 
-    user_locations_ = None
-    inventory_templates = None
     users_in_this_inventory = None
 
     if user_is_authenticated:
         logged_in_user = current_user
         logged_in_user_id = logged_in_user.id
-        user_locations_ = get_all_user_locations(user_id=logged_in_user.id)
-        inventory_templates = get_user_templates(user_id=current_user.id)
 
-        if current_user == list_username:
+        if current_user.username == list_username:
             inventory_owner = current_user
             inventory_owner_id = inventory_owner.id
 
@@ -628,6 +648,8 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
         requested_user_id = requested_user.id
     else:
         requested_user = current_user
+
+
 
     request_params = _process_url_query(req_=request, inventory_user=requested_user)
     view = request_params.get("view", "list")  # 0 - list, 1 - grid
@@ -696,8 +718,7 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
             is_inventory_owner = True
             inventory_access_level = 0
 
-    item_types_ = get_all_user_and_system_item_types(user_id=inventory_owner_id)
-    all_fields = dict(get_all_fields())
+
 
     inventory_id = -1
     if inventory_ is not None:
@@ -710,6 +731,18 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
 
     if view is None:
         view = "list"
+
+
+    # collect all the data needed to populate the add items form
+    item_types_ = get_all_user_and_system_item_types(user_id=inventory_owner_id)
+    all_fields = dict(get_all_fields())
+
+    user_locations_ = None
+    inventory_templates = None
+
+    if user_is_authenticated:
+        user_locations_ = get_all_user_locations(user_id=logged_in_user.id)
+        inventory_templates = get_user_templates(user_id=current_user.id)
 
 
     return render_template(template_name_or_list='items/items.html',
@@ -878,12 +911,12 @@ def del_items():
         json_data = request.json
         username = json_data.get('username')
         item_ids = json_data.get('item_ids')
+        inventory_id = json_data.get('inventory_id')
 
         # sanitize inputs
         username = bleach.clean(username)
         item_ids = [int(bleach.clean(str(x))) for x in item_ids]
 
-        inventory_id = json_data.get('inventory_id')
         if inventory_id == '':
             inventory_id = None
         else:
@@ -897,5 +930,5 @@ def del_items():
 
         # create redirect_url and ensure it has an '@' symbol before the user
         redirect_url = url_for(endpoint='items.items_with_username',
-                               username=username).replace('%40', '@')
+                               list_username=username).replace('%40', '@')
         return redirect(redirect_url)

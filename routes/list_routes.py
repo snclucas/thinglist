@@ -447,7 +447,7 @@ def add_to_inventory():
     if inventory_id == '':
         inventory_id = "-1"
     item_quantity = request.form.get("quantity", 1)
-    item_location = request.form.get("location_id").lower()
+    item_location = request.form.get("location_id") # .lower()
     try:
         inventory_id = bleach.clean(inventory_id)
         inventory_id = int(inventory_id)
@@ -484,7 +484,7 @@ def add_to_inventory():
     for field in to_remove:
         del item_custom_fields[field]
 
-    add_item_to_inventory(item_name=item_name, item_desc=item_description, item_type=item_type,
+    add_item_to_inventory(item_name=item_name, item_desc=item_description, item_type_name_or_id=item_type,
                           item_tags=item_tags, item_quantity=item_quantity, item_url=item_url,
                           item_location_id=int(item_location), item_specific_location=item_specific_location,
                           inventory_id=inventory_id, user_id=current_user.id,

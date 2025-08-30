@@ -210,6 +210,8 @@ Number of pins,Number of pins,input
 Number of tracks,Number of tracks,input
 Objective Lens Diameter,Objective Lens Diameter,input
 Obverse design,Obverse design,input
+On loan,On loan,bool
+On loan to,On loan to,input
 Operating pressure,Operating pressure,input
 Operating System,Operating System,input
 Operating temperature (max),Operating temperature (max),input

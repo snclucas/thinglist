@@ -120,6 +120,7 @@ class Inventory(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(50))
     slug = db.Column(db.String(50), nullable=True, unique=False)
+    ident = db.Column(db.String(32), nullable=True, unique=False)
     description = db.Column(db.String(255))
     owner_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), primary_key=True, nullable=False)
     users = db.relationship('User', secondary='inventory_users', back_populates='inventories', lazy='subquery', cascade="all,delete")
@@ -158,13 +159,14 @@ class Item(db.Model):
     item_type = db.Column(db.Integer, db.ForeignKey('item_type.id'), nullable=False)
     name = db.Column(db.String(255), nullable=False, unique=False)
     slug = db.Column(db.String(255), nullable=True, unique=False)
+    ident = db.Column(db.String(32), nullable=True, unique=False)
     description = db.Column(db.String(10000), nullable=True, unique=False)
     url = db.Column(db.String(100), nullable=True, unique=False)
     quantity = db.Column(db.Integer, nullable=False, unique=False, default=1)
     inventories = db.relationship('Inventory', secondary='inventory_items', back_populates='items', lazy='subquery')
     tags = db.relationship('Tag', secondary='item_tags', back_populates='items', lazy='subquery')
     #location_id = db.Column(db.Integer, db.ForeignKey('locations.id'), primary_key=True, default=None, nullable=True)
-    location_id = db.Column(db.Integer, db.ForeignKey('locations.id'), default=None, nullable=False)
+    location_id = db.Column(db.Integer, db.ForeignKey('locations.id'), default=None, nullable=True)
     specific_location = db.Column(db.String(50), nullable=True, unique=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
     images = db.relationship('Image', secondary='item_images', back_populates='items', lazy='subquery')
@@ -187,12 +189,16 @@ def create_inventory_unique_token(mapper, connect, target):
 def create_item_short_code(mapper, connect, target):
     # target is an instance of Table
     target.short_code = generate_short_id(num_of_chars=6)
+    target.ident = generate_short_id(num_of_chars=32)
 
 
 @event.listens_for(Inventory, 'before_insert')
 def create_inventory_short_code(mapper, connect, target):
     # target is an instance of Table
     target.short_code = generate_short_id(num_of_chars=6)
+    target.ident = generate_short_id(num_of_chars=32)
+
+
 
 
 class ItemField(db.Model):

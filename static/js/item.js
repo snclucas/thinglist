@@ -2,7 +2,8 @@ $(document).ready(function () {
     tinymce.init({
         selector: 'textarea#form_item_description',
         height: 300,
-        theme: 'modern',
+        //theme: 'modern',
+        //theme: 'silver',
         menubar: false,
         forced_root_block: '',
         plugins: [

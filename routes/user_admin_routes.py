@@ -5,7 +5,8 @@ import bleach
 from flask import Blueprint, request, render_template
 from flask_login import login_required, current_user
 
-from database.database_functions import delete_all_user_items, delete_all_user_lists
+from database.database_functions import delete_all_user_items, delete_all_user_lists, delete_user_locations, \
+    delete_all_user_fields, delete_all_user_item_types, delete_all_user_field_templates
 from routes.index_routes import profile
 
 user_admin_routes = Blueprint('user_admin', __name__)
@@ -41,7 +42,10 @@ def wipe():
         # delete everything
         delete_all_user_items(user_id=current_user.id)
         delete_all_user_lists(user_id=current_user.id)
-
+        delete_user_locations(user_id=current_user.id)
+        delete_all_user_fields(user_id=current_user.id)
+        delete_all_user_item_types(user_id=current_user.id)
+        delete_all_user_field_templates(user_id=current_user.id)
     else:
         if wipe_items:
             delete_all_user_items(user_id=current_user.id)

@@ -449,7 +449,7 @@ def upload():
         image = correct_image_orientation(image=image)
 
         image = image.convert('RGB')
-        image.thumbnail((app.config['PROCESS_IMAGE_WIDTH'], app.config['PROCESS_IMAGE_HEIGHT']))
+        image.thumbnail((int(app.config['PROCESS_IMAGE_WIDTH']), int(app.config['PROCESS_IMAGE_HEIGHT'])))
         in_mem_file = BytesIO()
         image.save(in_mem_file, format=app.config['PROCESS_IMAGE_FORMAT'])
         in_mem_file.seek(0)

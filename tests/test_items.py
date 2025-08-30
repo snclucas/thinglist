@@ -16,6 +16,9 @@ class TestApp(TestAppParent):
         delete_all_user_items(user_id=self.users['simon'].id)
 
 
+    def test_item_move(self):
+        new_inventory_data = self.test_add_items()
+        d = 5
 
 
     def test_relate_items(self):

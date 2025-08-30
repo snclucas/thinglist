@@ -2220,6 +2220,113 @@ def get_items_to_delete(user_id: int, item_ids: list, inventory_id: int = None):
     return db.session.execute(query).all()
 
 
+
+
+def delete_all_user_field_templates(user_id: int) -> int:
+    """
+    Deletes all field templates associated with a user.
+
+    Args:
+        user_id (int): The ID of the user whose field templates are to be deleted.
+
+    Returns:
+        int: The number of field templates deleted.
+    """
+    if user_id is None:
+        return 0
+
+    with app.app_context():
+        templates_to_delete = FieldTemplate.query.filter_by(user_id=user_id).all()
+        number_templates_deleted = 0
+
+        for template in templates_to_delete:
+            db.session.delete(template)
+            number_templates_deleted += 1
+
+        status, msg = _commit()
+        if not status:
+            app.logger.error(f"Could not delete user field templates: {msg}")
+            return 0
+
+        return number_templates_deleted
+
+
+def delete_all_user_item_types(user_id: int) -> int:
+    """
+    Deletes all item types associated with a user.
+
+    Args:
+        user_id (int): The ID of the user whose item types are to be deleted.
+
+    Returns:
+        int: The number of item types deleted.
+    """
+    if user_id is None:
+        return 0
+
+    with app.app_context():
+        item_types_to_delete = ItemType.query.filter_by(user_id=user_id).all()
+        number_item_types_deleted = 0
+
+        for item_type in item_types_to_delete:
+            db.session.delete(item_type)
+            number_item_types_deleted += 1
+
+        status, msg = _commit()
+        if not status:
+            app.logger.error(f"Could not delete user item types: {msg}")
+            return 0
+
+        return number_item_types_deleted
+
+
+def delete_all_user_fields(user_id: int) -> int:
+    """
+    Deletes all fields associated with a user.
+
+    Args:
+        user_id (int): The ID of the user whose fields are to be deleted.
+
+    Returns:
+        int: The number of fields deleted.
+    """
+    if user_id is None:
+        return 0
+
+    with app.app_context():
+        fields_to_delete = Field.query.filter_by(user_id=user_id).all()
+        number_fields_deleted = 0
+
+        for field_ in fields_to_delete:
+            db.session.delete(field_)
+            number_fields_deleted += 1
+
+        status, msg = _commit()
+        if not status:
+            app.logger.error(f"Could not delete user fields: {msg}")
+            return 0
+
+        return number_fields_deleted
+
+def delete_user_locations(user_id: int) -> int:
+    if user_id is None:
+        return 0
+
+    with app.app_context():
+        locations_to_delete = Location.query.filter_by(user_id=user_id).all()
+        number_locations_deleted = 0
+
+        for location_ in locations_to_delete:
+            db.session.delete(location_)
+            number_locations_deleted += 1
+
+        status, msg = _commit()
+        if not status:
+            app.logger.error(f"Could not delete user locations: {msg}")
+            return 0
+
+        return number_locations_deleted
+
 def delete_all_user_items(user_id: int):
     if user_id is None:
         return 0
@@ -2262,9 +2369,8 @@ def delete_items(item_ids: list, user_id: int, inventory_id: int = None) -> int:
         # if item IDs = [-1] then delete all items
         if len(item_ids) == 1 and item_ids[0] == -1:
             item_ids = get_all_item_ids_in_inventory(user_id=user_id, inventory_id=inventory_id)
-            items_to_delete = get_items_to_delete(user_id=user_id, item_ids=item_ids, inventory_id=inventory_id)
-        else:
-            items_to_delete = get_items_to_delete(user_id=user_id, item_ids=item_ids, inventory_id=inventory_id)
+
+        items_to_delete = get_items_to_delete(user_id=user_id, item_ids=item_ids, inventory_id=inventory_id)
 
         number_items_deleted = 0
 
@@ -2277,10 +2383,10 @@ def delete_items(item_ids: list, user_id: int, inventory_id: int = None) -> int:
                 #if this is a link we need to delete the InventoryItem but no the item itself
                 if inventory_item_.is_link is True:
                     db.session.delete(inventory_item_)
-                    status, msg = _commit()
-                    if not status:
-                        app.logger.error(f"Could not delete item(s) link: {msg}")
-                    return 0
+                    #status, msg = _commit()
+                    #if not status:
+                    #    app.logger.error(f"Could not delete item(s) link: {msg}")
+                    #return 0
 
                 if inventory_id is not None:
 
@@ -2304,6 +2410,9 @@ def delete_items(item_ids: list, user_id: int, inventory_id: int = None) -> int:
                 number_items_deleted += 1
 
         status, msg = _commit()
+        if not status:
+            app.logger.error(f"Could not delete item(s) link: {msg}")
+            return 0
         return number_items_deleted
 
 
@@ -2622,7 +2731,7 @@ def _commit() -> (bool, str):
     except Exception as error: #noqa
         app.logger.error(f"Could not commit changes: {str(error)}")
         db.session.rollback()
-        return True, "Could not edit list"
+        return False, "Could not edit list"
 
 
 def add_item_to_inventory(item_id=None, item_name=None, item_desc=None, item_type_name_or_id=None, item_tags=None,

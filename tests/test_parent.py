@@ -29,8 +29,8 @@ class TestAppParent(unittest.TestCase):
 
         cls.new_inventory_data = {
             cls.users['simon']: {
-                "name": "test_list",
-                "description": "test_list",
+                "name": "simon_test_list1",
+                "description": "simon_test_list1",
                 "list_type": __INVENTORY__,
                 "to_user": cls.users['simon'],
                 "show_default_fields": 1,
@@ -43,8 +43,8 @@ class TestAppParent(unittest.TestCase):
                 "to_user_id": cls.users['simon'].id
             },
             cls.users['neil']: {
-                "name": "test_list2",
-                "description": "test_list2",
+                "name": "neil_test_list1",
+                "description": "neil_test_list1",
                 "list_type": __INVENTORY__,
                 "to_user": cls.users['neil'],
                 "show_default_fields": 1,
@@ -57,8 +57,8 @@ class TestAppParent(unittest.TestCase):
                 "to_user_id": cls.users['neil'].id
             },
             cls.users['dave']: {
-                "name": "test_list3",
-                "description": "test_list3",
+                "name": "dave_test_list1",
+                "description": "dave_test_list1",
                 "list_type": __INVENTORY__,
                 "to_user": cls.users['dave'],
                 "show_default_fields": 1,
@@ -79,6 +79,9 @@ class TestAppParent(unittest.TestCase):
                  "user_id": cls.users['simon'].id},
                 {"name": "item2", "description": "item2", "specific_location": "box 224",
                  "type": "printer", "tags": ["tag3", "tag4"], "quantity": 100, "url": "",
+                 "user_id": cls.users['simon'].id},
+                {"name": "item3", "description": "item3", "specific_location": "box 2124",
+                 "type": "printer", "tags": ["tag31", "tag41"], "quantity": 100, "url": "",
                  "user_id": cls.users['simon'].id}
             ]
             ,

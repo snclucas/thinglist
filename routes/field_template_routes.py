@@ -11,6 +11,8 @@ from database.database_functions import find_template, add_new_template, update_
     get_template_fields_by_id, get_all_user_and_system_fields
 from models import FieldTemplate
 
+from site_globals import __BAD_REQUEST__, __NOT_FOUND__
+
 field_template = Blueprint('field_template', __name__)
 
 
@@ -67,7 +69,7 @@ def template(template_id):
     user_template_ = get_user_template_by_id(template_id=template_id, user_id=current_user.id)
 
     if user_template_ is None:
-        return render_template(template_name_or_list='404.html', message="No such template or you do not have access to this item"), 404
+        return render_template(template_name_or_list='404.html', message="No such template or you do not have access to this item"), __NOT_FOUND__
 
     selected_field_ids = [field_.id for field_ in user_template_[0].fields]
 
@@ -97,11 +99,11 @@ def set_template_fields():
 
         field_ids = json_data['field_ids']
         if len(field_ids) == 0:
-            abort(Response("At least 1 field is required for the template", 400))
+            abort(Response("At least 1 field is required for the template", __BAD_REQUEST__))
 
         field_ids = [int(x) for x in field_ids] # was str(x)
 
-        status, template_id = save_template_fields(template_name=template_name,
+        status, msg, template_id = save_template_fields(template_name=template_name,
                                                    fields=field_ids, user_id=current_user.id)
 
     return redirect(url_for('field_template.templates'))
