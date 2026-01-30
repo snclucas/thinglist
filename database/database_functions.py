@@ -16,7 +16,7 @@ from models import Inventory, User, Item, UserInventory, InventoryItem, ItemType
     Location, Image, Field, ItemField, FieldTemplate, Notification, TemplateField, Relateditems, ItemImage
 
 from site_globals import _NONE_, __PUBLIC__, __OWNER__, __PRIVATE__, __INVENTORY__, __DEFAULT__
-from services.thinglist_api import UserService, TagService, ItemService, FieldService
+from services.thinglist_api import UserService, TagService, ItemService, FieldService, InventoryService
 
 
 def drop_then_create():
@@ -531,24 +531,15 @@ def add_user_list(name: str, description: str, inventory_type: int, user_id: int
             app.logger.error(f"Error adding list: {str(error)}")
             return None, True, "Could not add list"
 
-def _get_user_default_inventory_name(username: str) -> str:
-    return f"{__DEFAULT__}_{username}"
 
 def get_number_user_lists(user_id: int) -> int:
     with app.app_context():
         _inv_count = UserInventory.query.filter_by(user_id=user_id).count()
         return _inv_count
 
-def get_user_default_inventory(user_id: int) -> Optional[Inventory]:
-    with app.app_context():
-        # Find user default inventory
-        user_ = UserService.get_user_by_id(user_id=user_id)
-        user_default_inventory_ = Inventory.query.filter_by(name=_get_user_default_inventory_name(user_.username)).filter_by().first()
-        return user_default_inventory_
-
 def get_user_default_inventory_id(user_id: int) -> int:
     with app.app_context():
-        di_ =  get_user_default_inventory(user_id=user_id)
+        di_ =  InventoryService.get_user_default_inventory(user_id=user_id)
         if di_ is not None:
             return di_.id
         else:
@@ -556,14 +547,14 @@ def get_user_default_inventory_id(user_id: int) -> int:
 
 def get_user_unlisted_items(user_id: int):
     with app.app_context():
-        user_default_inventory_ = get_user_default_inventory(user_id=user_id)
+        user_default_inventory_ = InventoryService.get_user_default_inventory(user_id=user_id)
         items_ = InventoryItem.query.filter_by(user_id=user_id).filter_by(inventory_id=user_default_inventory_.id).all()
         return items_
 
 
 def get_user_unlisted_item_count(user_id: int) -> Optional[int]:
     with app.app_context():
-        user_default_inventory_ = get_user_default_inventory(user_id=user_id)
+        user_default_inventory_ = InventoryService.get_user_default_inventory(user_id=user_id)
         if user_default_inventory_ is not None:
             item_count = InventoryItem.query.filter_by(inventory_id=user_default_inventory_.id).count()
             return item_count
@@ -618,7 +609,7 @@ def delete_lists_by_id(inventory_ids: Union[int, List[int]], user_id: int) -> Tu
                 inventory_id_to_delete = user_inventory_.inventory_id
 
                 # Get the current user's default inventory
-                user_default_inventory_ = get_user_default_inventory(user_id=user_id)
+                user_default_inventory_ = InventoryService.get_user_default_inventory(user_id=user_id)
 
                 inv_items_ = InventoryItem.query.filter_by(inventory_id=inventory_id_to_delete).all()
                 for row in inv_items_:
@@ -2556,7 +2547,7 @@ def copy_items(item_ids: list, user: User, inventory_id: int):
     with app.app_context():
         try:
             if inventory_id == -1:
-                user_default_inventory = get_user_default_inventory(user_id=user.id)
+                user_default_inventory = InventoryService.get_user_default_inventory(user_id=user.id)
                 if user_default_inventory is None:
                     msg = f"No default inventory found for user {user.username}"
                     app.logger.error(msg)
@@ -2624,7 +2615,7 @@ def move_items(item_ids: list, user: User, inventory_id: int) -> dict:
         try:
             # resolve special inventory id
             if inventory_id == -1:
-                user_default_inventory = get_user_default_inventory(user_id=user.id)
+                user_default_inventory = InventoryService.get_user_default_inventory(user_id=user_id)
                 if user_default_inventory is None:
                     return {"status": "error", "count": 0, "message": "User default inventory not found"}
                 inventory_id = user_default_inventory.id
@@ -2664,7 +2655,7 @@ def link_items(item_ids: list, user: User, inventory_id: int):
     with app.app_context():
         try:
             if inventory_id == -1:
-                user_default_inventory = get_user_default_inventory(user_id=user.id)
+                user_default_inventory = InventoryService.get_user_default_inventory(user_id=user_id)
                 inventory_id = user_default_inventory.id
 
             stmt = db.session.query(Item, InventoryItem) \
@@ -2934,7 +2925,7 @@ def add_item_to_inventory(item_id=None, item_name=None, item_desc=None, item_typ
                             new_item.tags.append(instance)
 
             if inventory_id is None or inventory_id == '' or inventory_id == -1:
-                default_user_inventory_ = get_user_default_inventory(user_id=user_id)
+                default_user_inventory_ = InventoryService.get_user_default_inventory(user_id=user.id)
                 if default_user_inventory_ is not None:
                     default_user_inventory_id_ = default_user_inventory_.id
                     stmt = db.session.query(Inventory).where(Inventory.id == default_user_inventory_id_)
@@ -3795,7 +3786,7 @@ def delete_fields_from_db(user_id: str, field_ids) -> bool:
 def set_inventory_default_fields(inventory_id, user, default_fields):
     with app.app_context():
         if inventory_id == '':
-            inventory_ = get_user_default_inventory(user_id=user.id)
+            inventory_ = InventoryService.get_user_default_inventory(user_id=user_id)
         else:
             inventory_ = Inventory.query.filter_by(id=inventory_id).first()
 

@@ -26,13 +26,13 @@ from database.database_functions import get_all_user_locations, \
     get_user_inventories, add_user_list, \
     get_item_fields, find_template_by_id, save_user_inventory_view, \
     get_related_items, get_all_item_ids_in_inventory, find_inventory_by_token, \
-    get_user_default_inventory, update_item_by_token, get_all_user_fields, \
+    update_item_by_token, get_all_user_fields, \
     get_user_default_inventory_id
 
 from routes.items_loader import process_field_sets, process_images
 
 from site_globals import _COPY_, _MOVE_, __ALL__, __DEFAULT__, __NOT_FOUND__, __ERROR__
-from services.thinglist_api import ItemService, LocationService, FieldService
+from services.thinglist_api import ItemService, LocationService, FieldService, InventoryService
 
 items_routes = Blueprint('items', __name__)
 
@@ -101,7 +101,7 @@ def items_load():
                         inventory_token_ = bleach.clean(inventory_token_)
 
                         if __DEFAULT__ in inventory_slug_:
-                            found_inv = get_user_default_inventory(user_id=current_user.id)
+                            found_inv = InventoryService.get_user_default_inventory(user_id=current_user)
                         else:
                             # look for the inventory by slug (was by slub before)
                             found_inv, found_userinv = find_inventory_by_token(inventory_token=inventory_token_,
@@ -300,7 +300,7 @@ def items_move():
         item_ids = get_all_item_ids_in_inventory(user_id = current_user.id, inventory_id = from_inventory_id)
 
     if move_type == _MOVE_:
-        result = move_items(item_ids=item_ids, user=current_user, inventory_id=to_inventory_id)
+        result = ItemService.move_items(item_ids=item_ids, user=current_user, inventory_id=to_inventory_id)
         if result["status"] == "error":
             flash(_public_err_msg)
     elif move_type == _COPY_:
