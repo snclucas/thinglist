@@ -5,7 +5,7 @@ from secrets import token_urlsafe
 
 from flask_login import UserMixin
 from slugify import slugify
-from sqlalchemy import UniqueConstraint, event
+from sqlalchemy import UniqueConstraint, event, func
 
 from app import db
 from sqlalchemy.ext.declarative import declarative_base
@@ -41,20 +41,20 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(50), nullable=True, unique=True)
     password = db.Column(db.String(255), nullable=False, server_default='')
     email = db.Column(db.String(255), nullable=False, unique=True)
-    preferences = db.relationship("Preferences", uselist=False, backref="users", lazy='joined')
+    preferences = db.relationship("Preferences", uselist=False, backref="users", lazy='joined', passive_deletes=True)
     is_active = db.Column(db.Boolean(), default=True)
     is_banned = db.Column(db.Boolean(), default=False)
     is_suspended = db.Column(db.Boolean(), default=False)
     is_admin = db.Column(db.Boolean(), default=False)
-    user_created = db.Column(db.DateTime(), default=datetime.datetime.now)
+    user_created = db.Column(db.DateTime(), default=func.now())
     email_confirmed_at = db.Column(db.DateTime(), default=None)
     inventories = db.relationship('Inventory', secondary='inventory_users',
-                                  back_populates='users', cascade="all,delete", lazy='subquery')
+                                  back_populates='users', cascade="all,delete", lazy='selectin', passive_deletes=True)
 
-    notifications = db.relationship('Notification', backref='users', cascade="all,delete", lazy='subquery')
+    notifications = db.relationship('Notification', backref='users', cascade="all,delete", lazy='selectin', passive_deletes=True)
     activated = db.Column(db.Boolean(), nullable=True, unique=False, default=False)
     token = db.Column(db.String(255), nullable=True, unique=False)
-    token_expires = db.Column(db.DateTime(), default=datetime.datetime.now)
+    token_expires = db.Column(db.DateTime(), default=func.now())
     profile_text = db.Column(db.String(255), nullable=True, unique=False)
 
 
@@ -70,7 +70,8 @@ class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     date = db.Column(db.DateTime(), default=datetime.datetime.now)
     text = db.Column(db.String(255), nullable=True, unique=False)
-    from_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True, nullable=False)
+    # AI from_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True, nullable=False)
+    from_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     from_user_username = db.Column(db.String(255), nullable=True, unique=False)
     #from_user = db.relationship(User, overlaps="notifications, users", load_on_pending=True, lazy='subquery',
     #                            passive_deletes="all")
@@ -80,10 +81,16 @@ class Notification(db.Model):
 class FieldTemplate(db.Model):
     __tablename__ = "field_templates"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    ident = db.Column(db.String(32), nullable=True, unique=False)
     name = db.Column(db.String(50))
     fields = db.relationship('Field', secondary='fieldtemplate_fields',
                              back_populates='field_templates', lazy='subquery')
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
+
+
+@event.listens_for(FieldTemplate, 'before_insert')
+def create_item_short_code(mapper, connect, target):
+    target.ident = generate_short_id(num_of_chars=32)
 
 
 class TemplateField(db.Model):
@@ -109,6 +116,7 @@ class Field(db.Model):
 class Location(db.Model):
     __tablename__ = "locations"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    ident = db.Column(db.String(32), nullable=True, unique=False)
     name = db.Column(db.String(50), nullable=True, unique=False)
     description = db.Column(db.String(50), nullable=True, unique=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
@@ -122,13 +130,14 @@ class Inventory(db.Model):
     slug = db.Column(db.String(50), nullable=True, unique=False)
     ident = db.Column(db.String(32), nullable=True, unique=False)
     description = db.Column(db.String(255))
-    owner_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), primary_key=True, nullable=False)
+    owner_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    # AI owner_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), primary_key=True, nullable=False)
     users = db.relationship('User', secondary='inventory_users', back_populates='inventories', lazy='subquery', cascade="all,delete")
     items = db.relationship('Item', secondary='inventory_items', back_populates='inventories', lazy='subquery', cascade="all,delete")
     default_fields = db.Column(db.String(1000), default="-1")
     field_template = db.Column(db.Integer, db.ForeignKey('field_templates.id'), nullable=True)
     access_level = db.Column(db.Integer, nullable=False, unique=False, default=False)
-    token = db.Column(db.String(255), nullable=False, unique=False)
+    token = db.Column(db.String(255), nullable=True, unique=False)
     short_code = db.Column(db.String(255), nullable=True, unique=True)
     type = db.Column(db.Integer, nullable=True, unique=False, default=1)
     show_default_fields = db.Column(db.Boolean(), nullable=False, unique=False, default=True)
@@ -141,9 +150,20 @@ class Inventory(db.Model):
     invtags = db.relationship('Invtag', secondary='inventory_tags', back_populates='inventories', lazy='subquery')
 
 
-    __table_args__ = (UniqueConstraint('slug', 'owner_id', name='_item_field_uc'),)
-   # __table_args__ = (UniqueConstraint('slug', 'owner_id', name='_item_field_uc'),
+    # AI __table_args__ = (UniqueConstraint('slug', 'owner_id', name='_item_field_uc'),)
+    __table_args__ = (UniqueConstraint('slug', 'owner_id', name='_inventory_slug_owner_uc'),)
                       #)
+@event.listens_for(Inventory, 'before_insert')
+def create_inventory_unique_token(mapper, connect, target):
+    target.inventory_token = token_urlsafe()
+
+
+@event.listens_for(Inventory, 'before_insert')
+def create_inventory_short_code(mapper, connect, target):
+    # target is an instance of Table
+    target.short_code = generate_short_id(num_of_chars=6)
+    target.ident = generate_short_id(num_of_chars=32)
+
 
 class Relateditems(db.Model):
     __tablename__ = "related_items"
@@ -168,7 +188,8 @@ class Item(db.Model):
     #location_id = db.Column(db.Integer, db.ForeignKey('locations.id'), primary_key=True, default=None, nullable=True)
     location_id = db.Column(db.Integer, db.ForeignKey('locations.id'), default=None, nullable=True)
     specific_location = db.Column(db.String(50), nullable=True, unique=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    # AI user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     images = db.relationship('Image', secondary='item_images', back_populates='items', lazy='subquery')
     main_image = db.Column(db.String(255), nullable=True, unique=False)
     fields = db.relationship('Field', secondary='item_fields', back_populates='items', lazy='subquery')
@@ -181,9 +202,7 @@ class Item(db.Model):
                                     secondaryjoin=id == Relateditems.related_item_id,
                                     )
 
-@event.listens_for(Inventory, 'before_insert')
-def create_inventory_unique_token(mapper, connect, target):
-    target.inventory_token = token_urlsafe()
+
 
 @event.listens_for(Item, 'before_insert')
 def create_item_short_code(mapper, connect, target):
@@ -192,11 +211,7 @@ def create_item_short_code(mapper, connect, target):
     target.ident = generate_short_id(num_of_chars=32)
 
 
-@event.listens_for(Inventory, 'before_insert')
-def create_inventory_short_code(mapper, connect, target):
-    # target is an instance of Table
-    target.short_code = generate_short_id(num_of_chars=6)
-    target.ident = generate_short_id(num_of_chars=32)
+
 
 
 
@@ -218,7 +233,8 @@ class Image(db.Model):
     image_filename = db.Column(db.String(255), nullable=True, unique=False)
     items = db.relationship('Item', secondary='item_images', back_populates='images',
                             cascade="all,delete", lazy='subquery')
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    # AI user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
 
 class ItemImage(db.Model):
@@ -267,7 +283,8 @@ class Tag(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     tag = db.Column(db.String(50), nullable=True, unique=True)
     items = db.relationship('Item', secondary='item_tags', back_populates='tags', cascade="all,delete")
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
+    # AI user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=True)
 
 
 class Invtag(db.Model):
@@ -276,7 +293,8 @@ class Invtag(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     tag = db.Column(db.String(50), nullable=True, unique=True)
     inventories = db.relationship('Inventory', secondary='inventory_tags', back_populates='invtags', cascade="all,delete")
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    # AI user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=True)
 
 
 

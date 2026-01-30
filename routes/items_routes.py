@@ -17,20 +17,22 @@ from app import app
 from routes.index_routes import profile
 from database.database_functions import get_all_user_locations, \
     get_all_user_and_system_item_types, \
-    find_item_type_by_text, find_inventory_by_slug, find_location_by_name, \
+    find_item_type_by_text, find_inventory_by_slug, \
     add_item_to_inventory, find_all_user_inventories, delete_items, move_items, \
-    get_all_fields, get_or_add_new_user_item_type, \
+    get_or_add_new_user_item_type, \
     get_user_templates, get_item_custom_field_data, \
     get_users_for_inventory, get_user_inventory_by_id, get_or_add_new_location, edit_items_locations, \
     change_item_access_level, link_items, copy_items, find_items_new, __PUBLIC__, __PRIVATE__, \
     get_user_inventories, add_user_list, \
     get_item_fields, find_template_by_id, save_user_inventory_view, \
     get_related_items, get_all_item_ids_in_inventory, find_inventory_by_token, \
-    get_user_default_inventory, find_item_by_token, update_item_by_token
-from database.database_functions import find_user_by_username
+    get_user_default_inventory, update_item_by_token, get_all_user_fields, \
+    get_user_default_inventory_id
+
 from routes.items_loader import process_field_sets, process_images
 
 from site_globals import _COPY_, _MOVE_, __ALL__, __DEFAULT__, __NOT_FOUND__, __ERROR__
+from services.thinglist_api import ItemService, LocationService, FieldService
 
 items_routes = Blueprint('items', __name__)
 
@@ -196,7 +198,7 @@ def items_load():
                                 custom_fields = item.get("custom_fields", {})
 
                                 if overwrite_or_not_from_form:
-                                    potential_item = find_item_by_token(item_token=item_token, user_id=current_user.id)
+                                    potential_item = ItemService.get_item_by_token(item_token=item_token, user_id=current_user.id)
                                     if potential_item is None:
                                         new_item_ = add_item_to_inventory(item_name=item_name,
                                                                           item_desc=item_description,
@@ -425,11 +427,22 @@ def items_save_better():
 
     filename = f"{current_user.username}_ALL_export.json"
 
+    # save inventories
+
     inventory_list = []
-    user_inventories, status, msg = (
+
+    inventory_slug = request.form.get("inventory_slug")
+    inventory_slug = bleach.clean(inventory_slug)
+
+    if inventory_slug == __ALL__:
+        user_inventories, status, msg = (
             get_user_inventories(current_user_id=current_user.id, requesting_user_id=current_user.id))
-    for ui in user_inventories:
-        inventory_list.append(ui["inventory_slug"])
+        for ui in user_inventories:
+            inventory_list.append(ui["inventory_slug"])
+    else:
+        inventory_list = [inventory_slug]
+
+    entire_json = []
 
 
 
@@ -441,6 +454,7 @@ def items_save_better():
 @items_routes.route(rule='/items/save', methods=['POST'])
 @login_required
 def items_save():
+    items_save_better()
     inventory_slug = request.form.get("inventory_slug")
     inventory_slug = bleach.clean(inventory_slug)
 
@@ -459,6 +473,15 @@ def items_save():
         inventory_list = [inventory_slug]
 
     entire_json = []
+
+
+    # save custom user fields
+    _user_fields = get_all_user_fields(user_id=current_user.id)
+
+    # save field sets
+    _user_templates = get_user_templates(user_id=current_user.id)
+
+
 
     # loop over all inventory slugs
     for inv_slug in inventory_list:
@@ -501,6 +524,7 @@ def items_save():
             json_output = {
                 "inventory": {
                     #"id": inventory_id,
+                    "ident": inventory_.ident,
                     "inventory_token": inventory_.inventory_token,
                     "name": inventory_.name,
                     "description": inventory_.description,
@@ -537,6 +561,7 @@ def items_save():
 
             tmp_json = {
                 #"id": item_.id,
+                "ident": item_.ident,
                 "item_token": item_.item_token,
                 "name": item_.name,
                 "slug": item_.slug,
@@ -660,7 +685,7 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
         all_user_inventories = None
 
     if inventory_owner is None:
-        inventory_owner = find_user_by_username(username=list_username)
+        inventory_owner = UserService.get_user_by_username(username=list_username)
         if inventory_owner is not None:
             inventory_owner_id = inventory_owner.id
 
@@ -695,16 +720,16 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
         if inventory_slug != __ALL__:
             user_inventory_ = get_user_inventory_by_id(user_id=current_user.id, inventory_id=inventory_id)
             if user_inventory_ is not None:
-                inventory_access_level = user_inventory_[0].access_level
+                inventory_access_level = user_inventory_.access_level
 
                 if view is None:
-                    user_inv_view_int = user_inventory_[0].view
+                    user_inv_view_int = user_inventory_.view
                     if user_inv_view_int == 0:
                         view = "list"
                     else:
                         view = "grid"
                 else:
-                    _saved_view = user_inventory_[0].view
+                    _saved_view = user_inventory_.view
                     if _saved_view != view:
                         _new_view = 0 if view == "list" else 1
                         save_user_inventory_view(user_id=current_user.id,
@@ -735,7 +760,7 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
 
     # collect all the data needed to populate the add items form
     item_types_ = get_all_user_and_system_item_types(user_id=inventory_owner_id)
-    all_fields = dict(get_all_fields())
+    all_fields = FieldService.get_all_fields()
 
     user_locations_ = None
     inventory_templates = None
@@ -859,7 +884,7 @@ def _process_url_query(req_, inventory_user):
     requested_item_specific_location = req_.args.get('specific_location')
 
     # convert the text 'location_' to an id
-    location_model = find_location_by_name(location_name=requested_item_location_string)
+    location_model = LocationService.get_location_by_name(location_name=requested_item_location_string)
     if location_model is not None:
         requested_item_location_id = location_model.id
     else:
@@ -898,37 +923,72 @@ def _process_url_query(req_, inventory_user):
 def del_items():
     """
     Deletes items associated with a username.
-
-    Parameters:
-    - item_ids: A list of item IDs to delete. (Type: list)
-    - username: The username associated with the items. (Type: str)
-
-    Returns:
-    - None
+    Expects JSON or form data with keys:
+    - item_ids: list of item IDs (or JSON string)
+    - username: username string
+    - inventory_id: optional inventory id (empty string means default)
     """
-
-    if request.json and all(key in request.json for key in ('item_ids', 'username')):
-        json_data = request.json
-        username = json_data.get('username')
-        item_ids = json_data.get('item_ids')
-        inventory_id = json_data.get('inventory_id')
-
-        # sanitize inputs
-        username = bleach.clean(username)
-        item_ids = [int(bleach.clean(str(x))) for x in item_ids]
-
-        if inventory_id == '':
-            inventory_id = None
-        else:
-            inventory_id = int(bleach.clean(str(json_data.get('inventory_id'))))
-
-        if item_ids is not None and username is not None:
-            delete_items(item_ids=item_ids, user_id=current_user.id, inventory_id=inventory_id)
-        else:
+    data = request.get_json(silent=True)
+    if not data:
+        # support form submissions (fields may be strings or repeated)
+        form = request.form
+        if not form:
             flash("There was a problem deleting your things!")
-            current_app.logger.error("Error deleting items - missing item_ids or username")
+            current_app.logger.error("No JSON or form data provided to delete endpoint")
+            return redirect(url_for(endpoint='items.items_with_username', list_username=current_user.username).replace('%40', '@'))
+        # build data dict from form; allow comma-separated or repeated values for item_ids
+        data = {}
+        data['username'] = form.get('username')
+        item_ids_form = form.getlist('item_ids') or form.get('item_ids')
+        data['item_ids'] = item_ids_form
+        data['inventory_id'] = form.get('inventory_id', "")
+    # basic presence check
+    if not data or 'item_ids' not in data or 'username' not in data:
+        flash("There was a problem deleting your things!")
+        current_app.logger.error("Missing required keys in delete request")
+        return redirect(url_for(endpoint='items.items_with_username', list_username=current_user.username).replace('%40', '@'))
 
-        # create redirect_url and ensure it has an '@' symbol before the user
-        redirect_url = url_for(endpoint='items.items_with_username',
-                               list_username=username).replace('%40', '@')
-        return redirect(redirect_url)
+    # sanitize username
+    username = bleach.clean(data.get('username') or "")
+    # normalize item_ids to a list
+    raw_item_ids = data.get('item_ids')
+    if isinstance(raw_item_ids, str):
+        try:
+            raw_item_ids = json.loads(raw_item_ids)
+        except Exception:
+            # allow comma-separated string
+            raw_item_ids = [x.strip() for x in raw_item_ids.split(',') if x.strip()]
+    elif raw_item_ids is None:
+        raw_item_ids = []
+
+    # convert to ints, skipping invalid entries
+    item_ids = []
+    for x in raw_item_ids:
+        try:
+            item_ids.append(int(bleach.clean(str(x))))
+        except (ValueError, TypeError):
+            current_app.logger.warning("Skipping invalid item id when deleting: %r", x)
+
+    # determine inventory_id
+    inventory_id_raw = data.get('inventory_id', "")
+    try:
+        if inventory_id_raw == "" or inventory_id_raw is None:
+            inventory_id = get_user_default_inventory_id(user_id=current_user.id)
+        else:
+            inventory_id = int(bleach.clean(str(inventory_id_raw)))
+    except (ValueError, TypeError):
+        inventory_id = get_user_default_inventory_id(user_id=current_user.id)
+
+    if not item_ids:
+        flash("There was a problem deleting your things!")
+        current_app.logger.error("Error deleting items - no valid item_ids provided")
+        return redirect(url_for(endpoint='items.items_with_username', list_username=username or current_user.username).replace('%40', '@'))
+
+    try:
+        delete_items(item_ids=item_ids, user_id=current_user.id, inventory_id=inventory_id)
+    except Exception as e:
+        flash("There was a problem deleting your things!")
+        current_app.logger.error("Exception deleting items: %s", str(e))
+
+    redirect_url = url_for(endpoint='items.items_with_username', list_username=username or current_user.username).replace('%40', '@')
+    return redirect(redirect_url)

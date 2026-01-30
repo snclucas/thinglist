@@ -6,7 +6,7 @@ from flask import Blueprint, render_template, redirect, url_for, request, abort,
 from flask_login import login_required, current_user
 
 from database.database_functions import find_template, add_new_template, update_template_by_id, get_user_templates, \
-    get_all_fields, save_template_fields, get_user_template_by_id, delete_templates_from_db, \
+    save_template_fields, get_user_template_by_id, delete_templates_from_db, \
     set_template_fields_orders, \
     get_template_fields_by_id, get_all_user_and_system_fields
 from models import FieldTemplate
@@ -26,7 +26,7 @@ def templates():
 @login_required
 def sort_template(template_id):
     if request.method == 'GET':
-        all_fields = dict(get_all_fields())
+        all_fields = dict(FieldService.get_all_fields())
 
         user_template_ = get_user_template_by_id(template_id=template_id, user_id=current_user.id)
 
@@ -81,7 +81,7 @@ def template(template_id):
 @field_template.route('/@<string:username>/field-templates')
 @login_required
 def templates_with_username(username):
-    all_fields = dict(get_all_fields())
+    all_fields = dict(FieldService.get_all_fields())
     user_templates = get_user_templates(user_id=current_user.id)
     return render_template(template_name_or_list='field_template/field_templates.html',
                            name=current_user.username, templates=user_templates, all_fields=all_fields)

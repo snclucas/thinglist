@@ -4,10 +4,11 @@ from slugify import slugify
 
 from database.database_functions import get_number_user_lists, find_inventory_by_id, \
     find_inventory_by_slug, delete_lists_by_id, edit_inventory_data, get_users_for_inventory, add_user_to_inventory, \
-    delete_user_to_inventory, find_inventory_by_access_token
+    delete_user_to_inventory
 
 from site_globals import __LIST__, __COLLABORATOR__, __PUBLIC__
 from tests.test_parent import TestAppParent
+from services.thinglist_api import InventoryService
 
 
 class TestApp(TestAppParent):
@@ -164,7 +165,7 @@ class TestApp(TestAppParent):
         self.assertEqual(0, _found_list.show_item_url)
         self.assertEqual(__PUBLIC__, _found_list.access_level)
 
-        _found_list = find_inventory_by_access_token(access_token=_found_list.token)
+        _found_list = InventoryService.get_inventory_by_access_token(access_token=_found_list.token)
 
         self.assertEqual(True, status)
         self.assertEqual("test_list_edited", _found_list.name)

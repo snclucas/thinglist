@@ -12,18 +12,25 @@ from database.database_functions import get_user_inventories, delete_item_from_i
     find_inventory_by_slug, \
     edit_inventory_data, \
     delete_lists_by_id, add_user_to_inventory, delete_user_to_inventory, find_inventory_by_id, add_user_list, \
-    regenerate_inventory_token, find_inventory_by_access_token, add_user_to_inventory_from_token, \
-    get_user_public_lists, get_user_unlisted_item_count
-from database.database_functions import find_user_by_username
+    regenerate_inventory_token, add_user_to_inventory_from_token, \
+    get_user_public_lists, get_user_unlisted_item_count, get_user_default_inventory_id
+
 
 from site_globals import __INVENTORY__, __LIST__, __URL_LIST__, __PUBLIC__, __PRIVATE__, __VIEWER__, __READ_ONLY__, \
     __NOT_FOUND__, __OK__, __BAD_REQUEST__
+from services.thinglist_api import InventoryService, UserService
 from utils import CLEANR
 
 inv = Blueprint('inv', __name__)
 
 @inv.context_processor
 def my_utility_processor():
+    """
+    Context processor to add utility functions to templates.
+
+    Returns:
+        dict: A dictionary containing utility functions for use in templates.
+    """
     def item_tag_to_string(item_tag_list):
         tag_arr = []
         for tag in item_tag_list:
@@ -69,7 +76,7 @@ def inventories_for_username(list_username):
     else:
         user_is_authenticated = False
 
-    user_ = find_user_by_username(username=list_username)
+    user_ = UserService.get_user_by_username(username=list_username)
 
     if user_is_authenticated:
         current_user_id = current_user.id
@@ -206,10 +213,36 @@ def add_inventory():
 @inv.route(rule='/list/delete', methods=['POST'])
 @login_required
 def del_inventory():
-    json_data = request.json
-    inventory_ids = json_data['inventory_ids']
-    inventory_ids = [int(bleach.clean(str(x))) for x in inventory_ids]
-    delete_lists_by_id(inventory_ids=inventory_ids, user_id=current_user.id)
+    json_data = request.get_json(silent=True)
+    if not json_data:
+        flash("No data provided for deletion")
+        app.logger.error("del_inventory: empty request.json")
+        return redirect(url_for('inv.lists'))
+
+    inventory_ids = json_data.get('inventory_ids')
+    if not inventory_ids:
+        flash("No inventories selected for deletion")
+        app.logger.error("del_inventory: 'inventory_ids' missing or empty")
+        return redirect(url_for('inv.lists'))
+
+    cleaned_ids = set()
+    for x in inventory_ids:
+        try:
+            cleaned = int(bleach.clean(str(x)))
+            if cleaned > 0:
+                cleaned_ids.add(cleaned)
+        except (ValueError, TypeError) as e:
+            app.logger.warning("del_inventory: invalid inventory id '%s' (%s)", x, e)
+
+    if not cleaned_ids:
+        flash("No valid inventory IDs provided")
+        return redirect(url_for('inv.lists'))
+
+    try:
+        delete_lists_by_id(inventory_ids=list(cleaned_ids), user_id=current_user.id)
+    except Exception as e:
+        app.logger.exception("Error deleting inventories: %s", e)
+        flash("Error deleting selected inventories")
 
     return redirect(url_for('inv.lists'))
 
@@ -347,7 +380,7 @@ def register_for_inventory_access():
     if request.method == 'POST':
         access_token = bleach.clean(request.form.get("access_token"))
 
-        inventory_ = find_inventory_by_access_token(access_token=access_token)
+        inventory_ = InventoryService.get_inventory_by_access_token(access_token=access_token)
         if inventory_ is not None:
             result = add_user_to_inventory_from_token(inventory_id=inventory_.id, user_to_add=current_user,
                                                       added_user_access_level=__VIEWER__)
@@ -432,67 +465,65 @@ def delete_from_inventory(username: str, inventory_slug: str, item_id):
 @inv.route('/list/additem', methods=['POST'])
 @login_required
 def add_to_inventory():
-    item_name = request.form.get("name")
-    item_description = request.form.get("description")
-    if item_name is None or item_name == "" or item_name == " ":
+    item_name = bleach.clean(request.form.get("name", "")).strip()
+    if not item_name:
         flash("Item name cannot be empty")
         return redirect(url_for('inv.lists'))
-    else:
-        item_name = bleach.clean(item_name)
 
-    if item_description is not None:
-        item_description = bleach.clean(request.form.get("description"))
+    item_description_raw = request.form.get("description", "")
+    item_description = bleach.clean(item_description_raw).strip()
+    if item_description == "":
+        item_description = None
 
-    inventory_id = request.form.get("inventory_id", -1)
-    if inventory_id == '':
-        inventory_id = "-1"
-    item_quantity = request.form.get("quantity", 1)
-    item_location = request.form.get("location_id") # .lower()
+    # Read raw values with string defaults to avoid type errors
+    inventory_id_raw = request.form.get("inventory_id", "-1")
+    item_quantity_raw = request.form.get("quantity", "1")
+    item_location_raw = request.form.get("location_id", "-1")
+
     try:
-        inventory_id = bleach.clean(inventory_id)
-        inventory_id = int(inventory_id)
-        item_quantity = bleach.clean(item_quantity)
-        item_quantity = int(item_quantity)
-        item_location = bleach.clean(item_location)
-        item_location = int(item_location)
-    except ValueError:
+        if inventory_id_raw == "":
+            inventory_id = get_user_default_inventory_id(user_id=current_user.id)
+        else:
+            inventory_id = int(bleach.clean(str(inventory_id_raw)))
+        item_quantity = int(bleach.clean(str(item_quantity_raw)))
+        item_location = int(bleach.clean(str(item_location_raw)))
+    except (ValueError, TypeError):
         flash("Issue adding item to inventory")
         return redirect(url_for('inv.lists'))
 
-    item_url = request.form.get("url", "")
-    item_url = bleach.clean(item_url)
+    item_url = bleach.clean(request.form.get("url", "")).strip()
 
-    username = request.form.get("username").lower()
-    username = bleach.clean(username)
-    inventory_slug = request.form.get("inventory_slug").lower()
-    inventory_slug = bleach.clean(inventory_slug)
-    item_type = request.form.get("type").lower()
-    item_type = bleach.clean(item_type)
-    # strip to exclude just spaces
-    if item_type.strip() == '':
-        item_type = None
+    username = bleach.clean(request.form.get("username", "")).lower().strip()
+    inventory_slug = bleach.clean(request.form.get("inventory_slug", "")).lower().strip()
 
-    item_specific_location = bleach.clean(request.form.get("specific_location")).lower()
-    item_tags = bleach.clean(request.form.get("tags")).lower()
-    item_tags = item_tags.lower().split(",")
-    # remove HTML tags
-    item_tags = [re.sub(CLEANR, '', it) for it in item_tags]
+    item_type_raw = bleach.clean(request.form.get("type", "")).strip().lower()
+    item_type = item_type_raw if item_type_raw != "" else None
 
-    item_custom_fields = dict(request.form)
-    to_remove = ['username', 'name', 'id', 'description', 'inventory_id', 'location_id',
-                 'inventory_slug', 'specific_location', 'csrf_token', 'tags', 'type', 'quantity', 'url']
-    for field in to_remove:
-        del item_custom_fields[field]
+    item_specific_location = bleach.clean(request.form.get("specific_location", "")).lower().strip()
 
-    add_item_to_inventory(item_name=item_name, item_desc=item_description, item_type_name_or_id=item_type,
-                          item_tags=item_tags, item_quantity=item_quantity, item_url=item_url,
-                          item_location_id=int(item_location), item_specific_location=item_specific_location,
-                          inventory_id=inventory_id, user_id=current_user.id,
-                          custom_fields=item_custom_fields)
+    tags_raw = bleach.clean(request.form.get("tags", "")).lower()
+    item_tags = [re.sub(CLEANR, '', t).strip() for t in tags_raw.split(",") if t.strip()]
 
-    if inventory_id == '' or inventory_slug == '' or inventory_id is None or inventory_slug is None:
-        return redirect(url_for(endpoint='items.items_with_username',
-                                list_username=username))
+    to_remove = {'username', 'name', 'id', 'description', 'inventory_id', 'location_id',
+                 'inventory_slug', 'specific_location', 'csrf_token', 'tags', 'type', 'quantity', 'url'}
+    item_custom_fields = {k: v for k, v in request.form.items() if k not in to_remove}
+
+    add_item_to_inventory(
+        item_name=item_name,
+        item_desc=item_description,
+        item_type_name_or_id=item_type,
+        item_tags=item_tags,
+        item_quantity=item_quantity,
+        item_url=item_url,
+        item_location_id=item_location,
+        item_specific_location=item_specific_location,
+        inventory_id=inventory_id,
+        user_id=current_user.id,
+        custom_fields=item_custom_fields
+    )
+
+    if inventory_id <= 0 or not inventory_slug:
+        return redirect(url_for(endpoint='items.items_with_username', list_username=username))
     else:
         return redirect(url_for(endpoint='items.items_with_username_and_inventory',
                                 list_username=username, inventory_slug=inventory_slug))

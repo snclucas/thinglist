@@ -6,9 +6,9 @@ from app import app
 from database.database_functions import get_user_inventories, get_user_item_count, get_user_templates, \
     get_all_user_item_types, delete_notification_by_id, get_number_user_locations, \
     get_all_user_fields, get_user_public_lists
-from database.database_functions import find_user_by_username
 
 from site_globals import __BAD_REQUEST__
+from services.thinglist_api import UserService
 
 main = Blueprint('main', __name__)
 
@@ -103,7 +103,7 @@ def profile(username):
         if user_is_authenticated:
             current_user_id = current_user.id
             if username != current_user.username:
-                user_ = find_user_by_username(username=username)
+                user_ = UserService.get_user_by_username(username=username)
                 if user_ is not None:
                     requesting_user_id = user_.id
             else:
@@ -122,7 +122,7 @@ def profile(username):
                                num_inventories=len(list(user_inventories))-1, num_user_fields=num_user_fields)
 
     else:
-        user_ = find_user_by_username(username=username)
+        user_ = UserService.get_user_by_username(username=username)
         if user_ is not None:
             _user_preferences = user_.preferences
             if _user_preferences.public_profile:

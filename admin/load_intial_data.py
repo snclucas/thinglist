@@ -19,7 +19,7 @@ def load_fields():
         reader = csv.reader(csvfile, delimiter=',', quotechar='"')
         for row in reader:
             if line_count != 0:
-                get_or_create(model=Field, field=row[0], slug=slugify(row[1]), type=row[2])
+                get_or_create(model=Field, field=row[0], slug=slugify(row[0]), type=row[1])
             line_count += 1
 
     return line_count

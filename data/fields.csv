@@ -1,365 +1,421 @@
-Name,Description,Type
-A/D converter,A/D converter,input
-Additional information,Additional information,textarea
-Affiliation,Affiliation,input
-Age,Age,input
-Air delivery,Air delivery,input
-Air displacement,Air displacement,input
-Airfoil,Airfoil,input
-Airframe  ,Airframe  ,input
-Airframe hours,Airframe hours,input
-Album length,Album length,input
-Alias,Alias,input
-Analogue outputs,Analogue outputs,input
-Appearance,Appearance,input
-Area,Area,input
-Artist,Artist,input
-ASIN,ASIN,input
-Assembly date,Assembly date,input
-Asset tag,Asset tag,input
-Audio channels,Audio channels,input
-Audio chip,Audio chip,input
-Author,Author,input
-Availability,Availability,input
-Back design,Back design,input
-Backlight Source,Backlight Source,input
-Bandwidth,Bandwidth,input
-"Bandwidth, download","Bandwidth, download",input
-"Bandwith, upload","Bandwith, upload",input
-Battery life,Battery life,input
-Baud rate,Baud rate,input
-Beam,Beam,input
-Berths,Berths,input
-Binding,Binding,input
-Binding,Binding,input
-Block,Block,input
-Board number,Board number,input
-Born,Born,input
-Brand,Brand,input
-Breed,Breed,input
-Breeder,Breeder,input
-Brilliance,Brilliance,input
-BTU,BTU,input
-Budget,Budget,input
-Buyer,Buyer,input
-Cabinet size,Cabinet size,input
-Cabinet type,Cabinet type,input
-Capacitance,Capacitance,input
-Capacity,Capacity,input
-Carat,Carat,input
-CAS latency,CAS latency,input
-CAS number,CAS number,input
-Channel separation,Channel separation,input
-Chemical formula,Chemical formula,input
-Chipset,Chipset,input
-Circulated,Circulated,bool
-Clarity,Clarity,input
-Class,Class,input
-Codename,Codename,input
-Colour,Colour,input
-Commemorative,Commemorative,bool
-Composer,Composer,input
-Composition,Composition,input
-Condition,Condition,input
-Configuration,Configuration,input
-Connector type,Connector type,input
-Connector type A,Connector type A,input
-Connector type B,Connector type B,input
-Contents,Contents,input
-Cord length,Cord length,input
-Core,Core,input
-Core material,Core material,input
-Cores,Cores,input
-Cost,Cost,input
-Cost/Unit,Cost/Unit,input
-Counterfeit,Counterfeit,bool
-Country,Country,input
-Coverage,Coverage,input
-CPU,CPU,input
-Creator,Creator,input
-Crossover frequency,Crossover frequency,input
-Cruise speed,Cruise speed,input
-Crystal structure,Crystal structure,input
-Culet,Culet,input
-D/A converter,D/A converter,input
-DAC,DAC,input
-Damping factor,Damping factor,input
-Data retention,Data retention,input
-Datasheet link,Datasheet link,URL
-Date code, Date code, input
-DC supply voltage (VDD),DC supply voltage (VDD),input
-Denomination,Denomination,input
-Denomination,Denomination,input
-Department,Department,input
-Depth,Depth,input
-Dialing code,Dialing code,input
-Diameter,Diameter,input
-Died,Died,input
-Digital outputs,Digital outputs,input
-Dimensions,Dimensions,input
-Director,Director,input
-Disaplacement,Disaplacement,input
-Disc bore,Disc bore,input
-Discipline,Discipline,input
-Disk number,Disk number,input
-Displacement,Displacement,input
-Display Bit Depth,Display Bit Depth,input
-Display type,Display type,input
-Draught,Draught,input
-Drive type,Drive type,input
-Drive units,Drive units,input
-Dry capacity,Dry capacity,input
-Dry weight,Dry weight,input
-Dynamic range,Dynamic range,input
-Edition,Edition,input
-End production date,End production date,input
-Energy Class,Energy Class,input
-Engine hours,Engine hours,input
-Engine make,Engine make,input
-Engine model,Engine model,input
-Engine type,Engine type,input
-Engine usage,Engine usage,input
-Era,Era,input
-Evaporation type,Evaporation type,input
-Exterior Material,Exterior Material,input
-Face value,Face value,input
-Failure rate,Failure rate,input
-Fair trade,Fair trade,bool
-Family,Family,input
-Finderscope,Finderscope,input
-Firmware,Firmware,input
-Floppy drive,Floppy drive,input
-Focal Length,Focal Length,input
-Focus type,Focus type,input
-Form factor,Form factor,input
-Format,Format,input
-Frame Rate Control,Frame Rate Control,input
-Frequency,Frequency,input
-Frequency response,Frequency response,input
-Fresh water tanks,Fresh water tanks,input
-Front design,Front design,input
-Fuel tanks,Fuel tanks,input
-Fuel type,Fuel type,input
-Function,Function,input
-Gain,Gain,input
-Gauge,Gauge,input
-Genre,Genre,input
-Genuine,Genuine,bool
-Girdle,Girdle,input
-Grade,Grade,input
-Group,Group,input
-Handmade,Handmade,bool
-Hardness,Hardness,input
-Head type,Head type,input
-Headroom extension,Headroom extension,input
-Heads,Heads,input
-Heat output,Heat output,input
-Height,Height,input
-Holding tanks,Holding tanks,input
-Hours,Hours,input
-Housing type,Housing type,input
-Hull material,Hull material,input
-Hull type,Hull type,input
-Ideology,Ideology,input
-Impedance,Impedance,input
-Imperfections,Imperfections,bool
-Index,Index,input
-Inductance,Inductance,input
-Input sensitivity,Input sensitivity,input
-Input voltage,Input voltage,input
-Interface type,Interface type,input
-ISBN,ISBN,input
-ISBN-10,ISBN-10,input
-ISBN-13,ISBN-13,input
-Issue date,Issue date,input
-Issuing authority,Issuing authority,input
-Keel type,Keel type,input
-Language,Language,input
-Leader,Leader,input
-Length,Length,input
-Lifespan,Lifespan,input
-Limited edition,Limited edition,bool
-Lining Color,Lining Color,input
-LOA,LOA,input
-Luster,Luster,input
-Manufacture date,Manufacture date,input
-Manufacturer,Manufacturer,input
-Market,Market,input
-Material,Material,input
-Max Number of Colors,Max Number of Colors,input
-Maximum Aperture,Maximum Aperture,input
-Maximum DC Current,Maximum DC Current,input
-Maximum load,Maximum load,input
-Maximum Magnification,Maximum Magnification,input
-Maximum Resolution,Maximum Resolution,input
-Maximum speed,Maximum speed,input
-Media type,Media type,input
-Mileage,Mileage,input
-Minting year,Minting year,input
-Model,Model,input
-Monoisotopic mass,Monoisotopic mass,input
-Mount ,Mount ,input
-Mounting style,Mounting style,input
-MPN,MPN,input
-Music label,Music label,input
-Noise reduction,Noise reduction,input
-Number of births,Number of births,input
-Number of cabins,Number of cabins,input
-Number of pages,Number of pages,input
-Number of pins,Number of pins,input
-Number of tracks,Number of tracks,input
-Objective Lens Diameter,Objective Lens Diameter,input
-Obverse design,Obverse design,input
-On loan,On loan,bool
-On loan to,On loan to,input
-Operating pressure,Operating pressure,input
-Operating System,Operating System,input
-Operating temperature (max),Operating temperature (max),input
-Operating temperature (min),Operating temperature (min),input
-Operating temperature (range),Operating temperature (range),input
-Orientation,Orientation,input
-Origin,Origin,input
-OS grid reference,OS grid reference,input
-Output voltage,Output voltage,input
-Package,Package,input
-Pages,Pages,input
-Panel,Panel,input
-Paper type,Paper type,input
-Parents,Parents,input
-Part number,Part number,input
-Pattern,Pattern,input
-Period,Period,input
-Platform,Platform,input
-Play time,Play time,input
-POST string,POST string,input
-Postcode,Postcode,input
-Power,Power,input
-"Power dissipation, ave","Power dissipation, ave",input
-"Power dissipation, max","Power dissipation, max",input
-"Power dissipation, min","Power dissipation, min",input
-Power output,Power output,input
-Power rating,Power rating,input
-Processor,Processor,input
-Producer,Producer,input
-Product key,Product key,input
-Production company,Production company,input
-Proof,Proof,input
-Prop hours,Prop hours,input
-Prop make,Prop make,input
-Propulsion,Propulsion,input
-Provenance,Provenance,input
-Published date,Published date,input
-Publisher,Publisher,input
-Pull resistance,Pull resistance,input
-Purchase date,Purchase date,input
-Qualification,Qualification,input
-Quality,Quality,input
-Quantity,Quantity,input
-Radius,Radius,input
-RAM,RAM,input
-RAM,RAM,input
-Range,Range,input
-Rarity,Rarity,input
-Rate of climb,Rate of climb,input
-Rating,Rating,input
-Record label,Record label,input
-Recording time,Recording time,input
-Reference,Reference,input
-Refractive index,Refractive index,input
-Refresh rate,Refresh rate,input
-Reg number,Reg number,input
-Region,Region,input
-Relatives,Relatives,input
-Release year,Release year,input
-Reliability,Reliability,input
-Resistance,Resistance,input
-Response time,Response time,input
-Restored,Restored,bool
-Reverse design,Reverse design,input
-Rotation rate,Rotation rate,input
-Running time,Running time,input
-S/N improvement,S/N improvement,input
-Safety,Safety,input
-Sampling frequency,Sampling frequency,input
-Scale,Scale,input
-Screen aspect ratio,Screen aspect ratio,input
-Screen Horizontal Viewing Angle,Screen Horizontal Viewing Angle,input
-Screen Pixel Density,Screen Pixel Density,input
-Screen Pixel Pitch,Screen Pixel Pitch,input
-Screen resolution,Screen resolution,input
-Screen Vertical Viewing Angle,Screen Vertical Viewing Angle,input
-Screen-to-Body Ratio,Screen-to-Body Ratio,input
-Seller,Seller,input
-Sensitivity,Sensitivity,input
-Serial number,Serial number,input
-Series,Series,input
-Service ceiling,Service ceiling,input
-Service tag,Service tag,input
-Shade,Shade,input
-Shaft base,Shaft base,input
-Signal word,Signal word,input
-Signal-to-noise,Signal-to-noise,input
-Signature,Signature,bool
-Size,Size,input
-SKU,SKU,input
-Slot  ,Slot  ,input
-Slot type,Slot type,input
-Socket,Socket,input
-Solubility,Solubility,input
-Sound chip,Sound chip,input
-Source ,Source ,input
-SPARS code,SPARS code,input
-Speaker load impedance,Speaker load impedance,input
-Species,Species,input
-Spouse,Spouse,input
-Stall speed,Stall speed,input
-Standard,Standard,input
-Status,Status,input
-Strength,Strength,input
-Studio,Studio,input
-Supplier,Supplier,input
-Supply voltage (max),Supply voltage (max),input
-Supply voltage (min),Supply voltage (min),input
-Supply voltage (range),Supply voltage (range),input
-System,System,input
-System number,System number,input
-System requirements,System requirements,textarea
-Tank capacity,Tank capacity,input
-Tank pressure,Tank pressure,input
-Tape speed,Tape speed,input
-Taper,Taper,input
-TDP,TDP,input
-Temperature coefficient,Temperature coefficient,input
-Termination style,Termination style,input
-Texture,Texture,input
-Tolerance,Tolerance,input
-Top speed,Top speed,input
-Total harmonic distortion,Total harmonic distortion,input
-Track system,Track system,input
-Transmission,Transmission,input
-Uncirculated,Uncirculated,bool
-URL,URL,URL
-Variety,Variety,input
-Vessel type,Vessel type,input
-Video chip,Video chip,input
-Video output ,Video output ,input
-Video outputs,Video outputs,input
-Vintage,Vintage,input
-Voltage,Voltage,input
-Voltage Rating AC,Voltage Rating AC,input
-Voltage Rating DC,Voltage Rating DC,input
-Volume,Volume,input
-Watermark,Watermark,bool
-Wavelength,Wavelength,input
-Weatherproof,Weatherproof,bool
-Weight,Weight,input
-Wheelbase,Wheelbase,input
-Width,Width,input
-Wing area,Wing area,input
-Wingspan,Wingspan,input
-Wow and flutter,Wow and flutter,input
-Year build,Year build,input
-Zipcode,Zipcode,input
-Open source,Open source,input
-Closed source,Closed source,input
-Proprietary,Proprietary,input
+Name,Type,
+A/D converter,input,
+Additional information,textarea,
+Affiliation,input,
+Age,input,
+Air bags,input,
+Air delivery,input,
+Air displacement,input,
+Airfoil,input,
+Airframe,input,
+Airframe hours,input,
+Album length,input,
+Alias,input,
+Analogue outputs,input,
+Appearance,input,
+Area,input,
+Artist,input,
+ASIN,input,
+Assembly date,input,
+Asset tag,input,
+Audio channels,input,
+Audio chip,input,
+Author,input,
+Availability,input,
+Back design,input,
+Backlight Source,input,
+Bandwidth,input,
+Bandwidth (download),input,
+Bandwith (upload),input,
+Battery life,input,
+Baud rate,input,
+Beam,input,
+Berths,input,
+Binding,input,
+Blade edge,input,
+Blade material, input,
+Blade length, input,
+Blade type, input,
+Blade angle, input,
+Block,input,
+Blooming,bool,
+Bluetooth version,input,
+Board size,input,
+Board number,input,
+Body style,input,
+Bolster,input,
+Book type,input,
+Box lot,input,
+Box size,input,
+Born,input,
+Brand,input,
+Breed,input,
+Breeder,input,
+Brightness,input,
+Brilliance,input,
+BTU,input,
+Budget,input,
+Buyer,input,
+Cable length,input,
+Cable type,input,
+Calibration, input,
+Caliber, input,
+Cabinet size,input,
+Cabinet type,input,
+Capacitance,input,
+Capacity,input,
+Carat,input,
+CAS latency,input,
+CAS number,input,
+Channel separation,input,
+Chemical formula,input,
+Chipset,input,
+Circulated,bool,
+Clarity,input,
+Class,input,
+Codename,input,
+Colour,input,
+Contact material,input,
+Contact points,input,
+Content rating,input,
+Commemorative,bool,
+Composer,input,
+Composition,input,
+Condition,input,
+Configuration,input,
+Connector type,input,
+Connector type A,input,
+Connector type B,input,
+Contents,input,
+Cord length,input,
+Core,input,
+Core material,input,
+Cores,input,
+Cost,input,
+Cost/Unit,input,
+Counterfeit,bool,
+Country,input,
+Coverage,input,
+CPU,input,
+Creator,input,
+Crossover frequency,input,
+Cruise speed,input,
+Crystal structure,input,
+Culet,input,
+D/A converter,input,
+DAC,input,
+Damping factor,input,
+Data retention,input,
+Datasheet link,URL,
+Date code, input,
+DC supply voltage (VDD),input,
+Deadlift,input,
+Decks,input,
+Depth of field,input,
+Design,input,
+Designer,input,
+Device type,input,
+Diagonal size,input,
+Denomination,input,
+Denomination,input,
+Department,input,
+Depth,input,
+Dialing code,input,
+Diameter,input,
+Died,input,
+Digital outputs,input,
+Dimensions,input,
+Director,input,
+Disaplacement,input,
+Disc bore,input,
+Discipline,input,
+Disk number,input,
+Displacement,input,
+Display Bit Depth,input,
+Display type,input,
+Draught,input,
+Drive type,input,
+Drive units,input,
+Dry capacity,input,
+Dry weight,input,
+Dynamic range,input,
+Edition,input,
+End production date,input,
+Energy Class,input,
+Engine hours,input,
+Engine make,input,
+Engine model,input,
+Engine type,input,
+Engine usage,input,
+Dimensions,input,
+Era,input,
+Evaporation type,input,
+Exact year,input,
+Expedition, input,
+Exterior Material,input,
+Face value,input,
+Failure rate,input,
+Fair trade,bool,
+Family,input,
+Finderscope,input,
+Finish,input,
+Firmware,input,
+Floppy drive,input,
+Focal Length,input,
+Focus type,input,
+Form factor,input,
+Format,input,
+Frame Rate Control,input,
+Frequency,input,
+Frequency response,input,
+Fresh water tanks,input,
+Front design,input,
+Fuel tanks,input,
+Fuel type,input,
+Function,input,
+Gain,input,
+Gauge,input,
+Genre,input,
+Genuine,bool,
+Gender,input,
+Girdle,input,
+Grade,input,
+Group,input,
+Handmade,bool,
+Hardness,input,
+Head type,input,
+Headroom extension,input,
+Heads,input,
+Heat output,input,
+Height,input,
+Holding tanks,input,
+Hours,input,
+Housing type,input,
+Hull material,input,
+Hull type,input,
+Ideology,input,
+Impedance,input,
+Imperfections,bool,
+Index,input,
+Inductance,input,
+Input sensitivity,input,
+Input voltage,input,
+Interface type,input,
+ISBN,input,
+ISBN-10,input,
+ISBN-13,input,
+Issue date,input,
+Issuing authority,input,
+Jacket,input,
+Jacket material,input,
+Jewel count,input,
+Job title,input,
+Keel type,input,
+Language,input,
+Leader,input,
+Length,input,
+Lifespan,input,
+Limited edition,bool,"[Yes, No]"
+Liquid capacity,input,
+Liquid weight,input,
+Lithography,input,
+Lithology,input,
+Load rating,input,
+Locality,input,
+Locking mechanism,input,
+Lining Color,input,
+LOA,input,
+Luster,input,
+Manufacture date,input,
+Manufacturer,input,
+Market,input,
+Material,input,
+Max Number of Colors,input,
+Maximum Aperture,input,
+Maximum DC Current,input,
+Maximum load,input,
+Maximum Magnification,input,
+Maximum Resolution,input,
+Maximum speed,input,
+Media type,input,
+Mileage,input,
+Minting year,input,
+Model,input,
+Monoisotopic mass,input,
+Mount ,input,
+Mounting style,input,
+MPN,input,
+Music label,input,
+Noise reduction,input,
+Number of births,input,
+Number of cabins,input,
+Number of pages,input,
+Number of pins,input,
+Number of tracks,input,
+Objective Lens Diameter,input,
+Obverse design,input,
+On loan,bool,
+On loan to,input,
+Operating pressure,input,
+Operating System,input,
+Operating temperature (max),input,
+Operating temperature (min),input,
+Operating temperature (range),input,
+Orientation,input,
+Origin,input,
+OS grid reference,input,
+Output voltage,input,
+Package,input,
+Pages,input,
+Panel,input,
+Paper type,input,
+Parents,input,
+Part number,input,
+Pattern,input,
+Period,input,
+Platform,input,
+Play time,input,
+POST string,input,
+Postcode,input,
+Power consumption,input,
+Power,input,
+Power dissipation (ave),input,
+Power dissipation (max),input,
+Power dissipation (min),input,
+Power output,input,
+Power rating,input,
+Power supply, input,
+Power supply type, input,
+Processor,input,
+Producer,input,
+Product key,input,
+Production company,input,
+Proof,input,
+Prop hours,input,
+Prop make,input,
+Propulsion,input,
+Provenance,input,
+PSU,input,
+Published date,input,
+Publisher,input,
+Pull resistance,input,
+Purchase date,input,
+Qualification,input,
+Quality,input,
+Quantity,input,
+Radius,input,
+Rails,input,
+RAM,input,
+Range,input,
+Rarity,input,
+Rate of climb,input,
+Rating,input,
+Record label,input,
+Recording time,input,
+Reference,input,
+Refractive index,input,
+Refresh rate,input,
+Reg number,input,
+Region,input,
+Relatives,input,
+Release year,input,
+Reliability,input,
+Resistance,input,
+Response time,input,
+Restored,bool,
+Reverse design,input,
+Reynolds number,input,
+Rheostat,bool,
+Ridge,input,
+Rotation rate,input,
+Running time,input,
+S/N improvement,input,
+Safety,input,
+Sampling frequency,input,
+Scale,input,
+Screen aspect ratio,input,
+Screen Horizontal Viewing Angle,input,
+Screen Pixel Density,input,
+Screen Pixel Pitch,input,
+Screen resolution,input,
+Screen Vertical Viewing Angle,input,
+Screen-to-Body Ratio,input,
+Seller,input,
+Sensitivity,input,
+Serial number,input,
+Series,input,
+Service ceiling,input,
+Service tag,input,
+Shade,input,
+Shaft base,input,
+Shape,input,
+Signal word,input,
+Signal-to-noise,input,
+Signature,bool,
+Size,input,
+SKU,input,
+Slot  ,input,
+Slot type,input,
+Socket,input,
+Solubility,input,
+Sound chip,input,
+Source ,input,
+SPARS code,input,
+Speaker load impedance,input,
+Species,input,
+Spouse,input,
+Stall speed,input,
+Standard,input,
+Status,input,
+Strength,input,
+Studio,input,
+Supplier,input,
+Supply voltage (max),input,
+Supply voltage (min),input,
+Supply voltage (range),input,
+System,input,
+System number,input,
+System requirements,textarea,
+Tank capacity,input,
+Tank pressure,input,
+Tape speed,input,
+Taper,input,
+TDP,input,
+Temperature coefficient,input,
+Termination style,input,
+Texture,input,
+Tolerance,input,
+Top speed,input,
+Total harmonic distortion,input,
+Track system,input,
+Transmission,input,
+Uncirculated,bool,"[Yes, No]"
+Thread size,input,
+Fastener type,input,
+Fasterner coating,input,
+Fasterner material,input,
+URL,URL,
+Variety,input,
+Vessel type,input,
+Video chip,input,
+Video output ,input,
+Video outputs,input,
+Vintage,input,
+Voltage,input,
+Voltage Rating AC,input,
+Voltage Rating DC,input,
+Volume,input,
+Watermark,bool,"[Yes, No]"
+Wavelength,input,
+Weatherproof,bool,"[Yes, No]"
+Weight,input,
+Wheelbase,input,
+Width,input,
+Wing area,input,
+Wingspan,input,
+Wow and flutter,input,
+Year build,input,
+Zipcode,input,
+Open source,input,
+Closed source,input,
+Proprietary,input,

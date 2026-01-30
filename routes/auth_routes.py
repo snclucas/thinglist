@@ -7,13 +7,13 @@ from flask import current_app, Blueprint, render_template, request, flash, redir
 from app import login_manager, flask_bcrypt, app
 from flask_login import (login_required, login_user, logout_user, confirm_login, current_user)
 
-from database.database_functions import update_user_password_by_token, update_user_token_by_email, \
+from database.database_functions import update_user_password_by_token, \
     update_user_password_by_user_id, post_user_add_hook
-from database.database_functions import activate_user, find_user, find_user_by_username, find_user_by_email, \
-    find_user_by_token, save_new_user
+from database.database_functions import save_new_user
 from email_utils import send_email
 from models import User
 from routes.index_routes import profile
+from services.thinglist_api import UserService
 
 auth_flask_login = Blueprint('auth_flask_login', __name__, template_folder='templates')
 
@@ -73,7 +73,7 @@ def login():
             flash("Username or password cannot be empty")
             return render_template("auth/login.html")
 
-        user = find_user(username_or_email=username)
+        user = UserService.get_user_by_username(username=username)
         if user and flask_bcrypt.check_password_hash(user.password, password) and user.is_active:
             remember = request.form.get("remember", "no") == "yes"
 
@@ -108,7 +108,7 @@ def activate_user(token):
     :return: The rendered template after user activation.
     :rtype: str
     """
-    user_ = find_user_by_token(token=token)
+    user_ = UserService.get_user_by_token(token=token)
     template = "auth/login.html"
 
     if user_ is not None and not user_.activated and user_.token == token:
@@ -117,7 +117,7 @@ def activate_user(token):
             flash("Expired registration request")
             return render_template(template)
 
-        activate_user(user_id=user_.id)
+        UserService.activate(user_id=user_.id)
         flash("You are now an activated Thing Master!")
 
     return render_template(template)
@@ -128,11 +128,12 @@ def reset_password_token(token):
     template = "auth/reset_password.html"
 
     if request.method == 'GET':
-        user_ = find_user_by_token(token=token)
+        user_ = UserService.get_user_by_token(token=token)
         if user_ is not None and user_.activated:
             return render_template(template, token=token)
+        return None
     else:
-        user_ = find_user_by_token(token=token)
+        user_ = UserService.get_user_by_token(token=token)
 
         token_expiry = user_.token_expires
         if datetime.datetime.now() > token_expiry:
@@ -324,7 +325,7 @@ def register():
             flash("Password does not meet the criteria")
             return render_template(template_name_or_list="auth/register.html", allow_registrations=allow_registrations)
 
-        existing_user = find_user_by_username(username) or find_user_by_email(email)
+        existing_user = UserService.get_user_by_username(username) or UserService.get_user_by_email(email)
         if existing_user:
             flash("User with that email or username already exists")
             return render_template(template_name_or_list="auth/register.html", allow_registrations=allow_registrations)

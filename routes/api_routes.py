@@ -5,9 +5,9 @@ from flask import request
 from database.database_functions import get_all_user_item_types, get_all_user_locations, get_all_user_tags, \
     find_items_new, find_all_my_items, count_all_item_ids_in_inventory, count_all_user_items, \
     get_all_user_and_system_item_types
-from database.database_functions import find_user_by_username
 from routes.items_routes import _get_inventory, _process_url_query
 from site_globals import __DEFAULT__
+from services.thinglist_api import UserService
 
 api_routes = Blueprint('api', __name__)
 
@@ -68,11 +68,11 @@ def items(username=None, inventory_slug=None):
         logged_in_user_id = logged_in_user.id
 
     if inventory_owner is None:
-        inventory_owner = find_user_by_username(username=inventory_owner_username)
+        inventory_owner = UserService.get_user_by_username(username=inventory_owner_username)
         if inventory_owner is not None:
             inventory_owner_id = inventory_owner.id
 
-    requested_user = find_user_by_username(username=username)
+    requested_user = UserService.get_user_by_username(username=username)
     #if requested_user is None:
     #    requested_user = current_user
 

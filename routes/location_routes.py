@@ -2,10 +2,11 @@ import bleach
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 
-from database.database_functions import get_user_locations, update_location_by_id, get_or_add_new_location, \
-    delete_locations, find_location_by_id
+from database.database_functions import get_user_locations_by_id, update_location_by_id, get_or_add_new_location, \
+    delete_locations
 
 from app import app
+from services.thinglist_api import LocationService
 
 location = Blueprint(name='location', import_name=__name__)
 
@@ -16,8 +17,18 @@ def get_form_data(key: str) -> str:
 @location.route(rule='/locations', methods=['GET'])
 @login_required
 def locations():
-    user_locations = get_user_locations(user_id=current_user.id)
-    return render_template(template_name_or_list='location/locations.html', username=current_user.username, locations=user_locations)
+    """
+
+    Retrieves the locations for the logged in user.
+
+    This method handles the GET request for the '/locations' route, requiring the user to be logged in.
+    It retrieves the locations specific to the current user and renders the 'location/locations.html' template
+    with the user's username and locations displayed.
+
+    """
+    _user_locations = get_user_locations_by_id(user_id=current_user.id)
+    return render_template(template_name_or_list='location/locations.html',
+                           username=current_user.username, locations=_user_locations)
 
 
 @location.route(rule='/location/delete', methods=['POST'])
@@ -85,7 +96,7 @@ def add_location():
         "description": _location_description,
     }
 
-    potential_location = find_location_by_id(location_id=_location_id_int)
+    potential_location = LocationService.get_location_by_id(location_id=_location_id_int)
 
     if potential_location is None:
         get_or_add_new_location(location_name=_location_name,
