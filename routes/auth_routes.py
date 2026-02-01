@@ -8,12 +8,12 @@ from app import login_manager, flask_bcrypt, app
 from flask_login import (login_required, login_user, logout_user, confirm_login, current_user)
 
 from database.database_functions import update_user_password_by_token, \
-    update_user_password_by_user_id, post_user_add_hook
-from database.database_functions import save_new_user
+    update_user_password_by_user_id
+
 from email_utils import send_email
 from models import User
 from routes.index_routes import profile
-from services.thinglist_api import UserService
+from services.thinglist_api import UserService, post_user_add_hook
 
 auth_flask_login = Blueprint('auth_flask_login', __name__, template_folder='templates')
 
@@ -171,12 +171,12 @@ def reset_password_request():
 
     if request.method == 'POST':
         email = sanitize(request.form.get("email"))
-        user_ = find_user(username_or_email=email)
+        user_ = UserService.get_user_by_email(email=email)
 
         if user_ is not None and user_.activated:
             confirmation_token = uuid.uuid4().hex
             token_expires = datetime.datetime.now() + datetime.timedelta(minutes=token_epiration_minutes)
-            update_user_token_by_email(email=email, user_token=confirmation_token, token_expires=token_expires)
+            UserService.update_user_token_by_email(email=email, user_token=confirmation_token, token_expires=token_expires)
 
             text_body = render_template(template_name_or_list='email/reset_password.txt', user=user_, token=confirmation_token)
             html_body = render_template(template_name_or_list='email/reset_password.html', user=user_, token=confirmation_token)
@@ -341,7 +341,7 @@ def register():
                         password=password_hash, token=confirmation_token, token_expires=token_expires)
 
         try:
-            user_added, msg, user = save_new_user(new_user)
+            user_added, msg, user = UserService.save_new_user(new_user)
             if user_added:
                 post_user_add_hook(new_user=user)
                 text_body = render_template(template_name_or_list='email/user_registration.txt', user=username,

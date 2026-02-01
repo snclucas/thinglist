@@ -1,7 +1,8 @@
 import unittest
 
 from database.database_functions import get_or_add_new_user_item_type, \
-    get_user_item_type_count, delete_item_types_by_id, find_item_type_by_text
+    get_user_item_type_count, find_item_type_by_text
+from services.thinglist_api import ItemTypeService
 from tests.test_parent import TestAppParent
 
 
@@ -24,7 +25,7 @@ class TestApp(TestAppParent):
         self.assertEqual(new_item_type_name, _found_item_type['name'])
         self.assertEqual(item_type_dict["id"], _found_item_type['id'])
 
-        status, msg = delete_item_types_by_id(itemtype_ids=[item_type_dict["id"]], user_id=self.users['simon'].id)
+        status, msg = ItemTypeService.delete_item_types_by_id(itemtype_ids=[item_type_dict["id"]], user_id=self.users['simon'].id)
         self.assertEqual(True, status)
 
 

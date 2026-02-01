@@ -1,7 +1,8 @@
 import unittest
 
 from admin.load_intial_data import load_fields, load_words, load_types
-from database.database_functions import add_user_by_details, remove_user_by_id, drop_then_create, add_user_list
+from database.database_functions import drop_then_create
+from services.thinglist_api import UserService, InventoryService
 from site_globals import __INVENTORY__, __PRIVATE__
 
 
@@ -20,11 +21,11 @@ class TestAppParent(unittest.TestCase):
         _types_added = load_types()
         print(f'Added {_types_added} types')
 
-        cls.users['simon'] = add_user_by_details(username='simon_test', email='simon_test@example.com',
+        cls.users['simon'] = UserService.add_user_by_details(username='simon_test', email='simon_test@example.com',
                                                  password='password', fail_on_duplicate=False)
-        cls.users['neil'] = add_user_by_details(username='neil_test', email='neil_test@example.com',
+        cls.users['neil'] = UserService.add_user_by_details(username='neil_test', email='neil_test@example.com',
                                                 password='password', fail_on_duplicate=False)
-        cls.users['dave'] = add_user_by_details(username='dave_test', email='dave_test@example.com',
+        cls.users['dave'] = UserService.add_user_by_details(username='dave_test', email='dave_test@example.com',
                                                 password='password', fail_on_duplicate=False)
 
         cls.new_inventory_data = {
@@ -127,7 +128,7 @@ class TestAppParent(unittest.TestCase):
         ]
 
     def add_list_for_user(self, list_data: dict):
-        return add_user_list(name=list_data['name'],
+        return InventoryService.add_user_list(name=list_data['name'],
                              description=list_data['description'],
                              inventory_type=list_data['list_type'],
                              show_default_fields=list_data[

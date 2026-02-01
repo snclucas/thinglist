@@ -15,24 +15,24 @@ from flask_login import login_required, current_user
 
 from app import app
 from routes.index_routes import profile
-from database.database_functions import get_all_user_locations, \
+from database.database_functions import \
     get_all_user_and_system_item_types, \
-    find_item_type_by_text, find_inventory_by_slug, \
-    add_item_to_inventory, find_all_user_inventories, delete_items, move_items, \
+    find_item_type_by_text, \
+    find_all_user_inventories, delete_items, \
     get_or_add_new_user_item_type, \
     get_user_templates, get_item_custom_field_data, \
-    get_users_for_inventory, get_user_inventory_by_id, get_or_add_new_location, edit_items_locations, \
-    change_item_access_level, link_items, copy_items, find_items_new, __PUBLIC__, __PRIVATE__, \
-    get_user_inventories, add_user_list, \
+    get_users_for_inventory, get_user_inventory_by_id, edit_items_locations, \
+    change_item_access_level, find_items_new, __PUBLIC__, __PRIVATE__, \
+    get_user_inventories, \
     get_item_fields, find_template_by_id, save_user_inventory_view, \
-    get_related_items, get_all_item_ids_in_inventory, find_inventory_by_token, \
+    get_related_items, get_all_item_ids_in_inventory, \
     update_item_by_token, get_all_user_fields, \
     get_user_default_inventory_id
 
 from routes.items_loader import process_field_sets, process_images
 
 from site_globals import _COPY_, _MOVE_, __ALL__, __DEFAULT__, __NOT_FOUND__, __ERROR__
-from services.thinglist_api import ItemService, LocationService, FieldService, InventoryService
+from services.thinglist_api import ItemService, LocationService, FieldService, InventoryService, UserService
 
 items_routes = Blueprint('items', __name__)
 
@@ -104,7 +104,7 @@ def items_load():
                             found_inv = InventoryService.get_user_default_inventory(user_id=current_user)
                         else:
                             # look for the inventory by slug (was by slub before)
-                            found_inv, found_userinv = find_inventory_by_token(inventory_token=inventory_token_,
+                            found_inv, found_userinv = InventoryService.find_inventory_by_token(inventory_token=inventory_token_,
                                                                               inventory_owner_id=current_user.id,
                                                                               viewing_user_id=current_user.id)
 
@@ -115,7 +115,7 @@ def items_load():
                             inventory_type = int(bleach.clean(str(inventory_data.get("type", 1))))
                             inventory_access_level = int(bleach.clean(str(inventory_data.get("access_level", 1))))
 
-                            found_inv, status, msg = add_user_list(name=inventory_name,
+                            found_inv, status, msg = InventoryService.add_user_list(name=inventory_name,
                                                                    description=inventory_description,
                                                                    inventory_type=inventory_type,
                                                                    slug=inventory_slug_,
@@ -176,7 +176,7 @@ def items_load():
                                 location_id = None
                                 if item_location is not None:
                                     if item_location.strip() != "":
-                                        location_data_ = get_or_add_new_location(location_name=item_location,
+                                        location_data_ = LocationService.get_or_add_new_location(location_name=item_location,
                                                                                  location_description=item_location,
                                                                                  to_user_id=current_user.id)
 
@@ -200,7 +200,7 @@ def items_load():
                                 if overwrite_or_not_from_form:
                                     potential_item = ItemService.get_item_by_token(item_token=item_token, user_id=current_user.id)
                                     if potential_item is None:
-                                        new_item_ = add_item_to_inventory(item_name=item_name,
+                                        new_item_ = InventoryService.add_item_to_inventory(item_name=item_name,
                                                                           item_desc=item_description,
                                                                           item_type_name_or_id=item_type_name,
                                                                           item_quantity=item_quantity,
@@ -226,7 +226,7 @@ def items_load():
                                                                           user=current_user)
                                         load_log += f"&nbsp;&nbsp;&nbsp;&nbsp;... item {item_name} found and updated if different.<br>"
                                 else:
-                                    new_item_ = add_item_to_inventory(item_name=item_name,
+                                    new_item_ = InventoryService.add_item_to_inventory(item_name=item_name,
                                                                       item_desc=item_description,
                                                                       item_type_name_or_id=item_type_name, item_quantity=item_quantity,
                                                                       item_tags=tag_array, inventory_id=inventory_id,
@@ -304,11 +304,11 @@ def items_move():
         if result["status"] == "error":
             flash(_public_err_msg)
     elif move_type == _COPY_:
-        result = copy_items(item_ids=item_ids, user=current_user, inventory_id=to_inventory_id)
+        result = ItemService.copy_items(item_ids=item_ids, user=current_user, inventory_id=to_inventory_id)
         if result["status"] == "error":
             flash(_public_err_msg)
     else:
-        result = link_items(item_ids=item_ids, user=current_user, inventory_id=to_inventory_id)
+        result = ItemService.link_items(item_ids=item_ids, user_id=current_user.id, inventory_id=to_inventory_id)
         if result["status"] == "error":
             flash(_public_err_msg)
 
@@ -766,7 +766,7 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
     inventory_templates = None
 
     if user_is_authenticated:
-        user_locations_ = get_all_user_locations(user_id=logged_in_user.id)
+        user_locations_ = LocationService.get_all_user_locations(user_id=logged_in_user.id)
         inventory_templates = get_user_templates(user_id=current_user.id)
 
 
@@ -807,7 +807,7 @@ def _get_inventory(inventory_slug: str, logged_in_user_id: int, inventory_owner_
     field_template_ = None
 
     if inventory_slug_to_use != __ALL__:
-        inventory_, user_inventory_ = find_inventory_by_slug(inventory_slug=inventory_slug_to_use,
+        inventory_, user_inventory_ = InventoryService.find_inventory_by_slug(inventory_slug=inventory_slug_to_use,
                                                              inventory_owner_id=inventory_owner_id,
                                                              viewing_user_id=logged_in_user_id)
         if inventory_ is None:

@@ -1,8 +1,8 @@
 import unittest
 
-from database.database_functions import add_field, get_all_user_fields, delete_fields_from_db, \
+from database.database_functions import get_all_user_fields, delete_fields_from_db, \
     get_all_user_and_system_fields, get_all_system_fields
-from database.database_functions import add_user_by_details, remove_user_by_id
+from services.thinglist_api import FieldService
 from tests.test_parent import TestAppParent
 
 
@@ -13,20 +13,20 @@ class TestApp(TestAppParent):
         for _field in self.fields_to_add_system:
             field_name = _field["field_name"]
             field_type = _field["field_type"]
-            field, success = add_field(field_name=field_name, field_type=field_type, user_id=None)
+            field, success = FieldService.add_field(field_name=field_name, field_type=field_type, user_id=None)
             self.assertTrue(success)
 
 
         for _field in self.fields_to_add_simon:
             field_name = _field["field_name"]
             field_type = _field["field_type"]
-            field, success = add_field(field_name=field_name, field_type=field_type, user_id=self.users['simon'].id)
+            field, success = FieldService.add_field(field_name=field_name, field_type=field_type, user_id=self.users['simon'].id)
             self.assertTrue(success)
 
         for _field in self.fields_to_add_dave:
             field_name = _field["field_name"]
             field_type = _field["field_type"]
-            field, success = add_field(field_name=field_name, field_type=field_type, user_id=self.users['dave'].id)
+            field, success = FieldService.add_field(field_name=field_name, field_type=field_type, user_id=self.users['dave'].id)
             self.assertTrue(success)
 
         user_fields = list(get_all_user_fields(user_id=self.users['simon'].id))

@@ -1,6 +1,5 @@
 import unittest
 
-from database.database_functions import add_user_by_details
 from models import User
 from tests.test_parent import TestAppParent
 
@@ -12,7 +11,7 @@ class TestApp(TestAppParent):
 
     def setUpClass(self):
         super().setUpClass()
-        self.users = {'testuser': add_user_by_details(username='testuser',email='testuser@example.com', password='password')}
+        self.users = {'testuser': UserService.add_user_by_details(username='testuser',email='testuser@example.com', password='password')}
         self.db = db
 
     def tearDown(self):

@@ -10,6 +10,7 @@ from database.database_functions import find_template, add_new_template, update_
     set_template_fields_orders, \
     get_template_fields_by_id, get_all_user_and_system_fields
 from models import FieldTemplate
+from services.thinglist_api import FieldService
 
 from site_globals import __BAD_REQUEST__, __NOT_FOUND__
 
@@ -81,7 +82,7 @@ def template(template_id):
 @field_template.route('/@<string:username>/field-templates')
 @login_required
 def templates_with_username(username):
-    all_fields = dict(FieldService.get_all_fields())
+    all_fields = FieldService.get_all_fields()
     user_templates = get_user_templates(user_id=current_user.id)
     return render_template(template_name_or_list='field_template/field_templates.html',
                            name=current_user.username, templates=user_templates, all_fields=all_fields)

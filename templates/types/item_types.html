@@ -102,154 +102,121 @@
 
         $(document).ready(function () {
 
-            check_checkboxes()
+    // initialize state and DataTable
+    check_checkboxes();
 
-            $('#my-itemtypes-table').DataTable({
-                "searching": true,
-                paging: false,
-                ordering: true,
-                info: true
-            });
+    $('#my-itemtypes-table').DataTable({
+        "searching": true,
+        paging: false,
+        ordering: true,
+        info: true
+    });
 
-        });
+    // delegated binding for dynamically created/updated checkboxes
+    $(document).on("click", 'input:checkbox[id^="selected-item-"]', function () {
+        check_checkboxes();
+    });
 
-        $('input:checkbox[id^="selected-item-"]').on("click", function (e) {
-            check_checkboxes();
-        });
+    $("#cancel-delete-itemtypes-btn").on("click", function (e) {
+        deselect_all_checkboxes("selected-item-");
+        $("#collapseDeleteItemTypes").collapse("hide");
+    });
 
-        $("#cancel-delete-itemtypes-btn").on("click", function (e) {
-            deselect_all_checkboxes("selected-item-")
+    function check_checkboxes() {
+        let number_selected = checkbox_count("selected-item-");
+
+        let delete_collapse_btn_selector = $('#delete-itemtypes-btn-collapse');
+        let delete_btn_selector = $('#delete-itemtypes-btn');
+        let delete_span_selector = $('#delete-itemtypes-span');
+
+        if (number_selected > 0) {
+            delete_collapse_btn_selector.attr('href', '#collapseDeleteItemTypes');
+            delete_btn_selector.css("pointer-events", "auto");
+            delete_span_selector.css('color', 'red');
+            delete_btn_selector.prop('disabled', false);
+            delete_collapse_btn_selector.prop('disabled', false);
+            delete_btn_selector.removeAttr('disabled'); // ensure enabled
+        } else {
             $("#collapseDeleteItemTypes").collapse("hide");
+            delete_collapse_btn_selector.removeAttr('href');
+            delete_btn_selector.css("pointer-events", "none");
+            delete_span_selector.css('color', 'lightgray');
+            delete_btn_selector.prop('disabled', true);
+            delete_collapse_btn_selector.prop('disabled', true);
+            delete_btn_selector.attr('disabled', 'disabled');
+        }
+    }
+
+    $("#confirm-delete-itemtypes-btn").on("click", function (e) {
+        e.preventDefault();
+
+        let selected_list = get_selected_checkbox_ids("selected-item-", "data-itemtype-id");
+
+        $.ajax({
+            type: "POST",
+            url: "{{ url_for('types.delete_item_type') }}",
+            contentType: 'application/json;charset=UTF-8',
+            headers: {
+                "X-CSRFToken": "{{ csrf_token() }}",
+            },
+            data: JSON.stringify({
+                'itemtype_ids': selected_list,
+                'username': "{{ username }}",
+            }),
+            success: function () {
+                location.reload();
+            },
+            error: function () {
+                location.reload();
+            }
         });
+    });
 
-
-
-        function check_checkboxes() {
-            let number_selected = checkbox_count("selected-item-")
-
-            let delete_collapse_btn_selector = $('#delete-itemtypes-btn-collapse');
-            let delete_btn_selector = $('#delete-itemtypes-btn');
-            let delete_span_selector = $('#delete-itemtypes-span');
-
-            if (number_selected > 0) {
-                delete_collapse_btn_selector.attr('href', '#collapseDeleteItemTypes');
-                delete_btn_selector.css("pointer-events", "auto");
-                delete_span_selector.css('color', 'red');
-                delete_btn_selector.prop('disabled', false);
-                delete_collapse_btn_selector.prop('disabled', false);
-                delete_btn_selector.attr('disabled', 'disabled');
-
-            } else {
-                $("#collapseDeleteItemTypes").collapse("hide");
-                delete_collapse_btn_selector.removeAttr('href');
-                delete_btn_selector.css("pointer-events", "none");
-                delete_span_selector.css('color', 'lightgray');
-                delete_btn_selector.prop('disabled', true);
-                delete_collapse_btn_selector.prop('disabled', true);
-                delete_btn_selector.removeAttr('disabled');
-
+    const autoCompleteJS = new autoComplete({
+        selector: "#item_type_name",
+        placeHolder: "Enter type...",
+        data: {
+            src: async (query) => {
+                try {
+                    const source = await fetch(`{{ url_for('api.user_item_types') }}?query=${encodeURIComponent(query)}`);
+                    const data = await source.json();
+                    return data;
+                } catch (error) {
+                    return error;
+                }
+            },
+        },
+        threshold: 0,
+        resultsList: {
+            element: (list, data) => {
+                if (!data.results.length) {
+                    const message = document.createElement("div");
+                    message.setAttribute("class", "no_result");
+                    message.innerHTML = `<span>Found No Results for "${data.query}"</span>`;
+                    list.prepend(message);
+                }
+            },
+            noResults: true,
+            maxResults: undefined,
+        },
+        resultItem: {
+            highlight: true,
+        },
+        events: {
+            input: {
+                selection: (event) => {
+                    autoCompleteJS.input.value = event.detail.selection.value;
+                }
             }
         }
+    });
 
+    $("#export-itemtypes-btn").on("click", function (e) {
+        e.preventDefault();
+        $('#form-export-itemtypes').submit();
+    });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        $("#confirm-delete-itemtypes-btn").on("click", function (e) {
-            e.preventDefault();
-
-            let selected_list = get_selected_checkbox_ids("selected-item-", "data-itemtype-id")
-
-            $.ajax({
-                type: "POST",
-                url: "{{ url_for('types.delete_item_type')}}",
-                contentType: 'application/json;charset=UTF-8',
-                headers: {
-                    "X-CSRFToken": "{{ csrf_token() }}",
-                },
-                data: JSON.stringify(
-                    {
-                        'itemtype_ids': selected_list,
-                        'username': "{{ username }}",
-                    }
-                ),
-                success: function () {
-                    location.reload();
-                },
-                error: function () {
-                    location.reload();
-                }
-            });
-        });
-
-
-
-
-
-        const autoCompleteJS = new autoComplete({
-            selector: "#item_type_name",
-            placeHolder: "Enter type...",
-            data: {
-                src: async (query) => {
-                    try {
-                        // Fetch Data from external Source
-                        const source = await fetch(`{{ url_for('api.user_item_types')}}?query=${query}`);
-                        // Data should be an array of `Objects` or `Strings`
-                        const data = await source.json();
-
-                        return data;
-                    } catch (error) {
-                        return error;
-                    }
-                },
-                // Data source 'Object' key to be searched
-                //keys: ["food"]
-            },
-            threshold: 0,
-            resultsList: {
-                element: (list, data) => {
-                    if (!data.results.length) {
-                        // Create "No Results" message element
-                        const message = document.createElement("div");
-                        // Add class to the created element
-                        message.setAttribute("class", "no_result");
-                        // Add message text content
-                        message.innerHTML = `<span>Found No Results for "${data.query}"</span>`;
-                        // Append message element to the results list
-                        list.prepend(message);
-                    }
-                },
-                noResults: true,
-                maxResults: undefined,
-            },
-            resultItem: {
-                highlight: true,
-            },
-            events: {
-                input: {
-                    selection: (event) => {
-                        autoCompleteJS.input.value = event.detail.selection.value;
-                    }
-                }
-            }
-        });
-
-        $("#export-itemtypes-btn").on("click", function (e) {
-            e.preventDefault();
-            $('#form-export-itemtypes').submit();
-        });
+});
 
     </script>
 

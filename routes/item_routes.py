@@ -12,15 +12,14 @@ from flask import Blueprint, render_template, redirect, url_for, request, jsonif
 from flask_login import login_required, current_user
 
 from app import app
-from database.database_functions import get_all_user_locations, \
-    update_item_by_id, get_item_by_slug, add_images_to_item, delete_images_from_item, set_item_main_image, \
-    find_inventory_by_slug, \
+from database.database_functions import \
+    update_item_by_id, add_images_to_item, delete_images_from_item, set_item_main_image, \
     get_item_fields, get_all_item_fields, \
     set_field_status, update_item_fields, \
     set_inventory_default_fields, save_inventory_fieldtemplate, get_user_location_by_id, unrelate_items_by_id, \
     relate_items_by_id, get_all_user_and_system_item_types
 
-from services.thinglist_api import ItemService, UserService, FieldService
+from services.thinglist_api import ItemService, UserService, FieldService, LocationService, InventoryService
 
 from utils import correct_image_orientation, generate_item_image_filename
 
@@ -48,8 +47,104 @@ def item_with_username_and_inventory(list_username: str, inventory_slug: str, it
 
     user_is_authenticated = current_user.is_authenticated
     all_user_locations_ = None
+    requested_user_id = None
+
+    # normalize default inventory slug early
+    if inventory_slug == "d":
+        inventory_slug = f"{__DEFAULT__}-{list_username}"
+
     if user_is_authenticated:
-        all_user_locations_ = get_all_user_locations(user_id=current_user.id)
+        all_user_locations_ = LocationService.get_all_user_locations(user_id=current_user.id)
+        requested_user_id = current_user.id
+
+        # compare username string, not user object
+        if getattr(current_user, "username", None) == inventory_owner_username:
+            inventory_owner = current_user
+            inventory_owner_id = inventory_owner.id
+
+    # fetch inventory owner if not current user
+    if inventory_owner is None:
+        inventory_owner = UserService.get_user_by_username(username=inventory_owner_username)
+        if inventory_owner is not None:
+            inventory_owner_id = inventory_owner.id
+
+    user_inventory_ = None
+    inventory_ = None
+    if inventory_slug != __ALL__:
+        inventory_, user_inventory_ = InventoryService.find_inventory_by_slug(
+            inventory_slug=inventory_slug,
+            inventory_owner_id=inventory_owner_id,
+            viewing_user_id=requested_user_id,
+        )
+
+        if inventory_ is None:
+            return render_template('404.html', message="No such item or you do not have access to this item"), __NOT_FOUND__
+
+    # determine access level
+    item_access_level = __VIEWER__
+    if inventory_slug != __ALL__:
+        if user_inventory_ is None:
+            if inventory_.access_level != __PUBLIC__:
+                return render_template('404.html', message="No such item or you do not have access to this item"), __NOT_FOUND__
+        else:
+            item_access_level = user_inventory_.access_level
+
+    # request item (pass requesting user id so service can filter/resolve user-specific data)
+    item_data_ = ItemService.get_item_by_slug(item_slug=item_slug, user_id=requested_user_id)
+    if item_data_:
+        # item_obj, itemtype_obj, inventory_item_obj, userinventory_obj
+        item_, itemtype_, inventory_item_ = item_data_
+    else:
+        item_, itemtype_, inventory_item_ = None, None, None
+
+    if item_ is None or inventory_item_ is None:
+        return render_template('404.html', message="No such item or you do not have access to this item"), __NOT_FOUND__
+
+    # build ordered item fields (sorted by template_field.order)
+    item_fields_list = get_item_fields(item_id=item_.id)
+    item_fields = {}
+    for field_obj, item_field_obj, template_field in sorted(item_fields_list, key=lambda x: x[2].order):
+        item_fields[field_obj] = item_field_obj
+
+    all_item_fields = dict(get_all_item_fields(item_id=item_.id))
+
+    # map fields by their `field` attribute
+    all_fields = {f.field: f for f in FieldService.get_all_fields()}
+
+    item_location = None
+    if user_is_authenticated and item_access_level != __VIEWER__:
+        user_location_dict = get_user_location_by_id(location_id=item_.location_id, user_id=current_user.id)
+        if user_location_dict is not None:
+            item_location = user_location_dict
+
+    all_item_types_ = get_all_user_and_system_item_types(user_id=current_user.id if user_is_authenticated else None)
+
+    return render_template('item/item.html',
+                           name=list_username,
+                           inventory_owner_id=inventory_owner_id,
+                           item_fields=item_fields,
+                           all_item_fields=all_item_fields,
+                           list_username=list_username,
+                           all_fields=all_fields,
+                           inventory_slug=inventory_slug,
+                           inventory=inventory_,
+                           item=item_,
+                           username=list_username,
+                           item_type=itemtype_,
+                           all_item_types=all_item_types_,
+                           all_user_locations=all_user_locations_,
+                           item_location=item_location,
+                           item_access_level=item_access_level)
+
+def item_with_username_and_inventory2(list_username: str, inventory_slug: str, item_slug: str):
+    inventory_owner_username = bleach.clean(list_username)
+    inventory_owner = None
+    inventory_owner_id = None
+
+    user_is_authenticated = current_user.is_authenticated
+    all_user_locations_ = None
+    if user_is_authenticated:
+        all_user_locations_ = LocationService.get_all_user_locations(user_id=current_user.id)
 
         requested_user = current_user
         requested_user_id = requested_user.id
@@ -75,7 +170,7 @@ def item_with_username_and_inventory(list_username: str, inventory_slug: str, it
     if inventory_slug != __ALL__:
 
         # get the inventory to check permissions
-        inventory_, user_inventory_ = find_inventory_by_slug(inventory_slug=inventory_slug,
+        inventory_, user_inventory_ = InventoryService.find_inventory_by_slug(inventory_slug=inventory_slug,
                                                              inventory_owner_id=inventory_owner_id,
                                                              viewing_user_id=requested_user_id)
 
@@ -92,7 +187,7 @@ def item_with_username_and_inventory(list_username: str, inventory_slug: str, it
         if inventory_slug != __ALL__:
             item_access_level = user_inventory_.access_level
 
-    item_data_ = get_item_by_slug(item_slug=item_slug)
+    item_data_ = ItemService.get_item_by_slug(item_slug=item_slug)
     if item_data_ is not None:
         item_, item_type_string, inventory_item_ = item_data_
     else:

@@ -2,7 +2,7 @@ import bleach
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 
-from database.database_functions import get_user_locations_by_id, update_location_by_id, get_or_add_new_location, \
+from database.database_functions import get_user_locations_by_id, update_location_by_id, \
     delete_locations
 
 from app import app
@@ -99,7 +99,7 @@ def add_location():
     potential_location = LocationService.get_location_by_id(location_id=_location_id_int)
 
     if potential_location is None:
-        get_or_add_new_location(location_name=_location_name,
+        LocationService.get_or_add_new_location(location_name=_location_name,
                                 location_description=_location_description,
                                 to_user_id=current_user.id)
     else:

@@ -8,10 +8,8 @@ from flask_login import login_required, current_user
 
 from app import app
 from database.database_functions import get_user_inventories, delete_item_from_inventory, \
-    add_item_to_inventory, \
-    find_inventory_by_slug, \
     edit_inventory_data, \
-    delete_lists_by_id, add_user_to_inventory, delete_user_to_inventory, find_inventory_by_id, add_user_list, \
+    delete_lists_by_id, add_user_to_inventory, delete_user_to_inventory, \
     regenerate_inventory_token, add_user_to_inventory_from_token, \
     get_user_public_lists, get_user_unlisted_item_count, get_user_default_inventory_id
 
@@ -123,7 +121,7 @@ def list_by_id(inventory_id: int):
     Args:
         inventory_id: The ID of the inventory to list
     """
-    inventory_, user_inventory_ = find_inventory_by_id(inventory_id=inventory_id, user_id=current_user.id)
+    inventory_, user_inventory_ = InventoryService.find_inventory_by_id(inventory_id=inventory_id, user_id=current_user.id)
     if inventory_ is not None:
         if inventory_.owner_id == current_user.id:
             return redirect(url_for(endpoint='items.items_with_username_and_inventory',
@@ -192,7 +190,7 @@ def add_inventory():
     if "show_item_url" not in request.form:
         show_item_url = 0
 
-    new_inventory_data, status, msg = add_user_list(name=inventory_name_,
+    new_inventory_data, status, msg = InventoryService.add_user_list(name=inventory_name_,
                                                     description=inventory_description_,
                                                     inventory_type=inventory_type_,
                                                     show_default_fields=show_default_fields,
@@ -345,7 +343,7 @@ def delete_user_to_inv():
 
     result, msg = delete_user_to_inventory(inventory_id=inventory_id, user_to_delete_id=user_id)
 
-    inventory_, user_inventory_ = find_inventory_by_id(inventory_id=inventory_id, user_id=current_user.id)
+    inventory_, user_inventory_ = InventoryService.find_inventory_by_id(inventory_id=inventory_id, user_id=current_user.id)
 
     if result:
         return redirect(url_for(endpoint='items.items_with_username_and_inventory',
@@ -456,7 +454,7 @@ def add_user_to_list():
 @inv.route('/list/@<username>/<inventory_slug>/delete/<item_id>', methods=['POST'])
 @login_required
 def delete_from_inventory(username: str, inventory_slug: str, item_id):
-    inventory_, user_inventory_ = find_inventory_by_slug(inventory_slug=inventory_slug,
+    inventory_, user_inventory_ = InventoryService.find_inventory_by_slug(inventory_slug=inventory_slug,
                                                          inventory_owner_id=current_user.id)
     delete_item_from_inventory(user=current_user, inventory_id=int(inventory_.id), item_id=int(item_id))
     return redirect(url_for(endpoint='inv.inventory_by_slug', username=username, inventory_slug=inventory_.slug))
@@ -508,7 +506,7 @@ def add_to_inventory():
                  'inventory_slug', 'specific_location', 'csrf_token', 'tags', 'type', 'quantity', 'url'}
     item_custom_fields = {k: v for k, v in request.form.items() if k not in to_remove}
 
-    add_item_to_inventory(
+    InventoryService.add_item_to_inventory(
         item_name=item_name,
         item_desc=item_description,
         item_type_name_or_id=item_type,

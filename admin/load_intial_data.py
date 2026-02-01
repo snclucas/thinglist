@@ -5,7 +5,7 @@ import os
 from slugify import slugify
 
 from database.database_functions import get_or_create
-
+from site_globals import __NONE__
 from models import Field, ItemType, ReservedWords
 
 
@@ -26,6 +26,9 @@ def load_fields():
 
 
 def load_types():
+    # Add the item NONE type first
+    get_or_create(model=ItemType, name=__NONE__)
+
     path = os.getcwd()
     file_path = os.path.realpath(__file__)
     item_types_csv = f"{path}/../data/items_types.csv"

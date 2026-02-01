@@ -2,12 +2,12 @@ import bleach
 from flask import Blueprint, jsonify
 from flask_login import login_required, current_user
 from flask import request
-from database.database_functions import get_all_user_item_types, get_all_user_locations, get_all_user_tags, \
+from database.database_functions import get_all_user_tags, \
     find_items_new, find_all_my_items, count_all_item_ids_in_inventory, count_all_user_items, \
     get_all_user_and_system_item_types
 from routes.items_routes import _get_inventory, _process_url_query
 from site_globals import __DEFAULT__
-from services.thinglist_api import UserService
+from services.thinglist_api import UserService, LocationService, ItemTypeService
 
 api_routes = Blueprint('api', __name__)
 
@@ -26,7 +26,7 @@ def my_utility_processor():
 @api_routes.route('/api/item-types', methods=['GET'])
 @login_required
 def user_item_types():
-    user_itemtypes_ = get_all_user_item_types(user_id=current_user.id)
+    user_itemtypes_ = ItemTypeService.get_all_user_item_types(user_id=current_user.id)
     return user_itemtypes_
 
 
@@ -160,7 +160,7 @@ def items(username=None, inventory_slug=None):
 @login_required
 def locations():
     new_ret = []
-    locations_ = get_all_user_locations(user_id=current_user.id)
+    locations_ = LocationService.get_all_user_locations(user_id=current_user.id)
     loc_array = []
     for loc_ in locations_:
         loc_array.append(f"location: {loc_.name.lower()}")

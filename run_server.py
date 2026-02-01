@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 import mimetypes
 
+from admin.verify_database import verify_database_setup
 # Import the main Flask app
 from app import app
 
@@ -62,7 +63,11 @@ def add_headers(response):
     return response
 
 
+
 # start the server
 if __name__ == "__main__":
+    if not verify_database_setup():
+        app.logger.error("One or more database checks failed on startup")
+
     port = int(os.environ.get('THINGLIST_PORT', 5000))
     app.run(host=os.environ.get('THINGLIST_HOST', '0.0.0.0'), port=port, debug=True)

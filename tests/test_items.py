@@ -1,10 +1,10 @@
 import unittest
 
-from database.database_functions import add_user_list, get_users_for_inventory, \
-    add_item_to_inventory, find_items_new, delete_lists_by_id, find_default_user_location, find_user_item_type_by_name, \
+from database.database_functions import get_users_for_inventory, \
+    find_items_new, delete_lists_by_id, find_user_item_type_by_name, \
     update_item_by_id, find_all_my_items, get_user_item_count, delete_all_user_items, \
     get_user_unlisted_item_count, find_related_items, relate_items_by_id, unrelate_items_by_id
-from services.thinglist_api import InventoryService
+from services.thinglist_api import InventoryService, LocationService
 
 from site_globals import __INVENTORY__
 
@@ -23,17 +23,17 @@ class TestApp(TestAppParent):
 
 
     def test_relate_items(self):
-        new_inventory_data, status, msg = add_user_list(name="test_list",
+        new_inventory_data, status, msg = InventoryService.add_user_list(name="test_list",
                                                         description="tet_list_desc", inventory_type=__INVENTORY__,
                                                         user_id=self.users['simon'].id)
         self.assertEqual("success", msg)
         self.assertEqual(True, status)
 
-        _ret1 = add_item_to_inventory(inventory_id=new_inventory_data["id"], item_name="item1",
+        _ret1 = InventoryService.add_item_to_inventory(inventory_id=new_inventory_data["id"], item_name="item1",
                                      item_desc="item1",
                                      user_id=self.users['simon'].id)
 
-        _ret2 = add_item_to_inventory(inventory_id=new_inventory_data["id"], item_name="item2",
+        _ret2 = InventoryService.add_item_to_inventory(inventory_id=new_inventory_data["id"], item_name="item2",
                                       item_desc="item2",
                                       user_id=self.users['simon'].id)
 
@@ -61,7 +61,7 @@ class TestApp(TestAppParent):
     def test_add_items(self):
         _added_list_data = {}
         for _user_of_list, _list in self.new_inventory_data.items():
-            new_inventory_data, status, msg = add_user_list(name=_list['name'],
+            new_inventory_data, status, msg = InventoryService.add_user_list(name=_list['name'],
                                                             description=_list['description'],
                                                             inventory_type=_list['list_type'],
                                                             show_default_fields=_list[
@@ -81,10 +81,10 @@ class TestApp(TestAppParent):
             _users_in_inventory = get_users_for_inventory(inventory_id=new_inventory_data["id"])
             self.assertEqual(1, len(_users_in_inventory))
 
-            _user_default_location = find_default_user_location(user_id=_user_of_list.id)
+            _user_default_location = LocationService.find_default_user_location(user_id=_user_of_list.id)
 
             for _item in self.items_to_add[_user_of_list.id]:
-                _ret = add_item_to_inventory(inventory_id=new_inventory_data["id"], item_name=_item["name"],
+                _ret = InventoryService.add_item_to_inventory(inventory_id=new_inventory_data["id"], item_name=_item["name"],
                                              item_desc=_item["description"], item_type_name_or_id=_item["type"],
                                              item_specific_location=_item["specific_location"],
                                              item_tags=_item["tags"],

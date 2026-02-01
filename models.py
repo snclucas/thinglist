@@ -2,6 +2,7 @@ import datetime
 import string
 from random import choice
 from secrets import token_urlsafe
+from uuid import uuid4
 
 from flask_login import UserMixin
 from slugify import slugify
@@ -68,7 +69,7 @@ class Preferences(db.Model):
 class Notification(db.Model):
     __tablename__ = "notifications"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    date = db.Column(db.DateTime(), default=datetime.datetime.now)
+    date = db.Column(db.DateTime(), default=func.now())
     text = db.Column(db.String(255), nullable=True, unique=False)
     # AI from_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True, nullable=False)
     from_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -128,7 +129,7 @@ class Inventory(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(50))
     slug = db.Column(db.String(50), nullable=True, unique=False)
-    ident = db.Column(db.String(32), nullable=True, unique=False)
+    ident = db.Column(db.String(36), nullable=False, unique=True, index=True, default=lambda: str(uuid4()))
     description = db.Column(db.String(255))
     owner_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     # AI owner_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), primary_key=True, nullable=False)
@@ -179,7 +180,7 @@ class Item(db.Model):
     item_type = db.Column(db.Integer, db.ForeignKey('item_type.id'), nullable=False)
     name = db.Column(db.String(255), nullable=False, unique=False)
     slug = db.Column(db.String(255), nullable=True, unique=False)
-    ident = db.Column(db.String(32), nullable=True, unique=False)
+    ident = db.Column(db.String(36), nullable=False, unique=True, index=True, default=lambda: str(uuid4()))
     description = db.Column(db.String(10000), nullable=True, unique=False)
     url = db.Column(db.String(100), nullable=True, unique=False)
     quantity = db.Column(db.Integer, nullable=False, unique=False, default=1)
@@ -221,6 +222,7 @@ class ItemField(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     field_id = db.Column(db.Integer, db.ForeignKey('fields.id', ondelete='CASCADE'))
     item_id = db.Column(db.Integer, db.ForeignKey('items.id', ondelete='CASCADE'))
+    ident = db.Column(db.String(36), nullable=False, unique=True, index=True, default=lambda: str(uuid4()))
     value = db.Column(db.String(255), nullable=True, unique=False)
     show = db.Column(db.Boolean(), nullable=True, unique=False, default=False)
     user_id = db.Column(db.Integer, nullable=True, unique=False)
@@ -231,6 +233,7 @@ class Image(db.Model):
     __tablename__ = "images"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     image_filename = db.Column(db.String(255), nullable=True, unique=False)
+    ident = db.Column(db.String(36), nullable=False, unique=True, index=True, default=lambda: str(uuid4()))
     items = db.relationship('Item', secondary='item_images', back_populates='images',
                             cascade="all,delete", lazy='subquery')
     # AI user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
@@ -282,6 +285,7 @@ class Tag(db.Model):
     __searchable__ = ['tag']
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     tag = db.Column(db.String(50), nullable=True, unique=True)
+    ident = db.Column(db.String(36), nullable=False, unique=True, index=True, default=lambda: str(uuid4()))
     items = db.relationship('Item', secondary='item_tags', back_populates='tags', cascade="all,delete")
     # AI user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=True)

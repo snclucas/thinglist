@@ -8,8 +8,9 @@ from flask_login import login_required, current_user
 
 from app import app
 
-from database.database_functions import get_all_user_item_types, find_item_type_by_text, \
-    get_or_add_new_user_item_type, delete_item_types_by_id
+from database.database_functions import find_item_type_by_text, \
+    get_or_add_new_user_item_type
+from services.thinglist_api import ItemTypeService
 
 types = Blueprint('types', __name__)
 
@@ -17,7 +18,7 @@ types = Blueprint('types', __name__)
 @types.route('/item-types', methods=['GET'])
 @login_required
 def item_types():
-    user_itemtypes = get_all_user_item_types(user_id=current_user.id, string_list=False)
+    user_itemtypes = ItemTypeService.get_all_user_item_types(user_id=current_user.id, string_list=False)
     return render_template(template_name_or_list='types/item_types.html',
                            username=current_user.username, user_item_types=user_itemtypes)
 
@@ -27,7 +28,7 @@ def item_types():
 def delete_item_type():
     json_data = request.json
     itemtype_ids = json_data['itemtype_ids']
-    delete_item_types_by_id(itemtype_ids=itemtype_ids, user_id=current_user.id)
+    ItemTypeService.delete_item_types_by_id(itemtype_ids=itemtype_ids, user_id=current_user.id)
     return redirect(url_for('types.item_types'))
 
 
@@ -52,7 +53,7 @@ def itemtypes_save():
 
     filename = f"{username}_itemtypes_export.csv"
 
-    user_itemtypes = get_all_user_item_types(user_id=current_user.id, string_list=False)
+    user_itemtypes = ItemTypeService.get_all_user_item_types(user_id=current_user.id, string_list=False)
 
     csv_list = [["#Type"]]
 

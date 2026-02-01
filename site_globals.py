@@ -1,4 +1,5 @@
-_NONE_ = "None"
+__NONE__ = "None"
+__none__ = "none"
 __DEFAULT__ = "default"
 __ALL__ = "all"
 

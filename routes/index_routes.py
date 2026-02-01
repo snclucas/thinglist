@@ -4,11 +4,11 @@ from flask_login import login_required, current_user
 
 from app import app
 from database.database_functions import get_user_inventories, get_user_item_count, get_user_templates, \
-    get_all_user_item_types, delete_notification_by_id, get_number_user_locations, \
+    delete_notification_by_id, get_number_user_locations, \
     get_all_user_fields, get_user_public_lists
 
 from site_globals import __BAD_REQUEST__
-from services.thinglist_api import UserService
+from services.thinglist_api import UserService, ItemTypeService
 
 main = Blueprint('main', __name__)
 
@@ -94,7 +94,7 @@ def profile(username):
     if username == current_user.username:
 
         # -1 for the default None item type
-        num_item_types = len(get_all_user_item_types(user_id=current_user.id, string_list=False))
+        num_item_types = len(ItemTypeService.get_all_user_item_types(user_id=current_user.id, string_list=False))
         num_items = get_user_item_count(user_id=current_user.id)
         num_field_templates = len(get_user_templates(user_id=current_user.id))
         num_user_locations = get_number_user_locations(user_id=current_user.id)
