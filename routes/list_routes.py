@@ -16,7 +16,7 @@ from database.database_functions import get_user_inventories, delete_item_from_i
 
 from site_globals import __INVENTORY__, __LIST__, __URL_LIST__, __PUBLIC__, __PRIVATE__, __VIEWER__, __READ_ONLY__, \
     __NOT_FOUND__, __OK__, __BAD_REQUEST__
-from services.thinglist_api import InventoryService, UserService
+from services.thinglist_services import InventoryService, UserService
 from utils import CLEANR
 
 inv = Blueprint('inv', __name__)

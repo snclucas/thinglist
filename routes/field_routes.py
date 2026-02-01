@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 
 from database.database_functions import get_all_user_fields, delete_fields_from_db, edit_user_field_by_id
-from services.thinglist_api import FieldService
+from services.thinglist_services import FieldService
 
 field_routes = Blueprint('field', __name__)
 

@@ -2,7 +2,7 @@ import unittest
 
 from database.database_functions import get_user_location_by_id, \
     delete_locations, update_location_by_id, get_number_user_locations
-from services.thinglist_api import LocationService, UserService
+from services.thinglist_services import LocationService, UserService
 from tests.test_parent import TestAppParent
 
 

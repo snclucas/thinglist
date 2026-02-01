@@ -10,7 +10,7 @@ from database.database_functions import find_template, add_new_template, update_
     set_template_fields_orders, \
     get_template_fields_by_id, get_all_user_and_system_fields
 from models import FieldTemplate
-from services.thinglist_api import FieldService
+from services.thinglist_services import FieldService
 
 from site_globals import __BAD_REQUEST__, __NOT_FOUND__
 

@@ -10,7 +10,7 @@ from app import app
 
 from database.database_functions import find_item_type_by_text, \
     get_or_add_new_user_item_type
-from services.thinglist_api import ItemTypeService
+from services.thinglist_services import ItemTypeService
 
 types = Blueprint('types', __name__)
 

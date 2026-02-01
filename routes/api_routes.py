@@ -7,7 +7,7 @@ from database.database_functions import get_all_user_tags, \
     get_all_user_and_system_item_types
 from routes.items_routes import _get_inventory, _process_url_query
 from site_globals import __DEFAULT__
-from services.thinglist_api import UserService, LocationService, ItemTypeService
+from services.thinglist_services import UserService, LocationService, ItemTypeService
 
 api_routes = Blueprint('api', __name__)
 

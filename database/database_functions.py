@@ -13,7 +13,7 @@ from models import Inventory, User, Item, UserInventory, InventoryItem, ItemType
     Location, Image, Field, ItemField, FieldTemplate, Notification, TemplateField, Relateditems, ItemImage
 
 from site_globals import __PUBLIC__, __OWNER__, __PRIVATE__, __DEFAULT__
-from services.thinglist_api import UserService, TagService, ItemService, FieldService, InventoryService
+from services.thinglist_services import UserService, TagService, ItemService, FieldService, InventoryService
 
 
 def drop_then_create():

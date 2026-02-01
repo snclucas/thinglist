@@ -32,7 +32,7 @@ from database.database_functions import \
 from routes.items_loader import process_field_sets, process_images
 
 from site_globals import _COPY_, _MOVE_, __ALL__, __DEFAULT__, __NOT_FOUND__, __ERROR__
-from services.thinglist_api import ItemService, LocationService, FieldService, InventoryService, UserService
+from services.thinglist_services import ItemService, LocationService, FieldService, InventoryService, UserService
 
 items_routes = Blueprint('items', __name__)
 

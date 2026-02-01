@@ -13,7 +13,7 @@ from database.database_functions import update_user_password_by_token, \
 from email_utils import send_email
 from models import User
 from routes.index_routes import profile
-from services.thinglist_api import UserService, post_user_add_hook
+from services.thinglist_services import UserService, post_user_add_hook
 
 auth_flask_login = Blueprint('auth_flask_login', __name__, template_folder='templates')
 

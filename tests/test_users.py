@@ -4,7 +4,7 @@ from models import User
 from tests.test_parent import TestAppParent
 
 from app import db
-from services.thinglist_api import UserService
+from services.thinglist_services import UserService
 
 
 class TestApp(TestAppParent):

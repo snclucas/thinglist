@@ -8,7 +8,7 @@ from database.database_functions import get_user_inventories, get_user_item_coun
     get_all_user_fields, get_user_public_lists
 
 from site_globals import __BAD_REQUEST__
-from services.thinglist_api import UserService, ItemTypeService
+from services.thinglist_services import UserService, ItemTypeService
 
 main = Blueprint('main', __name__)
 

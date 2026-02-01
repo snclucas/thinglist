@@ -2,7 +2,7 @@ import unittest
 
 from database.database_functions import get_or_add_new_user_item_type, \
     get_user_item_type_count, find_item_type_by_text
-from services.thinglist_api import ItemTypeService
+from services.thinglist_services import ItemTypeService
 from tests.test_parent import TestAppParent
 
 

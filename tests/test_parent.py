@@ -2,7 +2,7 @@ import unittest
 
 from admin.load_intial_data import load_fields, load_words, load_types
 from database.database_functions import drop_then_create
-from services.thinglist_api import UserService, InventoryService
+from services.thinglist_services import UserService, InventoryService
 from site_globals import __INVENTORY__, __PRIVATE__
 
 

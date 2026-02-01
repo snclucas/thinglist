@@ -8,7 +8,7 @@ from database.database_functions import get_number_user_lists, find_inventory_by
 
 from site_globals import __LIST__, __COLLABORATOR__, __PUBLIC__
 from tests.test_parent import TestAppParent
-from services.thinglist_api import InventoryService
+from services.thinglist_services import InventoryService
 
 
 class TestApp(TestAppParent):

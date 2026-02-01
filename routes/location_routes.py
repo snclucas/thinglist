@@ -6,7 +6,7 @@ from database.database_functions import get_user_locations_by_id, update_locatio
     delete_locations
 
 from app import app
-from services.thinglist_api import LocationService
+from services.thinglist_services import LocationService
 
 location = Blueprint(name='location', import_name=__name__)
 

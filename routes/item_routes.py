@@ -19,7 +19,7 @@ from database.database_functions import \
     set_inventory_default_fields, save_inventory_fieldtemplate, get_user_location_by_id, unrelate_items_by_id, \
     relate_items_by_id, get_all_user_and_system_item_types
 
-from services.thinglist_api import ItemService, UserService, FieldService, LocationService, InventoryService
+from services.thinglist_services import ItemService, UserService, FieldService, LocationService, InventoryService
 
 from utils import correct_image_orientation, generate_item_image_filename
 
