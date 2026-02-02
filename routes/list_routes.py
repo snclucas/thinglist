@@ -7,11 +7,11 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 
 from app import app
-from database.database_functions import get_user_inventories, delete_item_from_inventory, \
+from database.database_functions import delete_item_from_inventory, \
     edit_inventory_data, \
     delete_lists_by_id, add_user_to_inventory, delete_user_to_inventory, \
     regenerate_inventory_token, add_user_to_inventory_from_token, \
-    get_user_public_lists, get_user_unlisted_item_count, get_user_default_inventory_id
+    get_user_unlisted_item_count, get_user_default_inventory_id
 
 
 from site_globals import __INVENTORY__, __LIST__, __URL_LIST__, __PUBLIC__, __PRIVATE__, __VIEWER__, __READ_ONLY__, \
@@ -51,7 +51,7 @@ def lists():
             - number_inventories (int): The number of inventories minus one (excluding the 'hidden' default inventory).
     """
     user_is_authenticated: bool = current_user.is_authenticated
-    user_invs, status, msg = get_user_inventories(current_user_id=current_user.id,
+    user_invs, status, msg = InventoryService.get_user_inventories(current_user_id=current_user.id,
                                      requesting_user_id=current_user.id, access_level=-1)
 
     number_inventories: int = len(user_invs) - 1  # -1 to count for the 'hidden' default inventory
@@ -89,14 +89,14 @@ def inventories_for_username(list_username):
             requesting_user_id = current_user.id
             list_username = current_user.username
 
-    user_invs, status, msg = get_user_inventories(current_user_id=current_user_id,
+    user_invs, status, msg = InventoryService.get_user_inventories(current_user_id=current_user_id,
                                      requesting_user_id=requesting_user_id,
                                      access_level=-1)
 
     if user_is_authenticated and current_user_id == requesting_user_id:
         public_lists = []
     else:
-        public_lists = get_user_public_lists(for_user_id=user_.id)
+        public_lists = InventoryService.get_user_public_lists(for_user_id=user_.id)
 
     lists_ = user_invs + public_lists
 

@@ -1,7 +1,8 @@
 import unittest
 
-from database.database_functions import save_template_fields, get_user_template_by_id, get_user_templates, \
+from database.database_functions import get_user_template_by_id, \
     delete_templates_from_db, update_template_by_id
+from services.thinglist_services import FieldTemplateService
 
 from tests.test_parent import TestAppParent
 
@@ -11,7 +12,7 @@ class TestApp(TestAppParent):
     def test_add_field_template(self):
         _template_name = "test template"
         _template_field_ids = [3, 4, 5, 6, 7]
-        status, msg, new_template_id = save_template_fields(template_name=_template_name,
+        status, msg, new_template_id = FieldTemplateService.save_template_fields(template_name=_template_name,
                                                            fields=_template_field_ids, user_id=self.users['simon'].id)
         self.assertEqual(status, True)
         self.assertEqual(msg, "success")
@@ -25,7 +26,7 @@ class TestApp(TestAppParent):
 
         self.assertEqual(_template_field_ids, _returned_template_field_ids)
 
-        _user_templates = get_user_templates(user_id=self.users['simon'].id)
+        _user_templates = FieldTemplateService.get_user_templates(user_id=self.users['simon'].id)
         self.assertEqual(1, len(_user_templates))
 
         _user_template = _user_templates[0][0]
@@ -35,20 +36,20 @@ class TestApp(TestAppParent):
     def test_delete_temaplate(self):
         _template_name = "test template"
         _template_field_ids = [3, 4, 5, 6, 7]
-        status, msg, new_template_id = save_template_fields(template_name=_template_name,
+        status, msg, new_template_id = FieldTemplateService.save_template_fields(template_name=_template_name,
                                                             fields=_template_field_ids, user_id=self.users['simon'].id)
         self.assertEqual(status, True)
         self.assertEqual(msg, "success")
 
         delete_templates_from_db(user_id=self.users['simon'].id, template_ids=[new_template_id])
 
-        _user_templates = get_user_templates(user_id=self.users['simon'].id)
+        _user_templates = FieldTemplateService.get_user_templates(user_id=self.users['simon'].id)
         self.assertEqual(0, len(_user_templates))
 
     def test_update_field_template(self):
         _template_name = "test template"
         _template_field_ids = [3, 4, 5, 6, 7]
-        status, msg, new_template_id = save_template_fields(template_name=_template_name,
+        status, msg, new_template_id = FieldTemplateService.save_template_fields(template_name=_template_name,
                                                             fields=_template_field_ids, user_id=self.users['simon'].id)
         self.assertEqual(status, True)
         self.assertEqual(msg, "success")

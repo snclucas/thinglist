@@ -3,12 +3,12 @@ from flask import Blueprint, render_template, request, redirect, url_for
 from flask_login import login_required, current_user
 
 from app import app
-from database.database_functions import get_user_inventories, get_user_item_count, get_user_templates, \
-    delete_notification_by_id, get_number_user_locations, \
-    get_all_user_fields, get_user_public_lists
+from database.database_functions import get_user_item_count, \
+    delete_notification_by_id, get_number_user_locations
 
 from site_globals import __BAD_REQUEST__
-from services.thinglist_services import UserService, ItemTypeService
+from services.thinglist_services import UserService, ItemTypeService, InventoryService, FieldTemplateService, \
+    FieldService
 
 main = Blueprint('main', __name__)
 
@@ -96,9 +96,9 @@ def profile(username):
         # -1 for the default None item type
         num_item_types = len(ItemTypeService.get_all_user_item_types(user_id=current_user.id, string_list=False))
         num_items = get_user_item_count(user_id=current_user.id)
-        num_field_templates = len(get_user_templates(user_id=current_user.id))
+        num_field_templates = len(FieldTemplateService.get_user_templates(user_id=current_user.id))
         num_user_locations = get_number_user_locations(user_id=current_user.id)
-        num_user_fields = len(get_all_user_fields(user_id=current_user.id))
+        num_user_fields = len(FieldService.get_all_user_fields(user_id=current_user.id))
 
         if user_is_authenticated:
             current_user_id = current_user.id
@@ -110,7 +110,7 @@ def profile(username):
                 requesting_user_id = current_user.id
 
         user_inventories, status, msg = (
-            get_user_inventories(current_user_id=current_user_id, requesting_user_id=requesting_user_id,
+            InventoryService.get_user_inventories(current_user_id=current_user_id, requesting_user_id=requesting_user_id,
                                                 access_level=-1))
 
         user_notifications = current_user.notifications
@@ -126,7 +126,7 @@ def profile(username):
         if user_ is not None:
             _user_preferences = user_.preferences
             if _user_preferences.public_profile:
-                _users_public_lists = get_user_public_lists(for_user_id=user_.id)
+                _users_public_lists = InventoryService.get_user_public_lists(for_user_id=user_.id)
                 return render_template(template_name_or_list='users_public_profile.html')
             else:
                 return redirect(url_for(endpoint='main.index'))

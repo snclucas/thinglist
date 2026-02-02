@@ -13,13 +13,13 @@ from flask_login import login_required, current_user
 
 from app import app
 from database.database_functions import \
-    update_item_by_id, add_images_to_item, delete_images_from_item, set_item_main_image, \
-    get_item_fields, get_all_item_fields, \
-    set_field_status, update_item_fields, \
-    set_inventory_default_fields, save_inventory_fieldtemplate, get_user_location_by_id, unrelate_items_by_id, \
+    add_images_to_item, delete_images_from_item, set_item_main_image, \
+    update_item_fields, \
+    set_inventory_default_fields, unrelate_items_by_id, \
     relate_items_by_id, get_all_user_and_system_item_types
 
-from services.thinglist_services import ItemService, UserService, FieldService, LocationService, InventoryService
+from services.thinglist_services import ItemService, UserService, FieldService, LocationService, InventoryService, \
+    FieldTemplateService
 
 from utils import correct_image_orientation, generate_item_image_filename
 
@@ -101,19 +101,19 @@ def item_with_username_and_inventory(list_username: str, inventory_slug: str, it
         return render_template('404.html', message="No such item or you do not have access to this item"), __NOT_FOUND__
 
     # build ordered item fields (sorted by template_field.order)
-    item_fields_list = get_item_fields(item_id=item_.id)
+    item_fields_list = ItemService.get_item_fields(item_id=item_.id)
     item_fields = {}
     for field_obj, item_field_obj, template_field in sorted(item_fields_list, key=lambda x: x[2].order):
         item_fields[field_obj] = item_field_obj
 
-    all_item_fields = dict(get_all_item_fields(item_id=item_.id))
+    all_item_fields = dict(ItemService.get_all_item_fields(item_id=item_.id))
 
     # map fields by their `field` attribute
     all_fields = {f.field: f for f in FieldService.get_all_fields()}
 
     item_location = None
     if user_is_authenticated and item_access_level != __VIEWER__:
-        user_location_dict = get_user_location_by_id(location_id=item_.location_id, user_id=current_user.id)
+        user_location_dict = LocationService.get_user_location_by_id(location_id=item_.location_id, user_id=current_user.id)
         if user_location_dict is not None:
             item_location = user_location_dict
 
@@ -197,7 +197,7 @@ def item_with_username_and_inventory2(list_username: str, inventory_slug: str, i
         return render_template(template_name_or_list='404.html',
                                message="No such item or you do not have access to this item"), __NOT_FOUND__
 
-    item_fields = get_item_fields(item_id=item_.id)
+    item_fields = ItemService.get_item_fields(item_id=item_.id)
 
     ii = {}
     for field_data in item_fields:
@@ -214,7 +214,7 @@ def item_with_username_and_inventory2(list_username: str, inventory_slug: str, i
 
     item_fields = dict(dfdf)
 
-    all_item_fields = dict(get_all_item_fields(item_id=item_.id))
+    all_item_fields = dict(ItemService.get_all_item_fields(item_id=item_.id))
     all_fields = FieldService.get_all_fields()
     # convert to dict with Field.field as key
     all_fields_dict = {}
@@ -225,7 +225,7 @@ def item_with_username_and_inventory2(list_username: str, inventory_slug: str, i
 
     item_location = None
     if user_is_authenticated and item_access_level != __VIEWER__:
-        user_location_dict = get_user_location_by_id(location_id=item_.location_id, user_id=current_user.id)
+        user_location_dict = LocationService.get_user_location_by_id(location_id=item_.location_id, user_id=current_user.id)
         if user_location_dict is not None:
             item_location = user_location_dict
 
@@ -316,7 +316,7 @@ def edit_item(item_id):
     }
 
     new_item_slug = None
-    update_result = update_item_by_id(item_data=new_item_data, item_id=int(item_id), user=current_user)
+    update_result = ItemService.update_item_by_id(item_data=new_item_data, item_id=int(item_id), user=current_user)
     if update_result["status"] == "success":
         item_dict = update_result["item"]
         new_item_slug = item_dict['slug']
@@ -336,7 +336,7 @@ def edit_item_fields():
     json_data = request.json
     item_id = json_data['item_id']
     field_ids = json_data['field_ids']
-    set_field_status(item_id, field_ids, is_visible=True)
+    FieldService.set_field_status(item_id, field_ids, is_visible=True)
 
     return True
 
@@ -373,7 +373,7 @@ def save_inventory_template():
     else:
         inventory_template = int(inventory_template)
 
-    result = save_inventory_fieldtemplate(inventory_id=inventory_id,
+    result = FieldTemplateService.save_inventory_fieldtemplate(inventory_id=inventory_id,
                                           inventory_template=inventory_template, user_id=current_user.id)
     #fix field templates - set back to None if requested and remove the feild data
     if not result:

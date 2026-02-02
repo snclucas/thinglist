@@ -3,7 +3,7 @@ import bleach
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 
-from database.database_functions import get_all_user_fields, delete_fields_from_db, edit_user_field_by_id
+from database.database_functions import delete_fields_from_db, edit_user_field_by_id
 from services.thinglist_services import FieldService
 
 field_routes = Blueprint('field', __name__)
@@ -17,7 +17,7 @@ def fields():
 @field_routes.route('/@<list_username>/fields')
 @login_required
 def fields_with_username(list_username):
-    user_fields = get_all_user_fields(user_id=current_user.id)
+    user_fields = FieldService.get_all_user_fields(user_id=current_user.id)
     return render_template(template_name_or_list='fields/fields.html',
                            name=current_user.username, fields=user_fields)
 

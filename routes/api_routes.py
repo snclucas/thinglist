@@ -3,11 +3,11 @@ from flask import Blueprint, jsonify
 from flask_login import login_required, current_user
 from flask import request
 from database.database_functions import get_all_user_tags, \
-    find_items_new, find_all_my_items, count_all_item_ids_in_inventory, count_all_user_items, \
+    find_all_my_items, count_all_item_ids_in_inventory, count_all_user_items, \
     get_all_user_and_system_item_types
-from routes.items_routes import _get_inventory, _process_url_query
+from routes.items_routes import _process_url_query
 from site_globals import __DEFAULT__
-from services.thinglist_services import UserService, LocationService, ItemTypeService
+from services.thinglist_services import UserService, LocationService, ItemTypeService, InventoryService, ItemService
 
 api_routes = Blueprint('api', __name__)
 
@@ -41,9 +41,8 @@ def user_items():
     return ret_items
 
 
-
 @api_routes.route('/api/items/@<string:username>/<inventory_slug>', methods=['GET', 'POST'])
-#@login_required
+# @login_required
 def items(username=None, inventory_slug=None):
     user_is_authenticated = current_user.is_authenticated
 
@@ -52,7 +51,6 @@ def items(username=None, inventory_slug=None):
     inventory_owner = None
     requested_user = username
     inventory_owner_id = None
-
 
     logged_in_user = None
     logged_in_user_id = None
@@ -73,13 +71,19 @@ def items(username=None, inventory_slug=None):
             inventory_owner_id = inventory_owner.id
 
     requested_user = UserService.get_user_by_username(username=username)
-    #if requested_user is None:
+    # if requested_user is None:
     #    requested_user = current_user
 
     if inventory_slug != 'all':
-        inventory_id, inventory_, inventory_field_template = _get_inventory(inventory_slug=inventory_slug,
-                                                                            inventory_owner_id=inventory_owner_id,
-                                                                            logged_in_user_id=logged_in_user_id)
+
+        inventory_, user_inventory_ = InventoryService.find_inventory_by_slug(inventory_slug=inventory_slug,
+                                                                              inventory_owner_id=inventory_owner_id,
+                                                                              viewing_user_id=logged_in_user_id)
+        if inventory_ is None:
+            return None, None, None
+        else:
+            inventory_id = inventory_.id
+
     else:
         inventory_id, inventory_ = None, None
 
@@ -102,13 +106,11 @@ def items(username=None, inventory_slug=None):
         'search': search_query,
     }
 
-    #test_ = find_items_by_field_value(user_id=username, field_name="manufacturer", field_value="IBM")
-
-    items_ = find_items_new(inventory_id=inventory_id,
-                            query_params=query_params,
-                            #requested_username=current_user.username,
-                            requested_username=username,
-                            logged_in_user=logged_in_user)
+    items_ = ItemService.find_items_new(inventory_id=inventory_id,
+                                        query_params=query_params,
+                                        # requested_username=current_user.username,
+                                        requested_username=username,
+                                        logged_in_user=logged_in_user)
 
     if inventory_slug != 'all':
         num_items_in_inventory = count_all_item_ids_in_inventory(user_id=requested_user.id, inventory_id=inventory_id)
@@ -152,7 +154,7 @@ def items(username=None, inventory_slug=None):
     return jsonify({
         "data": ret_items,
         "recordsTotal": num_items_in_inventory,
-        "recordsFiltered": num_items_in_inventory #len(ret_items)
+        "recordsFiltered": num_items_in_inventory  # len(ret_items)
     }, 200, 'application/json').json[0]
 
 
@@ -177,4 +179,4 @@ def locations():
         new_ret.append({"type": item_type_.name.lower()})
 
     return jsonify(new_ret)
-    #return loc_array
+    # return loc_array

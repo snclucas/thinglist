@@ -2,8 +2,8 @@ import unittest
 
 from slugify import slugify
 
-from database.database_functions import get_number_user_lists, find_inventory_by_id, \
-    find_inventory_by_slug, delete_lists_by_id, edit_inventory_data, get_users_for_inventory, add_user_to_inventory, \
+from database.database_functions import get_number_user_lists, \
+    delete_lists_by_id, edit_inventory_data, get_users_for_inventory, add_user_to_inventory, \
     delete_user_to_inventory
 
 from site_globals import __LIST__, __COLLABORATOR__, __PUBLIC__
@@ -62,7 +62,7 @@ class TestApp(TestAppParent):
 
 
 
-        _found_list, _found_userlist = find_inventory_by_slug(inventory_slug=slugify(list_data['name']),
+        _found_list, _found_userlist = InventoryService.find_inventory_by_slug(inventory_slug=slugify(list_data['name']),
                                                               inventory_owner_id=list_data['to_user_id'],
                                                               viewing_user_id=list_data['to_user_id'])
 
@@ -89,7 +89,7 @@ class TestApp(TestAppParent):
 
 
         # not logged in
-        _found_list, _found_userlist = find_inventory_by_slug(inventory_slug=slugify(list_data['name']),
+        _found_list, _found_userlist = InventoryService.find_inventory_by_slug(inventory_slug=slugify(list_data['name']),
                                                               inventory_owner_id=list_data['to_user_id'],
                                                               viewing_user_id=None)
 
@@ -97,7 +97,7 @@ class TestApp(TestAppParent):
         self.assertIsNone(_found_userlist)
 
 
-        _found_list, _found_userlist = find_inventory_by_slug(inventory_slug=slugify(list_data['name']),
+        _found_list, _found_userlist = InventoryService.find_inventory_by_slug(inventory_slug=slugify(list_data['name']),
                                                               inventory_owner_id=None,
                                                               viewing_user_id=list_data['to_user_id'])
 
@@ -123,7 +123,7 @@ class TestApp(TestAppParent):
         self.assertEqual(list_data['description'], new_inventory_data["description"])
         self.assertEqual(list_data['list_type'], new_inventory_data["type"])
 
-        _found_list, _found_userlist = find_inventory_by_id(inventory_id=new_inventory_data["id"],
+        _found_list, _found_userlist = InventoryService.find_inventory_by_id(inventory_id=new_inventory_data["id"],
                                                             user_id=list_data['to_user_id'])
 
         self.assertEqual(list_data['name'], _found_list.name)
@@ -149,7 +149,7 @@ class TestApp(TestAppParent):
                                           show_item_tags=0, show_item_url=0, access_level=__PUBLIC__)
 
 
-        _found_list, _found_userlist = find_inventory_by_slug(inventory_slug=slugify(list_data['name']),
+        _found_list, _found_userlist = InventoryService.find_inventory_by_slug(inventory_slug=slugify(list_data['name']),
                                                               inventory_owner_id=list_data['to_user_id'],
                                                               viewing_user_id=list_data['to_user_id'])
 

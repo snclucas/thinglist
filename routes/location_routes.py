@@ -2,8 +2,7 @@ import bleach
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 
-from database.database_functions import get_user_locations_by_id, update_location_by_id, \
-    delete_locations
+from database.database_functions import get_user_locations_by_id, update_location_by_id
 
 from app import app
 from services.thinglist_services import LocationService
@@ -48,7 +47,7 @@ def del_locations():
         flash("Something went wrong.")
         return redirect(url_for('location.locations'))
 
-    _ret = delete_locations(user_id=current_user.id, location_ids=location_ids)
+    _ret = LocationService.delete_locations(user_id=current_user.id, location_ids=location_ids)
 
     if not _ret["success"]:
         flash("Something went wrong.")

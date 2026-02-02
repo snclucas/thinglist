@@ -1,12 +1,14 @@
 import hashlib
 import hmac
 import os
+from typing import Tuple
 
 import bleach
 from slugify import slugify
 
-from database.database_functions import save_template_fields, save_inventory_fieldtemplate, set_item_main_image, \
+from database.database_functions import set_item_main_image, \
     add_images_to_item
+from services.thinglist_services import FieldTemplateService
 from utils import generate_item_image_filename
 
 
@@ -19,10 +21,10 @@ def process_field_sets(inventory_data, current_user, found_inv, load_log):
             template_slugs_ = field_set_.get("slugs", [])
             if len(template_slugs_) > 0:
                 template_slugs_ = [bleach.clean(str(x)) for x in template_slugs_]
-                status, msg, field_template_id_ = save_template_fields(template_name=template_name_,
+                status, msg, field_template_id_ = FieldTemplateService.save_template_fields(template_name=template_name_,
                                                           fields=template_slugs_, user_id=current_user.id)
 
-                status, save_inv_fieldtemplate_msg = save_inventory_fieldtemplate(inventory_id=found_inv["id"],
+                status, save_inv_fieldtemplate_msg = FieldTemplateService.save_inventory_fieldtemplate(inventory_id=found_inv["id"],
                                                                                   inventory_template=field_template_id_,
                                                                                   user_id=current_user.id)
                 if status:
@@ -35,7 +37,8 @@ def process_field_sets(inventory_data, current_user, found_inv, load_log):
 
     return load_log
 
-def process_images(item, new_item_, item_id, current_user, app):
+def process_images(item, new_item_, item_id, current_user, root_path,
+                   image_base_path, image_secret_key) -> Tuple[bool, str]:
     item_image_filename = []
     for img in item["images"]:
         img_filename = img.get("image_filename", None)
@@ -54,15 +57,14 @@ def process_images(item, new_item_, item_id, current_user, app):
             set_item_main_image(main_image_url=img_filename, item_id=item_id,
                                 user_id=current_user.id)
 
-        img_filepath = os.path.join(app.root_path, app.config['USER_IMAGES_BASE_PATH'],
+        img_filepath = os.path.join(root_path, image_base_path,
                                     str(current_user.id), img_filename)
 
         import base64
         imgdata = base64.b64decode(img_data)
 
         raw = img_data.encode('utf-8')
-        key = app.config['IMAGE_SECRET_KEY'].encode('utf-8')
-        hashed = hmac.new(key, raw, hashlib.sha1)
+        hashed = hmac.new(image_secret_key, raw, hashlib.sha1)
         img_hmac_hash = base64.encodebytes(hashed.digest()).decode('utf-8')
 
         if img_hash == img_hmac_hash:
@@ -71,6 +73,8 @@ def process_images(item, new_item_, item_id, current_user, app):
                     img_file.write(imgdata)
                     item_image_filename.append(img_filename)
             except Exception as ex:
-                app.logger.error(f"Error saving image: {str(ex)}")
+                return False, f"Error saving image: {str(ex)}"
+        else:
+                return False, f"Issue with image hash verification"
 
     add_images_to_item(new_item_['item']['id'], item_image_filename, user=current_user)

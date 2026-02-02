@@ -1539,35 +1539,54 @@ class FieldTemplateService:
 class InventoryService:
 
     @staticmethod
-    def _get_inventory(inventory_slug: str, logged_in_user_id: int, inventory_owner_id: int):
-        if inventory_slug == __DEFAULT__:
-            inventory_slug_to_use = f"{__DEFAULT__}-{current_user.username}"
-        elif inventory_slug is None or inventory_slug == '':
-            inventory_slug_to_use = __ALL__
-        else:
-            inventory_slug_to_use = inventory_slug
+    def get_user_public_lists(for_user_id: int) -> list:
+        if for_user_id is None:
+            return []
 
-        field_template_ = None
+        try:
+            with app.app_context():
+                inventories = db.session.query(Inventory).filter(
+                    Inventory.owner_id == for_user_id,
+                    Inventory.access_level == __PUBLIC__
+                ).all()
 
-        if inventory_slug_to_use != __ALL__:
-            inventory_, user_inventory_ = InventoryService.find_inventory_by_slug(inventory_slug=inventory_slug_to_use,
-                                                                                  inventory_owner_id=inventory_owner_id,
-                                                                                  viewing_user_id=logged_in_user_id)
-            if inventory_ is None:
-                return None, None, None
-            else:
-                inventory_id = inventory_.id
+                ret_results: list = []
+                for inv in inventories:
+                    # Prefer counting items via relationship, fall back to a safe 0
+                    try:
+                        item_count = len(inv.items) if getattr(inv, "items", None) is not None else 0
+                    except Exception:
+                        # defensive fallback if relationship access fails
+                        try:
+                            item_count = db.session.query(func.count(InventoryItem.id)).filter(
+                                InventoryItem.inventory_id == inv.id
+                            ).scalar() or 0
+                        except Exception:
+                            item_count = 0
 
-                field_template_id_ = inventory_.field_template
+                    d = {
+                        "inventory_id": inv.id,
+                        "inventory_name": inv.name,
+                        "inventory_description": inv.description,
+                        "inventory_slug": inv.slug,
+                        "inventory_access_level": inv.access_level,
+                        "inventory_item_count": int(item_count),
+                        "inventory_type": inv.type,
+                        "userinventory_access_level": __PRIVATE__
+                    }
+                    ret_results.append(d)
 
-                if field_template_id_ is not None:
-                    field_template_ = FieldTemplateService.find_template_by_id(template_id=field_template_id_)
-
-        else:
-            inventory_id = None
-            inventory_ = None
-
-        return inventory_id, inventory_, field_template_
+                return ret_results
+        except SQLAlchemyError as e:
+            app.logger.exception(f"get_user_public_lists DB error: {e}")
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+            return []
+        except Exception as e:
+            app.logger.exception(f"get_user_public_lists unexpected error: {e}")
+            return []
 
 
     def get_or_create(self, data: Dict[str, Any]) -> Inventory:

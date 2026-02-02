@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import app, db
-from models import (User, Inventory, UserInventory, Item, InventoryItem,
+from models import (User, Inventory, UserInventory, Item,
                     ItemType, Field, FieldTemplate, TemplateField, Location,
                     Tag, Relateditems, ItemField, Notification)
 

@@ -5,12 +5,12 @@ import bleach
 from flask import Blueprint, render_template, redirect, url_for, request, abort, Response
 from flask_login import login_required, current_user
 
-from database.database_functions import find_template, add_new_template, update_template_by_id, get_user_templates, \
-    save_template_fields, get_user_template_by_id, delete_templates_from_db, \
+from database.database_functions import find_template, add_new_template, update_template_by_id, \
+    get_user_template_by_id, delete_templates_from_db, \
     set_template_fields_orders, \
-    get_template_fields_by_id, get_all_user_and_system_fields
+    get_template_fields_by_id
 from models import FieldTemplate
-from services.thinglist_services import FieldService
+from services.thinglist_services import FieldService, FieldTemplateService
 
 from site_globals import __BAD_REQUEST__, __NOT_FOUND__
 
@@ -65,7 +65,7 @@ def template(template_id):
     :param template_id: The ID of the field template to retrieve.
     :return: The rendered template or a 404 error message if the template does not exist or the user does not have access.
     """
-    all_fields = list(get_all_user_and_system_fields(user_id=current_user.id))
+    all_fields = list(FieldService.get_all_user_and_system_fields(user_id=current_user.id))
 
     user_template_ = get_user_template_by_id(template_id=template_id, user_id=current_user.id)
 
@@ -83,7 +83,7 @@ def template(template_id):
 @login_required
 def templates_with_username(username):
     all_fields = FieldService.get_all_fields()
-    user_templates = get_user_templates(user_id=current_user.id)
+    user_templates = FieldTemplateService.get_user_templates(user_id=current_user.id)
     return render_template(template_name_or_list='field_template/field_templates.html',
                            name=current_user.username, templates=user_templates, all_fields=all_fields)
 
@@ -104,7 +104,7 @@ def set_template_fields():
 
         field_ids = [int(x) for x in field_ids] # was str(x)
 
-        status, msg, template_id = save_template_fields(template_name=template_name,
+        status, msg, template_id = FieldTemplateService.save_template_fields(template_name=template_name,
                                                    fields=field_ids, user_id=current_user.id)
 
     return redirect(url_for('field_template.templates'))

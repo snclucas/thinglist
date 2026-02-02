@@ -1,7 +1,7 @@
 import unittest
 
-from database.database_functions import get_user_location_by_id, \
-    delete_locations, update_location_by_id, get_number_user_locations
+from database.database_functions import \
+    update_location_by_id, get_number_user_locations
 from services.thinglist_services import LocationService, UserService
 from tests.test_parent import TestAppParent
 
@@ -32,12 +32,12 @@ class TestApp(TestAppParent):
 
 
         _new_location_id = _ret["id"]
-        _new_location = get_user_location_by_id(location_id=_new_location_id, user_id=self.users['simon'].id)
+        _new_location = LocationService.get_user_location_by_id(location_id=_new_location_id, user_id=self.users['simon'].id)
         self.assertEqual(_new_location_name, _new_location["name"])
         self.assertEqual(_new_location_description, _new_location["description"])
 
-        delete_locations(user_id=self.users['simon'].id, location_ids=[_new_location_id])
-        _new_location = get_user_location_by_id(location_id=_new_location_id, user_id=self.users['simon'].id)
+        LocationService.delete_locations(user_id=self.users['simon'].id, location_ids=[_new_location_id])
+        _new_location = LocationService.get_user_location_by_id(location_id=_new_location_id, user_id=self.users['simon'].id)
         self.assertIsNone(_new_location)
 
     def test_remove_location_when_user_removed(self):
@@ -49,11 +49,11 @@ class TestApp(TestAppParent):
                                        to_user_id=_temp_user.id)
         self.assertEqual(True, _ret["status"])
         _new_location_id = _ret["id"]
-        _new_location = get_user_location_by_id(location_id=_new_location_id, user_id=_temp_user.id)
+        _new_location = LocationService.get_user_location_by_id(location_id=_new_location_id, user_id=_temp_user.id)
         self.assertIsNotNone(_new_location)
 
         _ret = UserService.delete_user_by_id(user_id=_temp_user.id)
-        _new_location = get_user_location_by_id(location_id=_new_location_id, user_id=_temp_user.id)
+        _new_location = LocationService.get_user_location_by_id(location_id=_new_location_id, user_id=_temp_user.id)
         self.assertIsNone(_new_location)
 
 
@@ -78,14 +78,14 @@ class TestApp(TestAppParent):
         }
         _ret = update_location_by_id(location_data=_new_location_data, user=self.users['simon'])
 
-        _new_location = get_user_location_by_id(location_id=_new_location_id, user_id=self.users['simon'].id)
+        _new_location = LocationService.get_user_location_by_id(location_id=_new_location_id, user_id=self.users['simon'].id)
         self.assertIsNotNone(_new_location)
         self.assertEqual(_new_location_name, _new_location["name"])
         self.assertEqual(_new_location_description, _new_location["description"])
 
 
-        delete_locations(user_id=self.users['simon'].id, location_ids=[_new_location_id])
-        _new_location = get_user_location_by_id(location_id=_new_location_id, user_id=self.users['simon'].id)
+        LocationService.delete_locations(user_id=self.users['simon'].id, location_ids=[_new_location_id])
+        _new_location = LocationService.get_user_location_by_id(location_id=_new_location_id, user_id=self.users['simon'].id)
         self.assertIsNone(_new_location)
 
 

@@ -2,9 +2,9 @@ import unittest
 
 from database.database_functions import get_users_for_inventory, \
     find_items_new, delete_lists_by_id, find_user_item_type_by_name, \
-    update_item_by_id, find_all_my_items, get_user_item_count, delete_all_user_items, \
+    find_all_my_items, get_user_item_count, delete_all_user_items, \
     get_user_unlisted_item_count, find_related_items, relate_items_by_id, unrelate_items_by_id
-from services.thinglist_services import InventoryService, LocationService
+from services.thinglist_services import InventoryService, LocationService, ItemService
 
 from site_globals import __INVENTORY__
 
@@ -131,7 +131,7 @@ class TestApp(TestAppParent):
                 "item_url": "",
                 # "user_id": self.users['simon'].id
             }
-            update_item_by_id(item_data=new_item_data, user=_user, item_id=_items[0][0].id)
+            ItemService.update_item_by_id(item_data=new_item_data, user=_user, item_id=_items[0][0].id)
 
             _item_type = find_user_item_type_by_name(item_type_name="personal computer",
                                                      user_id=_user.id)

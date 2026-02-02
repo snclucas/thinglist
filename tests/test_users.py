@@ -16,7 +16,7 @@ class TestApp(TestAppParent):
 
     def tearDown(self):
         for user in self.users.values():
-            remove_user_by_id(user_id=user.id)
+            UserService.remove_user_by_id(user_id=user.id)
         super().tearDown()
 
     def test_user_functions(self):
