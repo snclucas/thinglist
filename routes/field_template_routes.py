@@ -5,7 +5,7 @@ import bleach
 from flask import Blueprint, render_template, redirect, url_for, request, abort, Response
 from flask_login import login_required, current_user
 
-from database.database_functions import find_template, add_new_template, update_template_by_id, \
+from database.database_functions import find_template, add_new_template, \
     get_user_template_by_id, delete_templates_from_db, \
     set_template_fields_orders, \
     get_template_fields_by_id
@@ -139,6 +139,6 @@ def add_template():
         add_new_template(name=template_name,
                          fields=template_fields, to_user=current_user)
     else:
-        update_template_by_id(template_data=new_template_data, user=current_user)
+        FieldTemplateService.update_template_by_id(template_data=new_template_data, user=current_user)
 
     return redirect(url_for('field_template.templates'))

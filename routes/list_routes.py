@@ -9,9 +9,9 @@ from flask_login import login_required, current_user
 from app import app
 from database.database_functions import delete_item_from_inventory, \
     edit_inventory_data, \
-    delete_lists_by_id, add_user_to_inventory, delete_user_to_inventory, \
+    add_user_to_inventory, delete_user_to_inventory, \
     regenerate_inventory_token, add_user_to_inventory_from_token, \
-    get_user_unlisted_item_count, get_user_default_inventory_id
+    get_user_unlisted_item_count
 
 
 from site_globals import __INVENTORY__, __LIST__, __URL_LIST__, __PUBLIC__, __PRIVATE__, __VIEWER__, __READ_ONLY__, \
@@ -237,7 +237,7 @@ def del_inventory():
         return redirect(url_for('inv.lists'))
 
     try:
-        delete_lists_by_id(inventory_ids=list(cleaned_ids), user_id=current_user.id)
+        InventoryService.delete_lists_by_id(inventory_ids=list(cleaned_ids), user_id=current_user.id)
     except Exception as e:
         app.logger.exception("Error deleting inventories: %s", e)
         flash("Error deleting selected inventories")
@@ -480,7 +480,7 @@ def add_to_inventory():
 
     try:
         if inventory_id_raw == "":
-            inventory_id = get_user_default_inventory_id(user_id=current_user.id)
+            inventory_id = InventoryService.get_user_default_inventory_id(user_id=current_user.id)
         else:
             inventory_id = int(bleach.clean(str(inventory_id_raw)))
         item_quantity = int(bleach.clean(str(item_quantity_raw)))

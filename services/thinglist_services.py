@@ -13,7 +13,7 @@ from app import db, app
 from models import UserInventory, Relateditems, Inventory, User, Item, Location, ItemType, FieldTemplate, \
     TemplateField, Field, Tag, InventoryItem, ItemField
 
-from site_globals import __DEFAULT__, __NONE__, __PRIVATE__, __INVENTORY__, __PUBLIC__, __none__, __ALL__
+from site_globals import __DEFAULT__, __NONE__, __PRIVATE__, __INVENTORY__, __PUBLIC__, __none__, __OWNER__
 
 
 def _to_dict(object_: db.Model) -> dict:
@@ -22,6 +22,16 @@ def _to_dict(object_: db.Model) -> dict:
     _dict = object_.__dict__
     _dict.pop('_sa_instance_state', None)
     return _dict
+
+
+def _commit() -> Tuple[bool, str]:
+    try:
+        db.session.commit()
+        return True, "success"
+    except Exception as error:  # noqa
+        app.logger.error(f"Could not commit changes: {str(error)}")
+        db.session.rollback()
+        return False, "Could not edit list"
 
 
 def _get_itemtype_id(item_data: dict, user_id: str) -> Optional[int]:
@@ -126,7 +136,38 @@ def post_user_add_hook(new_user: User):
 
 class UserService:
 
+    @staticmethod
+    def update_user_password_by_token(token: str, password_hash: str) -> Tuple[bool, Optional[Exception]]:
+        with app.app_context():
+            with app.app_context():
+                user_ = UserService.get_user_by_token(token=token)
+                if user_ is not None and user_.activated:
+                    user_.password = password_hash
+                    user_.token = ""
+                    try:
+                        db.session.merge(user_)
+                        db.session.commit()
+                        return True, None
+                    except Exception as e:
+                        db.session.rollback()
+                        return False, e
+            return False, None
 
+    @staticmethod
+    def update_user_password_by_user_id(user_id: int, password_hash: str) -> Tuple[bool, Optional[Exception]]:
+        with app.app_context():
+            user_ = UserService.get_user_by_id(user_id=user_id)
+            if user_ is not None and user_.activated:
+                user_.password = password_hash
+                user_.token = ""
+                try:
+                    db.session.merge(user_)
+                    db.session.commit()
+                    return True, None
+                except Exception as e:
+                    db.session.rollback()
+                    return False, e
+        return False, None
 
     @staticmethod
     def save_new_user(user_: User, fail_on_duplicate: bool = True) -> Tuple[bool, str, Optional[User]]:
@@ -385,7 +426,6 @@ class ItemService:
 
             return sdsd, slugs, sdsd2
 
-
     @staticmethod
     def find_items_new(logged_in_user=None, requested_username=None, inventory_id=None, query_params=None):
 
@@ -541,7 +581,6 @@ class ItemService:
 
                 return results_
 
-
         if query_params is None:
             query_params = {}
 
@@ -594,9 +633,9 @@ class ItemService:
         }
 
         items_ = ItemService.find_items_new(inventory_id=inventory_id,
-                                query_params=query_params,
-                                requested_username=requested_username,
-                                logged_in_user=logged_in_user)
+                                            query_params=query_params,
+                                            requested_username=requested_username,
+                                            logged_in_user=logged_in_user)
 
         item_id_list = []
         data_dict = []
@@ -865,6 +904,176 @@ class ItemService:
                 return return_data
 
     @staticmethod
+    def get_items_to_delete(user_id: int, item_ids: list, inventory_id: int = None):
+        """
+
+        Method: get_items_to_delete
+
+        Parameters:
+        - user_id: User ID - The user ID for whom to get the items to be deleted.
+        - item_ids: list - A list of item IDs to be deleted.
+
+        Return Type:
+        - list - A list of items to be deleted.
+
+        Description:
+        This method takes a user and a list of item IDs as parameters and returns a list of items to be deleted. If either the item_ids list is empty or the user parameter is None, it returns
+        * 0. Otherwise, it constructs a database statement using SQLAlchemy's select method to retrieve the items associated with the given user and matching the specified item IDs. Finally
+        *, it executes the statement and returns a list of items.
+
+        """
+        if not item_ids or user_id is None:
+            return 0
+
+        if len(item_ids) == 0:
+            return 0
+
+        query = db.session.query(Item, InventoryItem).join(InventoryItem, InventoryItem.item_id == Item.id)
+        if inventory_id is not None:
+            query = query.filter(InventoryItem.inventory_id == inventory_id)
+        query = query.filter(Item.user_id == user_id, Item.id.in_(item_ids))
+
+        # return list of (Item, InventoryItem) tuples
+        return query.all()
+
+    @staticmethod
+    def delete_items(item_ids: list, user_id: int, inventory_id: int = None) -> int:
+        """
+
+        Delete Items
+
+        Deletes items based on the given item IDs list and user.
+
+        Parameters:
+        - item_ids (list): A list of item IDs to be deleted.
+        - user_id (int): The user ID performing the deletion.
+
+        Returns:
+        - int: The number of items deleted.
+
+        Note:
+        - If the item_ids list is empty or the user is None, the function will return 0.
+        - If the item_ids list -s [-1] then all items are deleted.
+        - If no item IDs are provided, the function will return 0.
+        - Related item relationships and item images associated with each item will also be deleted.
+
+        """
+        if not item_ids or user_id is None:
+            return 0
+
+        if len(item_ids) == 0:
+            return 0
+
+        with app.app_context():
+            # if item IDs = [-1] then delete all items
+            if len(item_ids) == 1 and item_ids[0] == -1:
+                item_ids = InventoryService.get_all_item_ids_in_inventory(user_id=user_id, inventory_id=inventory_id)
+
+            items_to_delete = ItemService.get_items_to_delete(user_id=user_id, item_ids=item_ids,
+                                                              inventory_id=inventory_id)
+
+            number_items_deleted = 0
+            # Disable autoflush while we stage relationship changes / deletes
+            with db.session.no_autoflush:
+                for item_, inventory_item_ in items_to_delete:
+                    # item_ = item_[0]
+                    if item_ is not None:
+                        # check if this item is in multiple directories
+                        # if so, only remove the link to this item from the current inventory
+
+                        # if this is a link we need to delete the InventoryItem but no the item itself
+                        if inventory_item_.is_link is True:
+                            db.session.delete(inventory_item_)
+                            # status, msg = _commit()
+                            # if not status:
+                            #    app.logger.error(f"Could not delete item(s) link: {msg}")
+                            # return 0
+
+                        if inventory_id is not None:
+
+                            for itinv in item_.inventories:
+                                if itinv.id == inventory_id:
+                                    item_.inventories.remove(itinv)
+
+                            status, msg = _commit()
+                            if status:
+                                number_items_deleted += 1
+
+                        # remove related item relationships
+                        related_items = ItemService.get_related_items(item_.id)
+                        # for related_item in related_items:
+                        #     db.session.delete(related_item)
+                        for related_item in related_items:
+                            # related_item might be a model instance; if not, try to extract first element
+                            rel = related_item
+                            if isinstance(related_item, (tuple, list)):
+                                rel = related_item[0]
+                            # guard: only delete mapped instances
+                            if rel is None:
+                                continue
+                            try:
+                                db.session.delete(rel)
+                            except Exception:
+                                # defensive: if it's not a mapped instance, skip
+                                app.logger.exception("Could not delete related item entry")
+                                continue
+
+                        # remove item images
+                        ItemService.delete_item_images(item_, user_id)
+
+                        db.session.delete(item_)
+                        number_items_deleted += 1
+
+            status, msg = _commit()
+            if not status:
+                app.logger.error(f"Could not delete item(s) link: {msg}")
+                return 0
+            return number_items_deleted
+
+    @staticmethod
+    def delete_item_images(item_: Item, user_id: int) -> (bool, str):
+        if item_ is None:
+            return False, "Item ID cannot be None"
+
+        with app.app_context():
+            for image_ in item_.images:
+                try:
+                    os.remove(os.path.join(app.root_path, app.config['USER_IMAGES_BASE_PATH'], str(user_id),
+                                           image_.image_filename))
+                except OSError as er:
+                    app.logger.error(f"Error deleting image file: {image_.image_filename}")
+                    app.logger.error(f"Error message: {er}")
+                    return False, f"Error deleting image file: {image_.image_filename}"
+
+            item_.images = []
+            item_.main_image = None
+            try:
+                db.session.commit()
+                return True, "Item images deleted successfully"
+            except SQLAlchemyError:
+                db.session.rollback()
+                return False, "Error deleting item images"
+
+    @staticmethod
+    def delete_all_user_items(user_id: int):
+        if user_id is None:
+            return 0
+
+        with app.app_context():
+            item_ids_to_delete = ItemService.get_all_user_item_ids(user_id=user_id)
+
+            number_items_deleted = ItemService.delete_items(item_ids=item_ids_to_delete, user_id=user_id)
+            return number_items_deleted
+
+    @staticmethod
+    def get_all_user_item_ids(user_id: int) -> list[Item]:
+        with app.app_context():
+            _query = db.session.query(Item.id).filter(Item.user_id == user_id)
+            _ids = [x.id for x in _query.distinct()]
+
+        return _ids
+
+    @staticmethod
     def copy_items(item_ids: list, user: User, inventory_id: int):
         """
             link - just add new line in ItemInventory
@@ -1089,6 +1298,19 @@ class ItemService:
             return None
 
     @staticmethod
+    def find_items_by_field_value(user_id: int, field_name: str, field_value: str):
+        with app.app_context():
+            field_id_ = FieldService.find_field_by_name(field_name=field_name)
+
+            query = db.session.query(ItemField, Item).join(ItemField, ItemField.item_id == Item.id) \
+                .filter(ItemField.field_id == field_id_.id) \
+                .filter(ItemField.value == field_value) \
+                .filter(Item.user_id == user_id)
+            results_ = query.all()
+
+            return results_
+
+    @staticmethod
     def get_item_by_slug(item_slug: str, user_id: Optional[int] = None) -> Tuple[
         Optional[Item], Optional[ItemType], Optional[InventoryItem]]:
         if not item_slug:
@@ -1293,6 +1515,35 @@ class FieldService:
         self.db = session or db
 
     @staticmethod
+    def delete_all_user_fields(user_id: int) -> int:
+        """
+        Deletes all fields associated with a user.
+
+        Args:
+            user_id (int): The ID of the user whose fields are to be deleted.
+
+        Returns:
+            int: The number of fields deleted.
+        """
+        if user_id is None:
+            return 0
+
+        with app.app_context():
+            fields_to_delete = Field.query.filter_by(user_id=user_id).all()
+            number_fields_deleted = 0
+
+            for field_ in fields_to_delete:
+                db.session.delete(field_)
+                number_fields_deleted += 1
+
+            status, msg = _commit()
+            if not status:
+                app.logger.error(f"Could not delete user fields: {msg}")
+                return 0
+
+            return number_fields_deleted
+
+    @staticmethod
     def get_all_user_and_system_fields(user_id: int):
         with app.app_context():
             q_ = db.session.query(Field).filter(or_(Field.user_id == user_id, Field.user_id.is_(None)))
@@ -1362,6 +1613,26 @@ class FieldService:
             return get_or_create(model=Field, field=field_name, type=field_type,
                                  user_id=user_id, slug=slug)
 
+    @staticmethod
+    def find_field_by_name(field_name: str) -> Field:
+        with app.app_context():
+            field_slug = slugify(field_name)
+            field_ = Field.query.filter(Field.slug == field_slug).one_or_none()
+            # return {"id": field_.id, "name": field_.name, "slug": field_.slug}
+            return field_
+
+    @staticmethod
+    def find_field_by_slug(field_slug: str):
+        with app.app_context():
+            field_ = Field.query.filter(Field.slug == field_slug).one_or_none()
+            return field_
+
+    @staticmethod
+    def find_field_by_id(field_id: int):
+        with app.app_context():
+            field_ = Field.query.filter(Field.id == field_id).one_or_none()
+            return field_
+
 
 class FieldTemplateService:
 
@@ -1379,6 +1650,35 @@ class FieldTemplateService:
             return field_template_
         else:
             return None
+
+    @staticmethod
+    def delete_all_user_field_templates(user_id: int) -> int:
+        """
+        Deletes all field templates associated with a user.
+
+        Args:
+            user_id (int): The ID of the user whose field templates are to be deleted.
+
+        Returns:
+            int: The number of field templates deleted.
+        """
+        if user_id is None:
+            return 0
+
+        with app.app_context():
+            templates_to_delete = FieldTemplate.query.filter_by(user_id=user_id).all()
+            number_templates_deleted = 0
+
+            for template in templates_to_delete:
+                db.session.delete(template)
+                number_templates_deleted += 1
+
+            status, msg = _commit()
+            if not status:
+                app.logger.error(f"Could not delete user field templates: {msg}")
+                return 0
+
+            return number_templates_deleted
 
     @staticmethod
     def save_inventory_fieldtemplate(inventory_id: int, inventory_template: int, user_id: int) -> Tuple[bool, str]:
@@ -1471,7 +1771,8 @@ class FieldTemplateService:
                 if inventories_ is not None:
                     for inventory in inventories_:
                         FieldTemplateService.save_inventory_fieldtemplate(inventory_id=inventory.id,
-                                                     inventory_template=field_template_.id, user_id=user_id)
+                                                                          inventory_template=field_template_.id,
+                                                                          user_id=user_id)
 
             db.session.commit()
 
@@ -1489,6 +1790,46 @@ class FieldTemplateService:
             db.session.commit()
 
             return True, "success", field_template_.id
+
+    @staticmethod
+    def update_template_by_id(template_data: dict, user: User) -> Tuple[bool, str, Optional[int]]:
+        """
+        Update a template by its ID.
+
+        Parameters:
+        - template_data (dict): A dictionary containing the updated template data. It should have the following keys:
+            - 'id' (int): The ID of the template to be updated.
+            - 'name' (str): The new name for the template.
+            - 'fields' (list): A list of fields for the template.
+
+        - user (User): The user object of the user making the request.
+
+        Returns:
+        - Tuple (bool, str): A tuple containing a boolean value indicating whether the update operation was successful, and a string message providing information about the outcome. If the update
+        * is successful, the boolean value will be True and the message will be "Template updated successfully". Otherwise, the boolean value will be False and the message will indicate the
+        * reason for failure, such as "Invalid user", "Template data must be a dictionary", "Template ID must be provided", "Template name must be provided", "Template fields must be provided
+        *", "Template fields must be a list", "No template with id {template_id} found for user {user.username}", or "Could not update template".
+        """
+        if user is None or not isinstance(user, User):
+            return False, "Invalid user"
+
+        if not isinstance(template_data, dict):
+            return False, "Template data must be a dictionary"
+
+        if 'id' not in template_data:
+            return False, "Template ID must be provided"
+
+        if 'name' not in template_data:
+            return False, "Template name must be provided"
+
+        if 'fields' not in template_data:
+            return False, "Template fields must be provided"
+
+        if not isinstance(template_data['fields'], list):
+            return False, "Template fields must be a list"
+
+        return FieldTemplateService.save_template_fields(template_name=template_data['name'],
+                                                         fields=template_data['fields'], user_id=user.id)
 
     @staticmethod
     def get_user_templates(user_id: int):
@@ -1535,8 +1876,38 @@ class FieldTemplateService:
             raise
 
 
-
 class InventoryService:
+
+    @staticmethod
+    def get_all_item_ids_in_inventory(user_id: int, inventory_id: int) -> list[int]:
+        """
+        Return a list of item ids for the given user and inventory.
+
+        - Validates inputs.
+        - Uses .scalars() to get a flat list of ids.
+        - Logs exceptions with traceback and performs a rollback on error.
+        """
+        if not isinstance(user_id, int) or not isinstance(inventory_id, int):
+            app.logger.error("get_all_item_ids_in_inventory: user_id and inventory_id must be integers")
+            return []
+
+        with app.app_context():
+            try:
+                stmt = select(Item.id).join(
+                    InventoryItem, InventoryItem.item_id == Item.id
+                ).where(
+                    Item.user_id == user_id,
+                    InventoryItem.inventory_id == inventory_id
+                ).distinct()
+                results = db.session.execute(stmt).scalars().all()
+                return [int(x) for x in results]
+            except SQLAlchemyError as e:
+                app.logger.exception(f"Error finding all item ids in inventory: {e}")
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+                return []
 
     @staticmethod
     def get_user_public_lists(for_user_id: int) -> list:
@@ -1588,6 +1959,115 @@ class InventoryService:
             app.logger.exception(f"get_user_public_lists unexpected error: {e}")
             return []
 
+    @staticmethod
+    def get_number_user_lists(user_id: int) -> int:
+        with app.app_context():
+            _inv_count = UserInventory.query.filter_by(user_id=user_id).count()
+            return _inv_count
+
+    @staticmethod
+    def get_user_default_inventory_id(user_id: int) -> int:
+        with app.app_context():
+            di_ = InventoryService.get_user_default_inventory(user_id=user_id)
+            if di_ is not None:
+                return di_.id
+            else:
+                return -1
+
+    @staticmethod
+    def find_all_user_inventories(user_id: int) -> list:
+        if user_id is None:
+            raise ValueError("User cannot be None")
+
+        try:
+            select_query = select(UserInventory, Inventory) \
+                .join(Inventory) \
+                .join(User) \
+                .where(user_id == UserInventory.user_id)
+            result = db.session.execute(select_query).all()
+            return result
+        except Exception as ex:
+            app.logger.error(f"Error finding all user inventories: {str(ex)}")
+            return []
+
+    @staticmethod
+    def delete_all_user_lists(user_id: int):
+        _user_inventories, status, msg = InventoryService.get_user_inventories(current_user_id=user_id,
+                                                                               requesting_user_id=user_id)
+
+        list_ids_ = []
+        for list_ in _user_inventories:
+            if __DEFAULT__ not in list_["inventory_name"]:
+                list_ids_.append(list_["inventory_id"])
+
+        InventoryService.delete_lists_by_id(inventory_ids=list_ids_, user_id=user_id)
+
+    @staticmethod
+    def delete_lists_by_id(inventory_ids: Union[int, List[int]], user_id: int) -> Tuple[bool, str]:
+        """
+        If the User has Items within the Inventory - re-link Items to Users default Inventory via the ItemInventory table
+        Delete the UserInventory for the user
+        If there are no more UserInventory links to the Inventory - delete the Inventory
+        """
+
+        if not isinstance(inventory_ids, list):
+            inventory_ids = [inventory_ids]
+
+        with app.app_context():
+
+            stmt = select(UserInventory).join(User) \
+                .where(UserInventory.user_id == user_id) \
+                .where(UserInventory.inventory_id.in_(inventory_ids))
+            user_inventories_ = db.session.execute(stmt).all()
+
+            for user_inventory_ in user_inventories_:  # type: UserInventory
+
+                if user_inventory_ is not None:
+                    user_inventory_ = user_inventory_[0]
+
+                    """ If not inventory owner, just delete the UserInventory entry """
+                    if user_inventory_.access_level != __OWNER__:
+                        db.session.delete(user_inventory_)
+                        try:
+                            db.session.commit()
+                            return True, ""
+                        except SQLAlchemyError as error:
+                            app.logger.error(f"Error deleting user inventory entry: {str(error)}")
+                            return False, f"Error deleting user inventory entry: {str(error)}"
+
+                    # Find out if any other users point to this inventory, if not delete it
+                    inventory_id_to_delete = user_inventory_.inventory_id
+
+                    # Get the current user's default inventory
+                    user_default_inventory_ = InventoryService.get_user_default_inventory(user_id=user_id)
+
+                    inv_items_ = InventoryItem.query.filter_by(inventory_id=inventory_id_to_delete).all()
+                    for row in inv_items_:
+                        # Add the items that are in this inventory to the user's default
+                        row.inventory_id = user_default_inventory_.id
+
+                    # Delete the UserInventory for the user
+                    db.session.delete(user_inventory_)
+                    try:
+                        db.session.commit()
+                    except SQLAlchemyError as error:
+                        app.logger.error(f"Error deleting user inventory entry: {str(error)}")
+                        return False, f"Error deleting user inventory entry: {str(error)}"
+
+                    users_invs_ = UserInventory.query.filter_by(inventory_id=inventory_id_to_delete).all()
+                    if len(users_invs_) == 0:
+                        # remove the actual inventory
+                        inv_ = Inventory.query.filter_by(id=inventory_id_to_delete).first()
+                        if inv_ is not None:
+                            db.session.delete(inv_)
+                            try:
+                                db.session.commit()
+
+                            except SQLAlchemyError as error:
+                                app.logger.error(f"Error deleting inventory: {str(error)}")
+                                return False, f"Error deleting inventory: {str(error)}"
+
+            return True, ""
 
     def get_or_create(self, data: Dict[str, Any]) -> Inventory:
         # avoid mutating caller's dict
@@ -2178,6 +2658,26 @@ class LocationService:
             return {"success": True}
 
     @staticmethod
+    def delete_user_locations(user_id: int) -> int:
+        if user_id is None:
+            return 0
+
+        with app.app_context():
+            locations_to_delete = Location.query.filter_by(user_id=user_id).all()
+            number_locations_deleted = 0
+
+            for location_ in locations_to_delete:
+                db.session.delete(location_)
+                number_locations_deleted += 1
+
+            status, msg = _commit()
+            if not status:
+                app.logger.error(f"Could not delete user locations: {msg}")
+                return 0
+
+            return number_locations_deleted
+
+    @staticmethod
     def get_user_location_by_id(location_id: str, user_id: int) -> Optional[dict]:
         if location_id is None:
             app.logger.error(f"Location was attempted to be added with ID=None for user {user_id}")
@@ -2272,6 +2772,27 @@ class LocationService:
             except Exception as ex:
                 app.logger.error(f"Unexpected error in find_default_user_location for user {user_id}: {ex}")
                 return None
+
+    @staticmethod
+    def get_user_locations_by_id(user_id: int) -> List[dict]:
+        with app.app_context():
+            try:
+                stmt = select(Location).where(Location.user_id == user_id)
+                _result = db.session.execute(stmt).all()
+                locations_results = []
+                for row in _result:
+                    locations_results.append(
+                        {
+                            "id": row[0].id,
+                            "name": row[0].name,
+                            "description": row[0].description,
+                            "user_id": row[0].user_id
+                        }
+                    )
+                return locations_results
+            except SQLAlchemyError as err:
+                app.logger.error(f"Failed to get user locations ny ID: {str(err)}")
+                return []
 
     @staticmethod
     def get_location_by_id(location_id: int) -> Union[dict, None]:
@@ -2526,6 +3047,79 @@ class ItemTypeService:
                     pass
                 return []
 
+    @staticmethod
+    def get_user_item_type_count(user_id: int) -> int:
+        with app.app_context():
+            item_type_count_ = db.session.query(ItemType).filter(ItemType.user_id == user_id).count()
+            return item_type_count_
+
+    @staticmethod
+    def find_user_item_type_by_name(item_type_name: str, user_id: int) -> ItemType:
+        with app.app_context():
+            item_type_ = ItemType.query.filter_by(name=item_type_name).filter_by(user_id=user_id).first()
+            return item_type_
+
+    @staticmethod
+    def delete_all_user_item_types(user_id: int) -> int:
+        """
+        Deletes all item types associated with a user.
+
+        Args:
+            user_id (int): The ID of the user whose item types are to be deleted.
+
+        Returns:
+            int: The number of item types deleted.
+        """
+        if user_id is None:
+            return 0
+
+        with app.app_context():
+            item_types_to_delete = ItemType.query.filter_by(user_id=user_id).all()
+            number_item_types_deleted = 0
+
+            for item_type in item_types_to_delete:
+                db.session.delete(item_type)
+                number_item_types_deleted += 1
+
+            status, msg = _commit()
+            if not status:
+                app.logger.error(f"Could not delete user item types: {msg}")
+                return 0
+
+            return number_item_types_deleted
+
+    @staticmethod
+    def find_item_type_by_text(type_text: str, user_id: int = None) -> Optional[dict]:
+        with app.app_context():
+
+            if user_id is None:
+                item_type_ = ItemType.query.filter_by(name=type_text.lower().strip()).one_or_none()
+            else:
+                item_type_ = ItemType.query.filter_by(name=type_text.lower().strip()) \
+                    .filter_by(user_id=user_id).one_or_none()
+
+            if item_type_ is not None:
+                return _to_dict(item_type_)
+
+            return None
+
+    @staticmethod
+    def get_all_user_and_system_item_types(user_id: int, string_list=True) -> list:
+        with app.app_context():
+            query_statement = db.session.query(ItemType.name) if string_list else db.session.query(ItemType)
+            query_statement = query_statement.filter(or_(ItemType.user_id == user_id, ItemType.user_id == None))
+            query_result = db.session.execute(query_statement).all()
+            return [row[0] for row in query_result if query_result is not None]
+
+    @staticmethod
+    def get_user_item_type(user_id: int, item_type_name: None) -> ItemType:
+        with app.app_context():
+            query_statement = db.session.query(ItemType)
+            query_statement = query_statement.filter(ItemType.name == item_type_name)
+            query_statement = query_statement.filter(ItemType.user_id == user_id)
+            query_result = db.session.execute(query_statement).one_or_none()
+            return query_result[0]
+
 
 class UserInventoryService:
     def add_user_to_inventory(self, user_id: int, inventory_id: int, access_level: int = 0,
@@ -2566,7 +3160,6 @@ class UserInventoryService:
             setattr(rec, k, v)
         db.session.commit()
         return rec
-
 
 
 class NotificationService:

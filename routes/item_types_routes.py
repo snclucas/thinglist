@@ -8,7 +8,6 @@ from flask_login import login_required, current_user
 
 from app import app
 
-from database.database_functions import find_item_type_by_text
 from services.thinglist_services import ItemTypeService
 
 types = Blueprint('types', __name__)
@@ -37,7 +36,7 @@ def add_item_type():
     item_type_name = request.form.get("item_type_name")
     item_type_name = bleach.clean(item_type_name)
 
-    potential_item_type_ = find_item_type_by_text(type_text=item_type_name)
+    potential_item_type_ = ItemTypeService.find_item_type_by_text(type_text=item_type_name)
 
     if potential_item_type_ is None:
         ItemTypeService.get_or_add_new_user_item_type(name=item_type_name, user_id=current_user.id)
@@ -88,7 +87,7 @@ def itemtypes_load():
                     item_type = row[0]
 
                     if item_type != "None":
-                        potential_item_type_ = find_item_type_by_text(type_text=item_type)
+                        potential_item_type_ = ItemTypeService.find_item_type_by_text(type_text=item_type)
                         if potential_item_type_ is None:
                             ItemTypeService.get_or_add_new_user_item_type(name=item_type, user_id=current_user.id)
 

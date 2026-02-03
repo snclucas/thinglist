@@ -15,18 +15,13 @@ from flask_login import login_required, current_user
 from app import app
 from routes.index_routes import profile
 from database.database_functions import \
-    get_all_user_and_system_item_types, \
-    find_item_type_by_text, \
-    find_all_user_inventories, delete_items, \
     get_users_for_inventory, get_user_inventory_by_id, edit_items_locations, \
     change_item_access_level, __PUBLIC__, __PRIVATE__, \
-    save_user_inventory_view, \
-    get_all_item_ids_in_inventory, \
-    get_user_default_inventory_id
+    save_user_inventory_view
 
 from site_globals import _COPY_, _MOVE_, __ALL__, __DEFAULT__, __NOT_FOUND__
 from services.thinglist_services import ItemService, LocationService, FieldService, InventoryService, UserService, \
-    FieldTemplateService
+    FieldTemplateService, ItemTypeService
 
 items_routes = Blueprint('items', __name__)
 
@@ -129,7 +124,7 @@ def items_move():
     copy - duplicate item, add new line in ItemInventory
     """
     if len(item_ids) == 1 and item_ids[0] == -1:
-        item_ids = get_all_item_ids_in_inventory(user_id = current_user.id, inventory_id = from_inventory_id)
+        item_ids = InventoryService.get_all_item_ids_in_inventory(user_id = current_user.id, inventory_id = from_inventory_id)
 
     if move_type == _MOVE_:
         result = ItemService.move_items(item_ids=item_ids, user=current_user, inventory_id=to_inventory_id)
@@ -347,12 +342,11 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
         requested_user = current_user
 
 
-
     request_params = _process_url_query(req_=request, inventory_user=requested_user)
     view = request_params.get("view", "list")  # 0 - list, 1 - grid
 
     if user_is_authenticated:
-        all_user_inventories = find_all_user_inventories(user_id=current_user.id)
+        all_user_inventories = InventoryService.find_all_user_inventories(user_id=current_user.id)
     else:
         all_user_inventories = None
 
@@ -443,7 +437,7 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
 
 
     # collect all the data needed to populate the add items form
-    item_types_ = get_all_user_and_system_item_types(user_id=inventory_owner_id)
+    item_types_ = ItemTypeService.get_all_user_and_system_item_types(user_id=inventory_owner_id)
     all_fields = FieldService.get_all_fields()
 
     user_locations_ = None
@@ -548,7 +542,7 @@ def _process_url_query(req_, inventory_user):
 
     # convert the text 'types' to an id
     if requested_item_type_string is not None:
-        item_type_ = find_item_type_by_text(type_text=requested_item_type_string, user_id=inventory_user.id)
+        item_type_ = ItemTypeService.find_item_type_by_text(type_text=requested_item_type_string, user_id=inventory_user.id)
         if item_type_ is not None:
             requested_item_type_id = item_type_['id']
         else:
@@ -629,11 +623,11 @@ def del_items():
     inventory_id_raw = data.get('inventory_id', "")
     try:
         if inventory_id_raw == "" or inventory_id_raw is None:
-            inventory_id = get_user_default_inventory_id(user_id=current_user.id)
+            inventory_id = InventoryService.get_user_default_inventory_id(user_id=current_user.id)
         else:
             inventory_id = int(bleach.clean(str(inventory_id_raw)))
     except (ValueError, TypeError):
-        inventory_id = get_user_default_inventory_id(user_id=current_user.id)
+        inventory_id = InventoryService.get_user_default_inventory_id(user_id=current_user.id)
 
     if not item_ids:
         flash("There was a problem deleting your things!")
@@ -641,7 +635,7 @@ def del_items():
         return redirect(url_for(endpoint='items.items_with_username', list_username=username or current_user.username).replace('%40', '@'))
 
     try:
-        delete_items(item_ids=item_ids, user_id=current_user.id, inventory_id=inventory_id)
+        ItemService.delete_items(item_ids=item_ids, user_id=current_user.id, inventory_id=inventory_id)
     except Exception as e:
         flash("There was a problem deleting your things!")
         current_app.logger.error("Exception deleting items: %s", str(e))

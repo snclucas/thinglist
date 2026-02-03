@@ -3,8 +3,7 @@ from flask import Blueprint, jsonify
 from flask_login import login_required, current_user
 from flask import request
 from database.database_functions import get_all_user_tags, \
-    find_all_my_items, count_all_item_ids_in_inventory, count_all_user_items, \
-    get_all_user_and_system_item_types
+    find_all_my_items, count_all_item_ids_in_inventory, count_all_user_items
 from routes.items_routes import _process_url_query
 from site_globals import __DEFAULT__
 from services.thinglist_services import UserService, LocationService, ItemTypeService, InventoryService, ItemService
@@ -173,7 +172,7 @@ def locations():
         loc_array.append(f"tag: {tag_.tag.lower()}")
         new_ret.append({"tag": tag_.tag.lower()})
 
-    item_types_ = get_all_user_and_system_item_types(user_id=current_user.id)
+    item_types_ = ItemTypeService.get_all_user_and_system_item_types(user_id=current_user.id)
     for item_type_ in item_types_:
         loc_array.append(f"type: {item_type_.name.lower()}")
         new_ret.append({"type": item_type_.name.lower()})

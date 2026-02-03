@@ -16,10 +16,10 @@ from database.database_functions import \
     add_images_to_item, delete_images_from_item, set_item_main_image, \
     update_item_fields, \
     set_inventory_default_fields, unrelate_items_by_id, \
-    relate_items_by_id, get_all_user_and_system_item_types
+    relate_items_by_id
 
 from services.thinglist_services import ItemService, UserService, FieldService, LocationService, InventoryService, \
-    FieldTemplateService
+    FieldTemplateService, ItemTypeService
 
 from utils import correct_image_orientation, generate_item_image_filename
 
@@ -117,7 +117,7 @@ def item_with_username_and_inventory(list_username: str, inventory_slug: str, it
         if user_location_dict is not None:
             item_location = user_location_dict
 
-    all_item_types_ = get_all_user_and_system_item_types(user_id=current_user.id if user_is_authenticated else None)
+    all_item_types_ = ItemTypeService.get_all_user_and_system_item_types(user_id=current_user.id if user_is_authenticated else None)
 
     return render_template('item/item.html',
                            name=list_username,
@@ -229,7 +229,7 @@ def item_with_username_and_inventory2(list_username: str, inventory_slug: str, i
         if user_location_dict is not None:
             item_location = user_location_dict
 
-    all_item_types_ = get_all_user_and_system_item_types(user_id=current_user.id)
+    all_item_types_ = ItemTypeService.get_all_user_and_system_item_types(user_id=current_user.id)
 
     return render_template(template_name_or_list='item/item.html', name=list_username,
                            inventory_owner_id=inventory_owner_id, item_fields=item_fields,

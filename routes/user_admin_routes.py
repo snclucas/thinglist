@@ -1,16 +1,14 @@
 
-
 import bleach
 
 from flask import Blueprint, request, render_template
 from flask_login import login_required, current_user
 
-from database.database_functions import delete_all_user_items, delete_all_user_lists, delete_user_locations, \
-    delete_all_user_fields, delete_all_user_item_types, delete_all_user_field_templates
 from routes.index_routes import profile
+from services.thinglist_services import InventoryService, ItemService, LocationService, FieldService, \
+    FieldTemplateService, ItemTypeService
 
 user_admin_routes = Blueprint('user_admin', __name__)
-
 
 
 @user_admin_routes.route('/user-admin', methods=['POST'])
@@ -40,20 +38,17 @@ def wipe():
 
     if wipe_items and wipe_lists and wipe_locations and wipe_templates:
         # delete everything
-        delete_all_user_items(user_id=current_user.id)
-        delete_all_user_lists(user_id=current_user.id)
-        delete_user_locations(user_id=current_user.id)
-        delete_all_user_fields(user_id=current_user.id)
-        delete_all_user_item_types(user_id=current_user.id)
-        delete_all_user_field_templates(user_id=current_user.id)
+        ItemService.delete_all_user_items(user_id=current_user.id)
+        InventoryService.delete_all_user_lists(user_id=current_user.id)
+        LocationService.delete_user_locations(user_id=current_user.id)
+        FieldService.delete_all_user_fields(user_id=current_user.id)
+        ItemTypeService.delete_all_user_item_types(user_id=current_user.id)
+        FieldTemplateService.delete_all_user_field_templates(user_id=current_user.id)
     else:
         if wipe_items:
-            delete_all_user_items(user_id=current_user.id)
+            ItemService.delete_all_user_items(user_id=current_user.id)
 
         if wipe_lists:
-            delete_all_user_lists(user_id=current_user.id)
-
+            InventoryService.delete_all_user_lists(user_id=current_user.id)
 
     return profile(username=username)
-
-
