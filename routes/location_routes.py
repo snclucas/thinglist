@@ -2,8 +2,6 @@ import bleach
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 
-from database.database_functions import get_user_locations_by_id, update_location_by_id
-
 from app import app
 from services.thinglist_services import LocationService
 
@@ -17,15 +15,13 @@ def get_form_data(key: str) -> str:
 @login_required
 def locations():
     """
-
     Retrieves the locations for the logged in user.
 
     This method handles the GET request for the '/locations' route, requiring the user to be logged in.
     It retrieves the locations specific to the current user and renders the 'location/locations.html' template
     with the user's username and locations displayed.
-
     """
-    _user_locations = get_user_locations_by_id(user_id=current_user.id)
+    _user_locations = LocationService.get_user_locations_by_id(user_id=current_user.id)
     return render_template(template_name_or_list='location/locations.html',
                            username=current_user.username, locations=_user_locations)
 
@@ -102,6 +98,6 @@ def add_location():
                                 location_description=_location_description,
                                 to_user_id=current_user.id)
     else:
-        update_location_by_id(location_data=new_location_data, user=current_user)
+        LocationService.update_location_by_id(location_data=new_location_data, user=current_user)
 
     return redirect(url_for('location.locations'))

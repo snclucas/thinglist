@@ -16,10 +16,10 @@ from app import app
 from routes.index_routes import profile
 from database.database_functions import \
     get_users_for_inventory, get_user_inventory_by_id, edit_items_locations, \
-    change_item_access_level, __PUBLIC__, __PRIVATE__, \
+    change_item_access_level, \
     save_user_inventory_view
 
-from site_globals import _COPY_, _MOVE_, __ALL__, __DEFAULT__, __NOT_FOUND__
+from site_globals import _COPY_, _MOVE_, __ALL__, __DEFAULT__, __NOT_FOUND__, __PRIVATE__, __PUBLIC__
 from services.thinglist_services import ItemService, LocationService, FieldService, InventoryService, UserService, \
     FieldTemplateService, ItemTypeService
 

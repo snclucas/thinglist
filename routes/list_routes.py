@@ -10,13 +10,12 @@ from app import app
 from database.database_functions import delete_item_from_inventory, \
     edit_inventory_data, \
     add_user_to_inventory, delete_user_to_inventory, \
-    regenerate_inventory_token, add_user_to_inventory_from_token, \
-    get_user_unlisted_item_count
+    regenerate_inventory_token, add_user_to_inventory_from_token
 
 
 from site_globals import __INVENTORY__, __LIST__, __URL_LIST__, __PUBLIC__, __PRIVATE__, __VIEWER__, __READ_ONLY__, \
     __NOT_FOUND__, __OK__, __BAD_REQUEST__
-from services.thinglist_services import InventoryService, UserService
+from services.thinglist_services import InventoryService, UserService, ItemService
 from utils import CLEANR
 
 inv = Blueprint('inv', __name__)
@@ -55,7 +54,7 @@ def lists():
                                      requesting_user_id=current_user.id, access_level=-1)
 
     number_inventories: int = len(user_invs) - 1  # -1 to count for the 'hidden' default inventory
-    unlisted_item_count: int = get_user_unlisted_item_count(user_id=current_user.id)
+    unlisted_item_count: int = ItemService.get_user_unlisted_item_count(user_id=current_user.id)
 
     return render_template(template_name_or_list='inventory/inventories.html',
                            list_username=current_user.username,
@@ -105,7 +104,7 @@ def inventories_for_username(list_username):
 
     number_inventories = len(lists_) - 1  # -1 to count for the 'hidden' default inventory
 
-    unlisted_item_count = get_user_unlisted_item_count(user_id=user_.id)
+    unlisted_item_count = ItemService.get_user_unlisted_item_count(user_id=user_.id)
 
     return render_template(template_name_or_list='inventory/inventories.html',
                            unlisted_item_count=unlisted_item_count,

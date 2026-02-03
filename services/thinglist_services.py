@@ -378,6 +378,24 @@ class ItemService:
             return ddd
 
     @staticmethod
+    def get_user_unlisted_items(user_id: int):
+        with app.app_context():
+            user_default_inventory_ = InventoryService.get_user_default_inventory(user_id=user_id)
+            items_ = InventoryItem.query.filter_by(user_id=user_id).filter_by(
+                inventory_id=user_default_inventory_.id).all()
+            return items_
+
+    @staticmethod
+    def get_user_unlisted_item_count(user_id: int) -> Optional[int]:
+        with app.app_context():
+            user_default_inventory_ = InventoryService.get_user_default_inventory(user_id=user_id)
+            if user_default_inventory_ is not None:
+                item_count = InventoryItem.query.filter_by(inventory_id=user_default_inventory_.id).count()
+                return item_count
+            else:
+                return None
+
+    @staticmethod
     def get_item_fields(item_id: int):
         with app.app_context():
             # stmt = select(Field.field, ItemField).join(Item).join(Field, ItemField.field_id == Field.id) \
@@ -1508,11 +1526,121 @@ class ItemService:
                 return False, "unexpected error"
 
 
-class FieldService:
-    """Minimal Field service used by the example script."""
+class SearchService:
 
-    def __init__(self, session=None):
-        self.db = session or db
+    @staticmethod
+    def search_items(query: str, user_id: int):
+
+        def _search_by_field_value(field_id: int, user_id: int, query: str):
+            looking_for = '%{0}%'.format(query)
+            with app.app_context():
+                items_ = db.session.query(Item) \
+                    .join(ItemField, ItemField.item_id == Item.id) \
+                    .filter(ItemField.field_id == field_id) \
+                    .filter(ItemField.user_id == user_id) \
+                    .filter(ItemField.value.ilike(looking_for)).all()
+
+                return items_
+
+        items_arr = []
+        with app.app_context():
+
+            # see if there is a search modifier
+            if ':' in query:
+                search_modifier = query.split(':')[0]
+                query = query.split(':')[1].strip()
+
+                if search_modifier.lower() == 'location':
+                    locations_ = Location.query \
+                        .filter(Location.user_id == user_id) \
+                        .filter(Location.name.ilike(query)).all()
+
+                    for location in locations_:
+                        loc_id_ = location.id
+                        items_ = Item.query.filter(or_(
+                            Item.location_id == loc_id_,
+                            Item.specific_location == query
+                        )
+                        ).all()
+
+                        if len(items_) > 0:
+                            for item in items_:
+                                items_arr.append(item.__dict__)
+
+                    looking_for = '%{0}%'.format(query)
+                    items_ = Item.query.filter(
+                        Item.specific_location.ilike(looking_for)
+                    ).all()
+
+                    if len(items_) > 0:
+                        for item in items_:
+                            items_arr.append(item.__dict__)
+
+                elif search_modifier.lower() == 'tags' or search_modifier.lower() == 'tag':
+                    query = query.split(",")
+                    q_ = Item.query
+
+                    any_tags_found = False
+                    for tag_ in query:
+                        tag_ = tag_.strip()
+                        tag_ = tag_.replace(" ", "@#$")
+                        t_ = TagService.get_tag_by_str(tag_str=tag_)
+
+                        if t_ is not None:
+                            any_tags_found = True
+                            q_ = q_.filter(Item.tags.contains(t_))
+
+                    if any_tags_found:
+                        items_ = q_.all()
+
+                        if len(items_) > 0:
+                            for item in items_:
+                                items_arr.append(item.__dict__)
+
+                elif search_modifier.lower() == 'type':
+                    query = query.split(",")
+
+                    types_ = ItemType.query \
+                        .filter(ItemType.user_id == user_id) \
+                        .filter(ItemType.name.like(query)).all()
+
+                    type_ids = []
+                    for type_ in types_:
+                        type_ids.append(type_.id)
+
+                    items_ = Item.query.filter(Item.user_id == user_id).filter(Item.item_type.in_([type_ids])).all()
+
+                    if len(items_) > 0:
+                        for item in items_:
+                            items_arr.append(item.__dict__)
+
+                else:  # we have a custom field
+                    field_ = FieldService.find_field_by_name(field_name=search_modifier)
+                    if field_ is not None:
+                        field_id = field_.id
+                        items_ = _search_by_field_value(field_id=field_id, user_id=user_id, query=query)
+
+                        if len(items_) > 0:
+                            for item in items_:
+                                items_arr.append(item.__dict__)
+
+            else:
+                # search simple string
+                looking_for = '%{0}%'.format(query)
+
+                items_ = Item.query.filter(or_(
+                    Item.name.ilike(looking_for),
+                    Item.description.ilike(looking_for)
+                )
+                ).all()
+
+                if len(items_) > 0:
+                    for item in items_:
+                        items_arr.append(item.__dict__)
+
+            return items_arr
+
+class FieldService:
 
     @staticmethod
     def delete_all_user_fields(user_id: int) -> int:
@@ -1724,6 +1852,19 @@ class FieldTemplateService:
                 return False, "Failed to save inventory field template"
 
         return True, ""
+
+    @staticmethod
+    def add_new_template(name: str, fields: str, to_user: User) -> Optional[FieldTemplate]:
+        with app.app_context():
+            try:
+                template_ = FieldTemplate(name=name, fields=fields, user_id=to_user.id)
+                db.session.add(template_)
+                db.session.commit()
+                db.session.flush()
+                db.session.expire_all()
+                return template_
+            except Exception as e:
+                print(e)
 
     @staticmethod
     def save_template_fields(template_name: str, fields: list[int], user_id: int) -> Tuple[bool, str, Optional[int]]:
@@ -2069,6 +2210,7 @@ class InventoryService:
 
             return True, ""
 
+    @staticmethod
     def get_or_create(self, data: Dict[str, Any]) -> Inventory:
         # avoid mutating caller's dict
         data = dict(data)
@@ -2833,6 +2975,66 @@ class LocationService:
         if location_ is not None:
             return location_.__dict__
         return None
+
+    @staticmethod
+    def update_location_by_id(location_data: dict, user: User) -> Tuple[bool, str]:
+        """
+        Update the location information by ID for a given user.
+
+        :param location_data: A dictionary containing the updated location information.
+        :param user: An instance of User representing the user whose location is being updated.
+
+        :return: A tuple containing a boolean value indicating the success of the update operation, and a string message indicating the result or any error.
+
+        The location_data parameter must be a dictionary containing the following keys:
+            - 'id': The ID of the location to be updated.
+            - 'name': The updated name for the location.
+            - 'description': The updated description for the location.
+
+        If the user parameter is None or not an instance of User, the method returns (False, "Invalid user").
+
+        If the location_data parameter is not a dictionary, the method returns (False, "Location data must be a dictionary").
+
+        If there is no location with the specified ID found for the given user, the method returns (False, "No location with ID <location_id> found for user <user.username>").
+
+        If the update operation is successful, the method returns (True, "Location updated successfully").
+
+        If there is an error during the update operation, the method returns (False, "Could not update location with ID <location_id> for user <user.username>").
+
+        Note: This method requires the application context to be active.
+        """
+        if user is None or not isinstance(user, User):
+            msg = "Invalid user"
+            app.logger.error(msg)
+            return False, msg
+
+        if not isinstance(location_data, dict):
+            msg = f"Location data must be a dictionary"
+            app.logger.error(msg)
+            return False, msg
+
+        with app.app_context():
+            location_id = location_data['id']
+
+            location_ = Location.query.filter_by(id=location_id).filter_by(user_id=user.id).one()
+            if location_ is None:
+                msg = f"No location with id {location_id} found for user {user.username}"
+                app.logger.error(msg)
+                return False, msg
+
+            location_.name = location_data['name']
+            location_.description = location_data['description']
+
+            try:
+                # db.session.merge(location_)
+                db.session.commit()
+                return True, "Location updated successfully"
+            except SQLAlchemyError as e:
+                print(e)
+                db.session.rollback()
+                msg = f"Could not update location with id {location_id} for user {user.username}"
+                app.logger.error(msg)
+                return False, msg
 
     @staticmethod
     def get_all_user_locations(user_id: int) -> list[Location]:

@@ -7,9 +7,6 @@ from flask import current_app, Blueprint, render_template, request, flash, redir
 from app import login_manager, flask_bcrypt, app
 from flask_login import (login_required, login_user, logout_user, confirm_login, current_user)
 
-from database.database_functions import update_user_password_by_token, \
-    update_user_password_by_user_id
-
 from email_utils import send_email
 from models import User
 from routes.index_routes import profile
@@ -151,7 +148,7 @@ def reset_password_token(token):
                     return reset_password_token(token)
 
                 password_hash = flask_bcrypt.generate_password_hash(password1)
-                update_user_password_by_token(token=token, password_hash=password_hash)
+                UserService.update_user_password_by_token(token=token, password_hash=password_hash)
                 return login()
             else:
                 flash("Both passwords must match")
@@ -205,7 +202,7 @@ def change_password():
             if new_password1 == new_password2:
                 password_check_results = password_check(new_password1)
                 if password_check_results['password_ok']:
-                    success, possible_error = update_user_password_by_user_id(user_id=current_user.id,
+                    success, possible_error = UserService.update_user_password_by_user_id(user_id=current_user.id,
                                                     password_hash=flask_bcrypt.generate_password_hash(new_password1))
                     if not success:
                         current_app.logger.error(f"Error changing password [{possible_error}]")
@@ -413,3 +410,4 @@ def load_user(id):
             return user
         else:
             return None
+    return None
