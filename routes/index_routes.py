@@ -3,12 +3,16 @@ from flask import Blueprint, render_template, request, redirect, url_for
 from flask_login import login_required, current_user
 
 from app import app
-from database.database_functions import get_user_item_count, \
-    delete_notification_by_id, get_number_user_locations
+from services.field_service import FieldService
+from services.field_template_service import FieldTemplateService
+from services.inventory_service import InventoryService
+from services.item_service import ItemService
+from services.item_type_service import ItemTypeService
+from services.location_service import LocationService
+from services.notification_service import NotificationService
+from services.user_service import UserService
 
 from site_globals import __BAD_REQUEST__
-from services.thinglist_services import UserService, ItemTypeService, InventoryService, FieldTemplateService, \
-    FieldService
 
 main = Blueprint('main', __name__)
 
@@ -41,7 +45,7 @@ def utility_processor():
 
 @main.route('/testimages/<string:image_id>')
 def testimages(image_id):
-    return render_template('testimages.html', image_id=image_id)
+    return render_template(template_name_or_list='testimages.html', image_id=image_id)
 
 @main.route('/images/<int:user_id>/<string:image_id>')
 def images(user_id, image_id):
@@ -74,7 +78,7 @@ def del_notification():
         notification_id = json_data.get('notification_id')
         if notification_id is None:
             return "Missing 'notification_id'", __BAD_REQUEST__
-        delete_notification_by_id(notification_id=notification_id, user=current_user)
+        NotificationService.delete_notification_by_id(notification_id=notification_id, user=current_user)
 
         return redirect(url_for(endpoint='main.profile', username=username))
 
@@ -95,9 +99,9 @@ def profile(username):
 
         # -1 for the default None item type
         num_item_types = len(ItemTypeService.get_all_user_item_types(user_id=current_user.id, string_list=False))
-        num_items = get_user_item_count(user_id=current_user.id)
+        num_items = ItemService.get_user_item_count(user_id=current_user.id)
         num_field_templates = len(FieldTemplateService.get_user_templates(user_id=current_user.id))
-        num_user_locations = get_number_user_locations(user_id=current_user.id)
+        num_user_locations = LocationService.get_number_user_locations(user_id=current_user.id)
         num_user_fields = len(FieldService.get_all_user_fields(user_id=current_user.id))
 
         if user_is_authenticated:

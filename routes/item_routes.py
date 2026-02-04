@@ -12,14 +12,14 @@ from flask import Blueprint, render_template, redirect, url_for, request, jsonif
 from flask_login import login_required, current_user
 
 from app import app
-from database.database_functions import \
-    add_images_to_item, delete_images_from_item, set_item_main_image, \
-    update_item_fields, \
-    set_inventory_default_fields, unrelate_items_by_id, \
-    relate_items_by_id
-
-from services.thinglist_services import ItemService, UserService, FieldService, LocationService, InventoryService, \
-    FieldTemplateService, ItemTypeService
+from services.field_service import FieldService
+from services.field_template_service import FieldTemplateService
+from services.image_service import ImageService
+from services.inventory_service import InventoryService
+from services.item_service import ItemService
+from services.item_type_service import ItemTypeService
+from services.location_service import LocationService
+from services.user_service import UserService
 
 from utils import correct_image_orientation, generate_item_image_filename
 
@@ -320,7 +320,7 @@ def edit_item(item_id):
     if update_result["status"] == "success":
         item_dict = update_result["item"]
         new_item_slug = item_dict['slug']
-        update_item_fields(data=form_data, item_id=int(item_id))
+        ItemService.update_item_fields(data=form_data, item_id=int(item_id))
     else:
         flash("Error updating item")
 
@@ -350,7 +350,7 @@ def edit_inv_default_fields():
 
     field_ids = [str(x) for x in field_ids]
 
-    set_inventory_default_fields(inventory_id=inventory_id, user=current_user, default_fields=field_ids)
+    InventoryService.set_inventory_default_fields(inventory_id=inventory_id, user=current_user, default_fields=field_ids)
 
     return True
 
@@ -404,7 +404,7 @@ def relate_items():
         return jsonify({"message": "No such item"}), __NOT_FOUND__
 
     if relateditem_.id != item_id:
-        relate_items_by_id(item1_id=item_id, item2_id=relateditem_.id)
+        ItemService.relate_items_by_id(item1_id=item_id, item2_id=relateditem_.id)
 
     return redirect(url_for(endpoint='item.item_with_username_and_inventory',
                             list_username=current_user.username,
@@ -423,7 +423,7 @@ def unrelate_items():
         item2_id = bleach.clean(str(item2_id))
         item1 = int(item1_id)
         item2 = int(item2_id)
-        status, message = unrelate_items_by_id(item1_id=item1, item2_id=item2)
+        status, message = ItemService.unrelate_items_by_id(item1_id=item1, item2_id=item2)
         return json.dumps({'success': True}), __OK__, {'ContentType': 'application/json'}
     else:
         return json.dumps({'success': False}), __OK__, {'ContentType': 'application/json'}
@@ -449,7 +449,7 @@ def delete_images():
     image_list = json_data['image_id_list']
     image_list = [bleach.clean(str(x)) for x in image_list]
 
-    status, message = delete_images_from_item(item_id=item_id, image_ids=image_list, user=current_user)
+    status, message = ImageService.delete_images_from_item(item_id=item_id, image_ids=image_list, user=current_user)
 
     if not status:
         flash(message=f"There was a problem deleting the images")
@@ -497,7 +497,7 @@ def set_main_image():
 
     main_image = main_image.replace('/uploads/', '')
 
-    set_item_main_image(main_image_url=main_image, item_id=item_id, user_id=current_user.id)
+    ImageService.set_item_main_image(main_image_url=main_image, item_id=item_id, user_id=current_user.id)
 
     return redirect(url_for(endpoint='item.item_with_username_and_inventory',
                             list_username=username,
@@ -566,7 +566,7 @@ def upload():
         pathlib.Path(os.path.join(app.config['USER_IMAGES_BASE_PATH'], user_id, new_filename)).write_bytes(
             in_mem_file.getbuffer().tobytes())
 
-    add_images_to_item(item_id=item_id, filenames=new_filename_list, user=current_user)
+    ImageService.add_images_to_item(item_id=item_id, filenames=new_filename_list, user=current_user)
 
     return redirect(url_for(endpoint='item.item_with_username_and_inventory',
                             list_username=username,

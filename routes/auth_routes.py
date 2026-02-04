@@ -10,7 +10,7 @@ from flask_login import (login_required, login_user, logout_user, confirm_login,
 from email_utils import send_email
 from models import User
 from routes.index_routes import profile
-from services.thinglist_services import UserService, post_user_add_hook
+from services.user_service import UserService, post_user_add_hook
 
 auth_flask_login = Blueprint('auth_flask_login', __name__, template_folder='templates')
 

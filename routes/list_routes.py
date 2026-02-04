@@ -7,15 +7,13 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 
 from app import app
-from database.database_functions import delete_item_from_inventory, \
-    edit_inventory_data, \
-    add_user_to_inventory, delete_user_to_inventory, \
-    regenerate_inventory_token, add_user_to_inventory_from_token
-
+from services.inventory_service import InventoryService
+from services.item_service import ItemService
+from services.user_service import UserService
 
 from site_globals import __INVENTORY__, __LIST__, __URL_LIST__, __PUBLIC__, __PRIVATE__, __VIEWER__, __READ_ONLY__, \
     __NOT_FOUND__, __OK__, __BAD_REQUEST__
-from services.thinglist_services import InventoryService, UserService, ItemService
+
 from utils import CLEANR
 
 inv = Blueprint('inv', __name__)
@@ -309,7 +307,7 @@ def edit_inventory():
     if "show_item_url" not in request.form:
         show_item_url = 0
 
-    edit_inventory_data(user_id=current_user.id, inventory_id=int(inventory_id),
+    InventoryService.edit_inventory_data(user_id=current_user.id, inventory_id=int(inventory_id),
                         name=inventory_name,
                         description=inventory_description,
                         inventory_type=inventory_type,
@@ -340,7 +338,7 @@ def delete_user_to_inv():
         flash("Issue deleting user from inventory")
         return redirect(url_for('inv.inventories'))
 
-    result, msg = delete_user_to_inventory(inventory_id=inventory_id, user_to_delete_id=user_id)
+    result, msg = InventoryService.delete_user_to_inventory(inventory_id=inventory_id, user_to_delete_id=user_id)
 
     inventory_, user_inventory_ = InventoryService.find_inventory_by_id(inventory_id=inventory_id, user_id=current_user.id)
 
@@ -358,7 +356,7 @@ def regenerate_token():
     json_data = request.json
     inventory_id = json_data['inventory_id']
     new_token = uuid.uuid4().hex
-    status, msg = regenerate_inventory_token(user_id=current_user.id,
+    status, msg = InventoryService.regenerate_inventory_token(user_id=current_user.id,
                                         inventory_id=inventory_id,
                                         new_token=new_token)
 
@@ -379,7 +377,7 @@ def register_for_inventory_access():
 
         inventory_ = InventoryService.get_inventory_by_access_token(access_token=access_token)
         if inventory_ is not None:
-            result = add_user_to_inventory_from_token(inventory_id=inventory_.id, user_to_add=current_user,
+            result = InventoryService.add_user_to_inventory_from_token(inventory_id=inventory_.id, user_to_add=current_user,
                                                       added_user_access_level=__VIEWER__)
             flash(f"Inventory {inventory_.name} added...")
         else:
@@ -438,7 +436,7 @@ def add_user_to_list():
         app.logger.error(f"Issue adding user. (User from form: {user_to_add}) to list (list ID: {list_id}). [Error converting list_id or access_level to int]")
         return redirect(url_for('inv.lists'))
 
-    result, message = add_user_to_inventory(inventory_id=list_id, current_user_id=current_user.id,
+    result, message = InventoryService.add_user_to_inventory(inventory_id=list_id, current_user_id=current_user.id,
                                    user_to_add_username=user_to_add,
                                    added_user_access_level=access_level)
 
@@ -455,7 +453,7 @@ def add_user_to_list():
 def delete_from_inventory(username: str, inventory_slug: str, item_id):
     inventory_, user_inventory_ = InventoryService.find_inventory_by_slug(inventory_slug=inventory_slug,
                                                          inventory_owner_id=current_user.id)
-    delete_item_from_inventory(user=current_user, inventory_id=int(inventory_.id), item_id=int(item_id))
+    InventoryService.delete_item_from_inventory(user=current_user, inventory_id=int(inventory_.id), item_id=int(item_id))
     return redirect(url_for(endpoint='inv.inventory_by_slug', username=username, inventory_slug=inventory_.slug))
 
 

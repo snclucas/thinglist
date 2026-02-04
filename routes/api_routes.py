@@ -2,11 +2,15 @@ import bleach
 from flask import Blueprint, jsonify
 from flask_login import login_required, current_user
 from flask import request
-from database.database_functions import get_all_user_tags, \
-    find_all_my_items, count_all_item_ids_in_inventory, count_all_user_items
+
 from routes.items_routes import _process_url_query
+from services.inventory_service import InventoryService
+from services.item_service import ItemService
+from services.item_type_service import ItemTypeService
+from services.location_service import LocationService
+from services.tag_service import TagService
+from services.user_service import UserService
 from site_globals import __DEFAULT__
-from services.thinglist_services import UserService, LocationService, ItemTypeService, InventoryService, ItemService
 
 api_routes = Blueprint('api', __name__)
 
@@ -32,7 +36,7 @@ def user_item_types():
 @api_routes.route('/api/user-items', methods=['GET', 'POST'])
 @login_required
 def user_items():
-    user_items_ = find_all_my_items(logged_in_user_id=current_user.id)
+    user_items_ = ItemService.find_all_my_items(logged_in_user_id=current_user.id)
     ret_items = []
     for item_ in user_items_:
         ret_items.append(f"{item_.slug}")
@@ -112,9 +116,9 @@ def items(username=None, inventory_slug=None):
                                         logged_in_user=logged_in_user)
 
     if inventory_slug != 'all':
-        num_items_in_inventory = count_all_item_ids_in_inventory(user_id=requested_user.id, inventory_id=inventory_id)
+        num_items_in_inventory = InventoryService.count_all_item_ids_in_inventory(user_id=requested_user.id, inventory_id=inventory_id)
     else:
-        num_items_in_inventory = count_all_user_items(user_id=requested_user.id)
+        num_items_in_inventory = ItemService.count_all_user_items(user_id=requested_user.id)
 
     _already_found_list = []
     ret_items = []
@@ -167,7 +171,7 @@ def locations():
         loc_array.append(f"location: {loc_.name.lower()}")
         new_ret.append({"location": loc_.name.lower()})
 
-    tags_ = get_all_user_tags(user_id=current_user.id)
+    tags_ = TagService.get_all_user_tags(user_id=current_user.id)
     for tag_ in tags_:
         loc_array.append(f"tag: {tag_.tag.lower()}")
         new_ret.append({"tag": tag_.tag.lower()})

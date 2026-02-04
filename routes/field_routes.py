@@ -3,8 +3,7 @@ import bleach
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required, current_user
 
-from database.database_functions import delete_fields_from_db, edit_user_field_by_id
-from services.thinglist_services import FieldService
+from services.field_service import FieldService
 
 field_routes = Blueprint('field', __name__)
 
@@ -26,7 +25,7 @@ def fields_with_username(list_username):
 def delete_field():
     json_data = request.json
     field_ids = json_data['field_ids']
-    delete_fields_from_db(user_id=current_user.id, field_ids=field_ids)
+    FieldService.delete_fields_from_db(user_id=current_user.id, field_ids=field_ids)
     return redirect(url_for('field_routes.fields'))
 
 
@@ -59,7 +58,7 @@ def edit_existing_field():
     if field_type not in ['text', 'textarea', 'bool', 'url']:
         field_type = "input"
 
-    success = edit_user_field_by_id(field_id=field_id,
+    success = FieldService.edit_user_field_by_id(field_id=field_id,
                                     field_name=field_name, field_type=field_type, user_id=current_user.id)
     if not success:
         flash("Failed to edit field")

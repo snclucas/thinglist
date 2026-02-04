@@ -6,9 +6,8 @@ from typing import Tuple
 import bleach
 from slugify import slugify
 
-from database.database_functions import set_item_main_image, \
-    add_images_to_item
-from services.thinglist_services import FieldTemplateService
+from services.field_template_service import FieldTemplateService
+from services.image_service import ImageService
 from utils import generate_item_image_filename
 
 
@@ -21,12 +20,14 @@ def process_field_sets(inventory_data, current_user, found_inv, load_log):
             template_slugs_ = field_set_.get("slugs", [])
             if len(template_slugs_) > 0:
                 template_slugs_ = [bleach.clean(str(x)) for x in template_slugs_]
-                status, msg, field_template_id_ = FieldTemplateService.save_template_fields(template_name=template_name_,
-                                                          fields=template_slugs_, user_id=current_user.id)
+                status, msg, field_template_id_ = FieldTemplateService.save_template_fields(
+                    template_name=template_name_,
+                    fields=template_slugs_, user_id=current_user.id)
 
-                status, save_inv_fieldtemplate_msg = FieldTemplateService.save_inventory_fieldtemplate(inventory_id=found_inv["id"],
-                                                                                  inventory_template=field_template_id_,
-                                                                                  user_id=current_user.id)
+                status, save_inv_fieldtemplate_msg = FieldTemplateService.save_inventory_fieldtemplate(
+                    inventory_id=found_inv["id"],
+                    inventory_template=field_template_id_,
+                    user_id=current_user.id)
                 if status:
                     load_log += f"&nbsp;&nbsp;&nbsp;&nbsp;... created field template {template_name_}.<br>"
                 else:
@@ -36,6 +37,7 @@ def process_field_sets(inventory_data, current_user, found_inv, load_log):
             load_log += f"&nbsp;&nbsp;&nbsp;&nbsp;... no field template found/used.<br>"
 
     return load_log
+
 
 def process_images(item, new_item_, item_id, current_user, root_path,
                    image_base_path, image_secret_key) -> Tuple[bool, str]:
@@ -54,8 +56,8 @@ def process_images(item, new_item_, item_id, current_user, root_path,
         img_hash = img.get("image_hash", None)
 
         if img_is_main == "true":
-            set_item_main_image(main_image_url=img_filename, item_id=item_id,
-                                user_id=current_user.id)
+            ImageService.set_item_main_image(main_image_url=img_filename, item_id=item_id,
+                                             user_id=current_user.id)
 
         img_filepath = os.path.join(root_path, image_base_path,
                                     str(current_user.id), img_filename)
@@ -75,6 +77,6 @@ def process_images(item, new_item_, item_id, current_user, root_path,
             except Exception as ex:
                 return False, f"Error saving image: {str(ex)}"
         else:
-                return False, f"Issue with image hash verification"
+            return False, f"Issue with image hash verification"
 
-    add_images_to_item(new_item_['item']['id'], item_image_filename, user=current_user)
+    ImageService.add_images_to_item(new_item_['item']['id'], item_image_filename, user=current_user)

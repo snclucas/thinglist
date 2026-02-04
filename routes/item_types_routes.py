@@ -7,8 +7,7 @@ from flask import Blueprint, render_template, redirect, url_for, request, make_r
 from flask_login import login_required, current_user
 
 from app import app
-
-from services.thinglist_services import ItemTypeService
+from services.item_type_service import ItemTypeService
 
 types = Blueprint('types', __name__)
 

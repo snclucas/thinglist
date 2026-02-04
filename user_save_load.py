@@ -5,14 +5,37 @@ import os
 
 import bleach
 from flask import current_app
+from sqlalchemy.ext.declarative import DeclarativeMeta
 
 from app import app
 from routes.items_loader import process_images, process_field_sets
-from routes.items_routes import AlchemyEncoder
-from services.thinglist_services import InventoryService, ItemService, LocationService, ItemTypeService, \
-    FieldTemplateService, FieldService
+from services.field_service import FieldService
+from services.field_template_service import FieldTemplateService
+from services.inventory_service import InventoryService
+from services.item_service import ItemService
+from services.item_type_service import ItemTypeService
+from services.location_service import LocationService
 
 from site_globals import __ERROR__, __DEFAULT__, __ALL__
+
+
+class AlchemyEncoder(json.JSONEncoder):
+
+    def default(self, obj):
+        if isinstance(obj.__class__, DeclarativeMeta):
+            # an SQLAlchemy class
+            fields = {}
+            for field in [x for x in dir(obj) if not x.startswith('_') and x != 'metadata']:
+                data = obj.__getattribute__(field)
+                try:
+                    json.dumps(data)  # this will fail on non-encodable values, like other classes
+                    fields[field] = data
+                except TypeError:
+                    fields[field] = None
+            # a json-encodable dict
+            return fields
+
+        return json.JSONEncoder.default(self, obj)
 
 
 def items_load(json_data, current_user, overwrite_or_not, inventory_slug_from_form):

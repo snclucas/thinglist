@@ -1,4 +1,3 @@
-
 import json
 import os
 
@@ -14,14 +13,16 @@ from flask_login import login_required, current_user
 
 from app import app
 from routes.index_routes import profile
-from database.database_functions import \
-    get_users_for_inventory, get_user_inventory_by_id, edit_items_locations, \
-    change_item_access_level, \
-    save_user_inventory_view
+from services.field_service import FieldService
+from services.field_template_service import FieldTemplateService
+from services.inventory_service import InventoryService
+from services.item_service import ItemService
+from services.item_type_service import ItemTypeService
+from services.location_service import LocationService
+from services.user_service import UserService
 
 from site_globals import _COPY_, _MOVE_, __ALL__, __DEFAULT__, __NOT_FOUND__, __PRIVATE__, __PUBLIC__
-from services.thinglist_services import ItemService, LocationService, FieldService, InventoryService, UserService, \
-    FieldTemplateService, ItemTypeService
+from user_save_load import items_save
 
 items_routes = Blueprint('items', __name__)
 
@@ -86,9 +87,6 @@ def items_load():
     return profile(username=username)
 
 
-
-
-
 @items_routes.route(rule='/items/move', methods=['POST'])
 @login_required
 def items_move():
@@ -124,7 +122,8 @@ def items_move():
     copy - duplicate item, add new line in ItemInventory
     """
     if len(item_ids) == 1 and item_ids[0] == -1:
-        item_ids = InventoryService.get_all_item_ids_in_inventory(user_id = current_user.id, inventory_id = from_inventory_id)
+        item_ids = InventoryService.get_all_item_ids_in_inventory(user_id=current_user.id,
+                                                                  inventory_id=from_inventory_id)
 
     if move_type == _MOVE_:
         result = ItemService.move_items(item_ids=item_ids, user=current_user, inventory_id=to_inventory_id)
@@ -145,7 +144,6 @@ def items_move():
 @items_routes.route(rule='/items/edit', methods=['POST'])
 @login_required
 def items_edit():
-
     # get the form data
     json_data = request.json
     username = json_data.get('username', None)
@@ -176,22 +174,22 @@ def items_edit():
     except ValueError:
         flash("There was a problem editing your things!")
         return redirect(url_for('items.items_with_username_and_inventory',
-            username=username, inventory_slug=inventory_slug).replace('%40', '@'))
+                                username=username, inventory_slug=inventory_slug).replace('%40', '@'))
 
     access_level = int(item_visibility)
 
     if specific_location == "" or specific_location == "None":
         specific_location = None
 
-    status, msg = edit_items_locations(item_ids=item_ids, user=current_user, location_id=int(location_id),
-                           specific_location=specific_location)
+    status, msg = ItemService.edit_items_locations(item_ids=item_ids, user=current_user, location_id=int(location_id),
+                                       specific_location=specific_location)
     if not status:
         flash("There was a problem editing your things!")
         return redirect(url_for('items.items_with_username_and_inventory',
                                 username=username, inventory_slug=inventory_slug).replace('%40', '@'))
 
     if access_level != -1:
-        change_item_access_level(item_ids=item_ids, access_level=access_level, user_id=current_user.id)
+        ItemService.change_item_access_level(item_ids=item_ids, access_level=access_level, user_id=current_user.id)
 
     return redirect(url_for(endpoint='items.items_with_username_and_inventory',
                             username=username, inventory_slug=inventory_slug).replace('%40', '@'))
@@ -217,26 +215,6 @@ def items_save_pdf():
         return response
 
 
-from sqlalchemy.ext.declarative import DeclarativeMeta
-
-
-class AlchemyEncoder(json.JSONEncoder):
-
-    def default(self, obj):
-        if isinstance(obj.__class__, DeclarativeMeta):
-            # an SQLAlchemy class
-            fields = {}
-            for field in [x for x in dir(obj) if not x.startswith('_') and x != 'metadata']:
-                data = obj.__getattribute__(field)
-                try:
-                    json.dumps(data)  # this will fail on non-encodable values, like other classes
-                    fields[field] = data
-                except TypeError:
-                    fields[field] = None
-            # a json-encodable dict
-            return fields
-
-        return json.JSONEncoder.default(self, obj)
 
 
 @items_routes.route(rule='/items/manage', methods=['POST'])
@@ -244,16 +222,14 @@ class AlchemyEncoder(json.JSONEncoder):
 def items_manage():
     if request.method == 'POST':
         if request.form.get('export-items-btn', None) is not None:
-            return items_save()
+            return items_save_endpoint()
         else:
             return items_load()
 
 
-
-
 @items_routes.route(rule='/items/save', methods=['POST'])
 @login_required
-def items_save():
+def items_save_endpoint():
     try:
 
         # inventory slug from form, with a safe default
@@ -277,10 +253,8 @@ def items_save():
     except Exception:
         current_app.logger.exception("Unhandled error during items export")
         flash("There was a problem exporting your things!")
-        return redirect(url_for(endpoint='items.items_with_username', list_username=current_user.username).replace('%40', '@'))
-
-
-
+        return redirect(
+            url_for(endpoint='items.items_with_username', list_username=current_user.username).replace('%40', '@'))
 
 
 @items_routes.route('/items')
@@ -312,8 +286,7 @@ def items_with_username(list_username=None):
 
 
 @items_routes.route(rule='/@<string:list_username>/<string:inventory_slug>', methods=['GET'])
-def items_with_username_and_inventory(list_username: str=None, inventory_slug: str=None):
-
+def items_with_username_and_inventory(list_username: str = None, inventory_slug: str = None):
     list_username = bleach.clean(list_username.strip())
     inventory_slug = bleach.clean(inventory_slug.strip())
 
@@ -335,12 +308,10 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
             inventory_owner = current_user
             inventory_owner_id = inventory_owner.id
 
-
     if requested_user is not None:
         requested_user_id = requested_user.id
     else:
         requested_user = current_user
-
 
     request_params = _process_url_query(req_=request, inventory_user=requested_user)
     view = request_params.get("view", "list")  # 0 - list, 1 - grid
@@ -375,9 +346,8 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
         if field_template_id_ is not None:
             field_template_ = FieldTemplateService.find_template_by_id(template_id=field_template_id_)
 
-
     if user_is_authenticated:
-        users_in_this_inventory = get_users_for_inventory(inventory_id=inventory_id)
+        users_in_this_inventory = InventoryService.get_users_for_inventory(inventory_id=inventory_id)
         if users_in_this_inventory is None:
             users_in_this_inventory = {}
 
@@ -396,7 +366,8 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
         # 0 - owner
         # 1 - view
         if inventory_slug != __ALL__:
-            user_inventory_ = get_user_inventory_by_id(user_id=current_user.id, inventory_id=inventory_id)
+            user_inventory_ = InventoryService.get_user_inventory_by_id(user_id=current_user.id,
+                                                                        inventory_id=inventory_id)
             if user_inventory_ is not None:
                 inventory_access_level = user_inventory_.access_level
 
@@ -410,18 +381,17 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
                     _saved_view = user_inventory_.view
                     if _saved_view != view:
                         _new_view = 0 if view == "list" else 1
-                        save_user_inventory_view(user_id=current_user.id,
-                                                 inventory_id=inventory_id, view=_new_view)
+                        InventoryService.save_user_inventory_view(user_id=current_user.id,
+                                                                  inventory_id=inventory_id, view=_new_view)
 
             else:
-                return render_template(template_name_or_list='404.html', message="No inventory or no permissions to view inventory"), 404
+                return render_template(template_name_or_list='404.html',
+                                       message="No inventory or no permissions to view inventory"), 404
 
             is_inventory_owner = (inventory_.owner_id == logged_in_user_id) or inventory_access_level == 0
         else:
             is_inventory_owner = True
             inventory_access_level = 0
-
-
 
     inventory_id = -1
     if inventory_ is not None:
@@ -435,7 +405,6 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
     if view is None:
         view = "list"
 
-
     # collect all the data needed to populate the add items form
     item_types_ = ItemTypeService.get_all_user_and_system_item_types(user_id=inventory_owner_id)
     all_fields = FieldService.get_all_fields()
@@ -446,7 +415,6 @@ def items_with_username_and_inventory(list_username: str=None, inventory_slug: s
     if user_is_authenticated:
         user_locations_ = LocationService.get_all_user_locations(user_id=logged_in_user.id)
         inventory_templates = FieldTemplateService.get_user_templates(user_id=current_user.id)
-
 
     return render_template(template_name_or_list='items/items.html',
                            inventory_id=inventory_id,
@@ -474,13 +442,6 @@ def items_with_inventory(inventory_slug=None):
     return items_with_username_and_inventory(list_username=None, inventory_slug=inventory_slug)
 
 
-
-
-
-
-
-
-
 def find_items_query(requested_username: str, logged_in_user, inventory_id: int, request_params):
     query_params = {
         'item_type': request_params["requested_item_type_id"],
@@ -491,9 +452,9 @@ def find_items_query(requested_username: str, logged_in_user, inventory_id: int,
     }
 
     items_ = ItemService.find_items_new(inventory_id=inventory_id,
-                            query_params=query_params,
-                            requested_username=requested_username,
-                            logged_in_user=logged_in_user)
+                                        query_params=query_params,
+                                        requested_username=requested_username,
+                                        logged_in_user=logged_in_user)
 
     item_id_list = []
     data_dict = []
@@ -505,14 +466,14 @@ def find_items_query(requested_username: str, logged_in_user, inventory_id: int,
             location_ = i[2]
             item_access_level_ = i[3]
             item_is_link_ = i[4]
-            #user_inventory_ = i[5]
+            # user_inventory_ = i[5]
         else:
             item_ = i[0]
             types_ = i[1]
             location_ = i[2]
             item_access_level_ = i[3]
             item_is_link_ = i[4]
-            #user_inventory_ = None
+            # user_inventory_ = None
 
         item_id_list.append(item_.id)
         dat = {"item": item_, "types": types_, "location": location_,
@@ -542,7 +503,8 @@ def _process_url_query(req_, inventory_user):
 
     # convert the text 'types' to an id
     if requested_item_type_string is not None:
-        item_type_ = ItemTypeService.find_item_type_by_text(type_text=requested_item_type_string, user_id=inventory_user.id)
+        item_type_ = ItemTypeService.find_item_type_by_text(type_text=requested_item_type_string,
+                                                            user_id=inventory_user.id)
         if item_type_ is not None:
             requested_item_type_id = item_type_['id']
         else:
@@ -567,7 +529,6 @@ def _process_url_query(req_, inventory_user):
     }
 
 
-
 @items_routes.route(rule='/item/delete', methods=['POST'])
 @login_required
 def del_items():
@@ -585,7 +546,8 @@ def del_items():
         if not form:
             flash("There was a problem deleting your things!")
             current_app.logger.error("No JSON or form data provided to delete endpoint")
-            return redirect(url_for(endpoint='items.items_with_username', list_username=current_user.username).replace('%40', '@'))
+            return redirect(
+                url_for(endpoint='items.items_with_username', list_username=current_user.username).replace('%40', '@'))
         # build data dict from form; allow comma-separated or repeated values for item_ids
         data = {}
         data['username'] = form.get('username')
@@ -596,7 +558,8 @@ def del_items():
     if not data or 'item_ids' not in data or 'username' not in data:
         flash("There was a problem deleting your things!")
         current_app.logger.error("Missing required keys in delete request")
-        return redirect(url_for(endpoint='items.items_with_username', list_username=current_user.username).replace('%40', '@'))
+        return redirect(
+            url_for(endpoint='items.items_with_username', list_username=current_user.username).replace('%40', '@'))
 
     # sanitize username
     username = bleach.clean(data.get('username') or "")
@@ -632,7 +595,9 @@ def del_items():
     if not item_ids:
         flash("There was a problem deleting your things!")
         current_app.logger.error("Error deleting items - no valid item_ids provided")
-        return redirect(url_for(endpoint='items.items_with_username', list_username=username or current_user.username).replace('%40', '@'))
+        return redirect(
+            url_for(endpoint='items.items_with_username', list_username=username or current_user.username).replace(
+                '%40', '@'))
 
     try:
         ItemService.delete_items(item_ids=item_ids, user_id=current_user.id, inventory_id=inventory_id)
@@ -640,5 +605,6 @@ def del_items():
         flash("There was a problem deleting your things!")
         current_app.logger.error("Exception deleting items: %s", str(e))
 
-    redirect_url = url_for(endpoint='items.items_with_username', list_username=username or current_user.username).replace('%40', '@')
+    redirect_url = url_for(endpoint='items.items_with_username',
+                           list_username=username or current_user.username).replace('%40', '@')
     return redirect(redirect_url)

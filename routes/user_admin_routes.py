@@ -5,8 +5,12 @@ from flask import Blueprint, request, render_template
 from flask_login import login_required, current_user
 
 from routes.index_routes import profile
-from services.thinglist_services import InventoryService, ItemService, LocationService, FieldService, \
-    FieldTemplateService, ItemTypeService
+from services.field_service import FieldService
+from services.field_template_service import FieldTemplateService
+from services.inventory_service import InventoryService
+from services.item_service import ItemService
+from services.item_type_service import ItemTypeService
+from services.location_service import LocationService
 
 user_admin_routes = Blueprint('user_admin', __name__)
 

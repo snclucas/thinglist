@@ -1,9 +1,5 @@
 import unittest
 
-from database.database_functions import get_users_for_inventory, \
-    find_items_new, delete_lists_by_id, find_user_item_type_by_name, \
-    find_all_my_items, get_user_item_count, delete_all_user_items, \
-    get_user_unlisted_item_count, find_related_items, relate_items_by_id, unrelate_items_by_id
 from services.thinglist_services import InventoryService, LocationService, ItemService
 
 from site_globals import __INVENTORY__
