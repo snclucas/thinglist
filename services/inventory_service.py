@@ -3,7 +3,7 @@ from secrets import token_urlsafe
 from typing import Dict, Optional, Union, Tuple, List, Any
 
 from slugify import slugify
-from sqlalchemy import select, or_, func, and_
+from sqlalchemy import select, func, and_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from app import db, app
 
@@ -101,12 +101,22 @@ class InventoryService:
 
     @staticmethod
     def get_user_default_inventory_id(user_id: int) -> int:
-        with app.app_context():
-            di_ = InventoryService.get_user_default_inventory(user_id=user_id)
-            if di_ is not None:
-                return di_.id
-            else:
-                return -1
+        """Return the user's default inventory id, or -1 if not found or on error."""
+        if not isinstance(user_id, int):
+            app.logger.debug("get_user_default_inventory_id: user_id must be an integer")
+            return -1
+
+        try:
+            with app.app_context():
+                di_ = InventoryService.get_user_default_inventory(user_id=user_id)
+                return int(di_.id) if di_ is not None and getattr(di_, "id", None) is not None else -1
+        except Exception as e:
+            app.logger.exception(f"Error getting default inventory id for user {user_id}: {e}")
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+            return -1
 
     @staticmethod
     def find_all_user_inventories(user_id: int) -> list:
@@ -684,16 +694,26 @@ class InventoryService:
 
     @staticmethod
     def get_inventory_by_access_token(access_token: str) -> Optional[Inventory]:
-        if access_token is None:
-            err_msg = f"Error finding inventory by access token: access token is None"
-            app.logger.error(err_msg)
+        if not isinstance(access_token, str) or not access_token.strip():
+            app.logger.error("get_inventory_by_access_token: access_token must be a non-empty string")
             return None
         with app.app_context():
-            inventory_ = Inventory.query.filter_by(token=access_token).first()
-            if inventory_ is None:
-                return None
-            else:
+            try:
+                # try both column names used in the codebase (some places use `inventory_token`, others `token`)
+                inventory_ = db.session.query(Inventory).filter(Inventory.inventory_token == access_token).one_or_none()
+                if inventory_ is None:
+                    inventory_ = db.session.query(Inventory).filter(Inventory.token == access_token).one_or_none()
                 return inventory_
+            except SQLAlchemyError as e:
+                app.logger.exception(f"Database error finding inventory by access token: {e}")
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+                return None
+            except Exception as e:
+                app.logger.exception(f"Unexpected error finding inventory by access token: {e}")
+                return None
 
     @staticmethod
     def find_inventory_by_id(inventory_id: int, user_id: int) -> Tuple[Optional[Inventory], Optional[UserInventory]]:
