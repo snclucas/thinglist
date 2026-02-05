@@ -178,8 +178,12 @@ class FieldTemplateService:
         user_template_ = FieldTemplateService.get_user_template_by_id(template_id=template_id, user_id=user_id)
         if user_template_ is not None:
 
-            for field_order, field_dict in field_data.items():
-                field_id = field_dict[1]
+            #for field_order, field_dict in field_data.items():
+            for ff in field_data:
+                #field_id = field_dict[1]
+
+                field_id = ff['id']
+                field_order = ff['position']
 
                 stmt = select(TemplateField).where(FieldTemplate.id == template_id) \
                     .join(FieldTemplate) \

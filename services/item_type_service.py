@@ -66,7 +66,7 @@ class ItemTypeService:
                 .filter(or_(ItemType.user_id == user_id, ItemType.user_id == None)).one_or_none()
 
             if item_type_ is not None:
-                return _to_dict(item_type_)
+                return item_type_
 
             return None
 
@@ -165,12 +165,6 @@ class ItemTypeService:
         with app.app_context():
             try:
                 none_type = ItemTypeService.get_itemtype_by_slug(slug=__none__)
-                # # Ensure a per-user __NONE__ ItemType exists
-                # user_none_type_ = ItemType.query.filter_by(user_id=user_id, name=__NONE__).one_or_none()
-                # if user_none_type_ is None:
-                #     user_none_type_ = ItemType(name=__NONE__, user_id=user_id, slug=slugify(__NONE__))
-                #     db.session.add(user_none_type_)
-                #     db.session.flush()  # ensure id is populated
 
                 # Fetch item types to delete (only those belonging to this user)
                 stmt = select(ItemType).where(ItemType.user_id == user_id, ItemType.id.in_(itemtype_ids))

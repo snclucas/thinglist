@@ -49,41 +49,66 @@ class InventoryService:
                     pass
                 return []
 
+    # improved
     @staticmethod
-    def get_user_public_lists(for_user_id: int) -> list:
+    def get_user_public_lists(for_user_id: int) -> list[dict]:
+        """Return public inventories for `for_user_id` with item counts.
+
+        Uses a single query (outer join + group_by) to avoid loading relationships
+        per-inventory and to reduce DB roundtrips.
+        """
+        if not isinstance(for_user_id, int):
+            app.logger.debug("get_user_public_lists: for_user_id must be an int")
+            return []
+
         if for_user_id is None:
             return []
 
         try:
             with app.app_context():
-                inventories = db.session.query(Inventory).filter(
-                    Inventory.owner_id == for_user_id,
-                    Inventory.access_level == __PUBLIC__
-                ).all()
+                stmt = (
+                    db.session.query(
+                        Inventory.id,
+                        Inventory.name,
+                        Inventory.description,
+                        Inventory.slug,
+                        Inventory.access_level,
+                        Inventory.type,
+                        func.count(InventoryItem.id).label("item_count"),
+                    )
+                    .outerjoin(InventoryItem, InventoryItem.inventory_id == Inventory.id)
+                    .filter(
+                        Inventory.owner_id == for_user_id,
+                        Inventory.access_level == __PUBLIC__,
+                    )
+                    .group_by(
+                        Inventory.id,
+                        Inventory.name,
+                        Inventory.description,
+                        Inventory.slug,
+                        Inventory.access_level,
+                        Inventory.type,
+                    )
+                )
 
-                ret_results: list = []
-                for inv in inventories:
-                    # Prefer counting items via relationship, fall back to a safe 0
-                    try:
-                        item_count = len(inv.items) if getattr(inv, "items", None) is not None else 0
-                    except Exception:
-                        # defensive fallback if relationship access fails
-                        try:
-                            item_count = db.session.query(func.count(InventoryItem.id)).filter(
-                                InventoryItem.inventory_id == inv.id
-                            ).scalar() or 0
-                        except Exception:
-                            item_count = 0
+                rows = db.session.execute(stmt).all()
 
+                if not rows:
+                    return []
+
+                ret_results: list[dict] = []
+                for row in rows:
+                    # row is a SQLAlchemy Row; access by position or by label
+                    item_count = int(row["item_count"] or 0)
                     d = {
-                        "inventory_id": inv.id,
-                        "inventory_name": inv.name,
-                        "inventory_description": inv.description,
-                        "inventory_slug": inv.slug,
-                        "inventory_access_level": inv.access_level,
-                        "inventory_item_count": int(item_count),
-                        "inventory_type": inv.type,
-                        "userinventory_access_level": __PRIVATE__
+                        "inventory_id": int(row[0]),
+                        "inventory_name": row[1],
+                        "inventory_description": row[2],
+                        "inventory_slug": row[3],
+                        "inventory_access_level": int(row[4]),
+                        "inventory_item_count": item_count,
+                        "inventory_type": int(row[5]) if row[5] is not None else None,
+                        "userinventory_access_level": __PRIVATE__,
                     }
                     ret_results.append(d)
 
@@ -421,12 +446,11 @@ class InventoryService:
         if not isinstance(requesting_user_id, int) and requesting_user_id is not None:
             return [], False, "requesting_user_id must be an integer"
 
-        with ((app.app_context())):
-
-            # stmt = db.session.query(Inventory, UserInventory).join(UserInventory).filter(UserInventory.user_id==1).all()
-            stmt = db.session.query(Inventory, UserInventory, User
-                                    ).join(UserInventory, UserInventory.inventory_id == Inventory.id
-                                           ).join(User, User.id == Inventory.owner_id)
+        with app.app_context():
+            # base query selecting the same three entities so result rows are consistent
+            base_q = db.session.query(Inventory, UserInventory, User) \
+                .join(UserInventory, UserInventory.inventory_id == Inventory.id) \
+                .join(User, User.id == Inventory.owner_id)
 
             if current_user_id is not None and requesting_user_id is not None:
                 is_current_user = (current_user_id == requesting_user_id)
@@ -437,18 +461,28 @@ class InventoryService:
 
             if is_current_user:
                 if access_level == -1:
-                    stmt = stmt.filter(UserInventory.user_id == current_user_id)
+                    stmt = base_q.filter(UserInventory.user_id == current_user_id)
                 else:
-                    stmt = stmt.filter(UserInventory.user_id == current_user_id) \
-                        .filter(UserInventory.access_level == access_level)
+                    stmt = base_q.filter(
+                        UserInventory.user_id == current_user_id,
+                        UserInventory.access_level == access_level
+                    )
             else:
-                # stmt = stmt.filter(UserInventory.user_id == requesting_user_id).filter(UserInventory.access_level != 0)
-                stmt = db.session.query(Inventory, UserInventory
-                                        ).join(UserInventory, UserInventory.inventory_id == Inventory.id
-                                               ).filter(Inventory.owner_id == requesting_user_id
-                                                        ).filter(Inventory.access_level == 1)
+                # ensure we still select User so unpacking into (inv, user_inv, owner) is valid
+                stmt = base_q.filter(
+                    Inventory.owner_id == requesting_user_id,
+                    Inventory.access_level == __PUBLIC__
+                )
 
-            r = db.session.execute(stmt).all()
+            try:
+                r = db.session.execute(stmt).all()
+            except SQLAlchemyError as e:
+                app.logger.exception("get_user_inventories DB error: %s", e)
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+                return [], False, "Database error"
 
             ret_results = []
 

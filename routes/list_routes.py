@@ -63,52 +63,78 @@ def lists():
 
 
 @inv.route('/@<string:list_username>/lists')
-def inventories_for_username(list_username):
+def inventories_for_username(list_username: str):
+    # sanitize and validate input
+    safe_username = (bleach.clean(list_username or "")).strip()
+    if not safe_username or len(safe_username) > 150:
+        app.logger.warning("inventories_for_username: invalid username provided: %r", list_username)
+        return render_template(template_name_or_list='404.html', message="No such inventory"), __NOT_FOUND__
+
+    user_is_authenticated = bool(getattr(current_user, "is_authenticated", False))
     current_user_id = None
     requesting_user_id = None
-    if current_user is not None:
-        user_is_authenticated = current_user.is_authenticated
-    else:
-        user_is_authenticated = False
+    user_ = None
 
-    user_ = UserService.get_user_by_username(username=list_username)
-
-    if user_is_authenticated:
-        current_user_id = current_user.id
-        if list_username != current_user.username:
-
-            if user_ is not None:
-                requesting_user_id = user_.id
-                list_username = user_.username
-            else:
-                return render_template(template_name_or_list='404.html', message="No such inventory"), __NOT_FOUND__
-        else:
+    try:
+        # fast-path: viewing your own lists
+        if user_is_authenticated and safe_username == current_user.username:
+            current_user_id = current_user.id
             requesting_user_id = current_user.id
-            list_username = current_user.username
+            user_ = current_user
+        else:
+            # lookup the owner of the requested username
+            user_ = UserService.get_user_by_username(username=safe_username)
+            if user_ is None:
+                app.logger.info("inventories_for_username: no user found for %r", safe_username)
+                return render_template(template_name_or_list='404.html', message="No such inventory"), __NOT_FOUND__
+            requesting_user_id = user_.id
+            if user_is_authenticated:
+                current_user_id = current_user.id
+    except Exception as exc:
+        app.logger.exception("inventories_for_username: error resolving user %r: %s", safe_username, exc)
+        return render_template(template_name_or_list='404.html', message="Error loading inventories"), __NOT_FOUND__
 
-    user_invs, status, msg = InventoryService.get_user_inventories(current_user_id=current_user_id,
-                                     requesting_user_id=requesting_user_id,
-                                     access_level=-1)
+    # fetch inventories (service may apply access checks based on the ids passed)
+    try:
+        user_invs, status, msg = InventoryService.get_user_inventories(
+            current_user_id=current_user_id,
+            requesting_user_id=requesting_user_id,
+            access_level=-1
+        )
+    except Exception as exc:
+        app.logger.exception("inventories_for_username: failed to load inventories for %r: %s", safe_username, exc)
+        return render_template(template_name_or_list='404.html', message="Error loading inventories"), __NOT_FOUND__
 
-    if user_is_authenticated and current_user_id == requesting_user_id:
+    # only fetch public lists for others; avoid calling service with a None user_
+    public_lists = []
+    try:
+        if not (user_is_authenticated and current_user_id == requesting_user_id):
+            public_lists = InventoryService.get_user_public_lists(for_user_id=requesting_user_id)
+    except Exception as exc:
+        app.logger.exception("inventories_for_username: failed to load public lists for user %s: %s", requesting_user_id, exc)
         public_lists = []
-    else:
-        public_lists = InventoryService.get_user_public_lists(for_user_id=user_.id)
 
-    lists_ = user_invs + public_lists
+    lists_ = (user_invs or []) + (public_lists or [])
 
-    if len(lists_) == 0:
+    if not lists_:
         return render_template(template_name_or_list='404.html', message="No inventories"), __NOT_FOUND__
 
-    number_inventories = len(lists_) - 1  # -1 to count for the 'hidden' default inventory
+    number_inventories = max(0, len(lists_) - 1)  # -1 to count for the 'hidden' default inventory
 
-    unlisted_item_count = ItemService.get_user_unlisted_item_count(user_id=user_.id)
+    try:
+        unlisted_item_count = ItemService.get_user_unlisted_item_count(user_id=requesting_user_id)
+    except Exception as exc:
+        app.logger.exception("inventories_for_username: failed to get unlisted item count for %s: %s", requesting_user_id, exc)
+        unlisted_item_count = 0
 
-    return render_template(template_name_or_list='inventory/inventories.html',
-                           unlisted_item_count=unlisted_item_count,
-                           inventories=lists_, list_username=list_username,
-                           user_is_authenticated=user_is_authenticated,
-                           number_inventories=number_inventories)
+    return render_template(
+        template_name_or_list='inventory/inventories.html',
+        unlisted_item_count=unlisted_item_count,
+        inventories=lists_,
+        list_username=safe_username,
+        user_is_authenticated=user_is_authenticated,
+        number_inventories=number_inventories
+    )
 
 
 @inv.route('/list/<int:inventory_id>')
@@ -165,7 +191,6 @@ def add_inventory():
     show_default_fields = 1
     if "hide_default_fields" in request.form:
         show_default_fields = 0
-
 
     show_item_images = 1
     if "show_item_images" not in request.form:
@@ -242,82 +267,102 @@ def del_inventory():
     return redirect(url_for('inv.lists'))
 
 
-
+# IMPROVED
 @inv.route(rule='/list/edit', methods=['POST'])
 @login_required
 def edit_inventory():
+    # helpers
+    def safe_int(value, default=None):
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return default
 
-    inventory_id = request.form.get("inventory_id", None)
-    if inventory_id is None:
+    MAX_NAME_LEN = 255
+    MAX_DESC_LEN = 2000
+
+    form = request.form
+
+    # required id
+    inventory_id_raw = form.get("inventory_id")
+    if not inventory_id_raw:
         flash("Issue editing inventory")
+        app.logger.error("edit_inventory: missing inventory_id")
         return redirect(url_for('inv.lists'))
 
-    inventory_id = bleach.clean(inventory_id)
+    inventory_id = safe_int(bleach.clean(inventory_id_raw))
+    if inventory_id is None or inventory_id <= 0:
+        flash("Issue editing inventory")
+        app.logger.error("edit_inventory: invalid inventory_id '%s'", inventory_id_raw)
+        return redirect(url_for('inv.lists'))
 
-    inventory_name = request.form.get("inventory_name", None)
-    inventory_description = request.form.get("inventory_description", "")
-    inventory_description = bleach.clean(inventory_description)
+    # fetch inventory and check permissions
+    inventory_obj, user_inventory = InventoryService.find_inventory_by_id(inventory_id=inventory_id, user_id=current_user.id)
+    if inventory_obj is None:
+        flash("No such inventory")
+        app.logger.warning("edit_inventory: inventory not found: %s", inventory_id)
+        return redirect(url_for('inv.lists'))
+    # ensure current user can edit; user_inventory may indicate access level
+    if not (inventory_obj.owner_id == current_user.id or (user_inventory and user_inventory.can_edit())):
+        flash("You do not have permission to edit this inventory")
+        app.logger.warning("edit_inventory: permission denied for user %s on inventory %s", current_user.id, inventory_id)
+        return redirect(url_for('inv.lists'))
 
-    inventory_type = request.form.get("inventory_type", __INVENTORY__)
-    inventory_type = bleach.clean(inventory_type)
+    # name and description
+    inventory_name = form.get("inventory_name")
+    if not inventory_name:
+        flash("Issue editing inventory, inventory name cannot be blank")
+        app.logger.error("edit_inventory: blank inventory_name for inventory %s", inventory_id)
+        return redirect(url_for('inv.lists'))
+    inventory_name = bleach.clean(inventory_name).strip()[:MAX_NAME_LEN]
+
+    inventory_description = form.get("inventory_description", "")
+    inventory_description = bleach.clean(inventory_description).strip()[:MAX_DESC_LEN]
+
+    # inventory type
+    inventory_type_raw = form.get("inventory_type", str(__INVENTORY__))
+    inventory_type = safe_int(bleach.clean(inventory_type_raw))
+    allowed_types = {__INVENTORY__, __LIST__, __URL_LIST__}
+    if inventory_type not in allowed_types:
+        flash("Issue editing inventory, inventory type must be valid")
+        app.logger.error("edit_inventory: invalid inventory_type '%s' for inventory %s", inventory_type_raw, inventory_id)
+        return redirect(url_for('inv.lists'))
+
+    # access level (limit to expected values)
+    access_level_ = __PRIVATE__ if "inventory_public" not in form else __PUBLIC__
+    if access_level_ not in (int(__PRIVATE__), int(__PUBLIC__)):
+        access_level_ = __PRIVATE__
+
+    # boolean flags as 0/1
+    show_default_fields = 0 if "edit_form_hide_default_fields" in form else 1
+    show_item_images = 1 if "show_item_images" in form else 0
+    show_item_type = 1 if "show_item_type" in form else 0
+    show_item_location = 1 if "show_item_location" in form else 0
+    show_item_tags = 1 if "show_item_tags" in form else 0
+    show_item_url = 1 if "show_item_url" in form else 0
 
     try:
-        inventory_id = int(inventory_id)
-        inventory_type = int(inventory_type)
-    except ValueError:
-        flash("Issue editing inventory")
-        return redirect(url_for('inv.lists'))
-
-    if inventory_name is None:
-        flash("Issue editing inventory, inventory name cannot be blank")
-        return redirect(url_for('inv.lists'))
-    inventory_name = bleach.clean(request.form.get("inventory_name"))
-
-    if inventory_type == __LIST__ or inventory_type == __INVENTORY__ or inventory_type == __URL_LIST__:
-        inventory_type = int(bleach.clean(request.form.get("inventory_type")))
-    else:
-        flash("Issue editing inventory, inventory type needs to be 1 (inventory), 2 (list) or 3 (URL list)")
-        return redirect(url_for('inv.lists'))
-
-    access_level_ = __PRIVATE__
-    if "inventory_public" in request.form:
-        access_level_ = __PUBLIC__
-
-    show_default_fields = 1
-    if "edit_form_hide_default_fields" in request.form:
-        show_default_fields = 0
-
-    show_item_images = 1
-    if "show_item_images" not in request.form:
-        show_item_images = 0
-
-    show_item_type = 1
-    if "show_item_type" not in request.form:
-        show_item_type = 0
-
-    show_item_location = 1
-    if "show_item_location" not in request.form:
-        show_item_location = 0
-
-    show_item_tags = 1
-    if "show_item_tags" not in request.form:
-        show_item_tags = 0
-
-    show_item_url = 1
-    if "show_item_url" not in request.form:
-        show_item_url = 0
-
-    InventoryService.edit_inventory_data(user_id=current_user.id, inventory_id=int(inventory_id),
-                        name=inventory_name,
-                        description=inventory_description,
-                        inventory_type=inventory_type,
-                        show_default_fields=show_default_fields,
-                        show_item_images=show_item_images,
-                        show_item_type=show_item_type,
-                        show_item_location=show_item_location,
-                        show_item_tags=show_item_tags,
-                        show_item_url=show_item_url,
-                        access_level=int(access_level_))
+        result = InventoryService.edit_inventory_data(
+            user_id=current_user.id,
+            inventory_id=inventory_id,
+            name=inventory_name,
+            description=inventory_description,
+            inventory_type=inventory_type,
+            show_default_fields=int(show_default_fields),
+            show_item_images=int(show_item_images),
+            show_item_type=int(show_item_type),
+            show_item_location=int(show_item_location),
+            show_item_tags=int(show_item_tags),
+            show_item_url=int(show_item_url),
+            access_level=int(access_level_)
+        )
+        # if service returns status or raises, handle accordingly
+        if result is False or result is None:
+            flash("Failed to update inventory")
+            app.logger.error("edit_inventory: InventoryService.edit_inventory_data returned failure for %s", inventory_id)
+    except Exception as exc:
+        app.logger.exception("edit_inventory: exception updating inventory %s: %s", inventory_id, exc)
+        flash("Error updating inventory")
 
     return redirect(url_for('inv.lists'))
 
@@ -372,16 +417,16 @@ def regenerate_token():
 @inv.route('/list/access', methods=['POST'])
 @login_required
 def register_for_inventory_access():
-    if request.method == 'POST':
-        access_token = bleach.clean(request.form.get("access_token"))
 
-        inventory_ = InventoryService.get_inventory_by_access_token(access_token=access_token)
-        if inventory_ is not None:
-            result = InventoryService.add_user_to_inventory_from_token(inventory_id=inventory_.id, user_to_add=current_user,
-                                                      added_user_access_level=__VIEWER__)
-            flash(f"Inventory {inventory_.name} added...")
-        else:
-            flash("Invalid inventory access token")
+    access_token = bleach.clean(request.form.get("access_token"))
+
+    inventory_ = InventoryService.get_inventory_by_access_token(access_token=access_token)
+    if inventory_ is not None:
+        result = InventoryService.add_user_to_inventory_from_token(inventory_id=inventory_.id, user_to_add=current_user,
+                                                  added_user_access_level=__VIEWER__)
+        flash(f"Inventory {inventory_.name} added...")
+    else:
+        flash("Invalid inventory access token")
 
     return redirect(url_for('inv.lists'))
 

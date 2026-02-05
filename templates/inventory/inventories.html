@@ -48,10 +48,10 @@
                                 </div>
                             </div>
                             {% if user_is_authenticated %}
-                            <div class="row">
+                                <div class="row">
                                     <div class="col-md-12"><small class="text-right">
                                         <a href="{{ url_for('items.items_with_username_and_inventory', list_username=list_username, inventory_slug='default') | replace('%40', '@') }}">
-                             Unlisted items | {{ unlisted_item_count }}</a>
+                                            Unlisted items | {{ unlisted_item_count }}</a>
 
                                     </small></div>
                                 </div>
@@ -111,127 +111,15 @@
 
 {% block footer %}
     {{ super() }}
-    <script src="{{ url_for('static', filename='js/thinglist.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/lists.js') }}"></script>
 
     <script>
-
-        $(document).ready(function () {
-            check_checkboxes()
-
-            $('#inventories-table').DataTable({
-                "searching": true,
-                paging: false,
-                ordering: true,
-                info: true,
-                responsive: {
-                    details: false
-                }
-            });
-
-            $(function () {
-                $('[data-toggle="tooltip"]').tooltip()
-            })
-
-        });
-
-        $("#cancel-delete-inventories-btn").on("click", function (e) {
-            deselect_all_checkboxes("selected-item-")
-            $("#collapseDeleteInventories").collapse("hide");
-        });
-
-        $('input:checkbox[id^="selected-item-"]').on("click", function (e) {
-            check_checkboxes();
-        });
-
-        function check_checkboxes() {
-            let number_selected = checkbox_count("selected-item-")
-
-            let delete_collapse_btn_selector = $('#delete-inventories-btn-collapse');
-            let delete_btn_selector = $('#delete-inventories-btn');
-            let delete_span_selector = $('#delete-inventories-span');
-
-            if (number_selected > 0) {
-                delete_collapse_btn_selector.attr('href', '#collapseDeleteInventories');
-                delete_btn_selector.css("pointer-events", "auto");
-                delete_span_selector.css('color', 'red');
-                delete_btn_selector.prop('disabled', false);
-                delete_collapse_btn_selector.prop('disabled', false);
-                delete_btn_selector.attr('disabled', 'disabled');
-            } else {
-                $("#collapseDeleteInventories").collapse("hide");
-                delete_collapse_btn_selector.removeAttr('href');
-                delete_btn_selector.css("pointer-events", "none");
-                delete_span_selector.css('color', 'lightgray');
-                delete_btn_selector.prop('disabled', true);
-                delete_collapse_btn_selector.prop('disabled', true);
-                delete_btn_selector.removeAttr('disabled');
-            }
-        }
-
-        $('[id^=inventoryEdit]').click(function () {
-            let inventory_id = $(this).attr('data-inventory-id');
-            let inventory_name = $(this).attr('data-inventory-name');
-            let inventory_desc = $(this).attr('data-inventory-description');
-            let inventory_type = $(this).attr('data-inventory-type');
-            let inventory_public = $(this).attr('data-inventory-public');
-
-            let inventory_show_item_images = $(this).attr('data-inventory-show-item-images');
-            let inventory_show_item_type = $(this).attr('data-inventory-show-item-type');
-            let inventory_show_item_location = $(this).attr('data-inventory-show-item-locatio');
-            let inventory_show_item_tags = $(this).attr('data-inventory-show-item-tags');
-
-            $('#edit_form_inventory_id').val(inventory_id)
-            $('#edit_form_inventory_name').val(inventory_name)
-            $('#edit_form_inventory_description').val(inventory_desc)
-
-            $("div.inv_type select").val(inventory_type);
-
-            let inventory_public_is_checked = (inventory_public === "3")
-            //let inventory_show_def_fields_is_checked = (inventory_show_def_fields === "0")
-
-            let inventory_show_item_images_is_checked = (inventory_show_item_images === "1")
-            let inventory_show_item_type_is_checked = (inventory_show_item_type === "1")
-            let inventory_show_item_location_is_checked = (inventory_show_item_location === "1")
-            let inventory_show_item_tags_is_checked = (inventory_show_item_tags === "1")
-
-            $('#edit_form_inventory_public').prop('checked', inventory_public_is_checked);
-            //$('#edit_form_hide_default_fields').prop('checked', inventory_show_def_fields_is_checked);
-
-
-            $('#edit_form_show_item_images').prop('checked', inventory_show_item_images_is_checked);
-            $('#edit_form_show_item_type').prop('checked', inventory_show_item_type_is_checked);
-            $('#edit_form_show_item_location').prop('checked', inventory_show_item_location_is_checked);
-            $('#edit_form_show_item_tags').prop('checked', inventory_show_item_tags_is_checked);
-
-        });
-
-        $("#confirm-delete-inventories-btn").on("click", function (e) {
-            e.preventDefault();
-
-            let selected_list = get_selected_checkbox_ids("selected-item-", "data-inventory-id")
-
-            $.ajax({
-                type: "POST",
-                url: "{{ url_for('inv.del_inventory')}}",
-                contentType: 'application/json;charset=UTF-8',
-                headers: {
-                    "X-CSRFToken": "{{ csrf_token() }}",
-                },
-                data: JSON.stringify(
-                    {
-                        'inventory_ids': selected_list,
-                        'username': "{{ username }}",
-                    }
-                ),
-                success: function () {
-                    location.reload();
-                },
-                error: function () {
-                    location.reload();
-                }
-            });
-        });
-
+        // safe export of server values into a JS object
+        window.INVENTORY_PAGE = {{ {
+            "csrfToken": csrf_token() | default(None),
+            "username": list_username | default(None),
+            "delInventoryUrl": url_for('inv.del_inventory') | default(None)
+          } | tojson }};
     </script>
 
 {% endblock %}

@@ -61,27 +61,68 @@ class FieldService:
             return [r[0] for r in res_]
 
     @staticmethod
-    def set_field_status(item_id, field_ids, is_visible=True):
+    def set_field_status(item_id, field_ids, is_visible=True) -> bool:
+        """
+        Efficiently set which fields are shown for an item.
+
+        - Normalizes inputs.
+        - Loads existing ItemField rows for the item once.
+        - Adds/updates/deletes rows as needed.
+        - Commits once; rolls back on error.
+        Returns True on success, False on failure.
+        """
+        from sqlalchemy.exc import SQLAlchemyError
+
         with app.app_context():
+            try:
+                # normalize item_id
+                item_id = int(item_id)
+            except (TypeError, ValueError):
+                return False
 
-            all_fields = FieldService.get_all_fields()
+            # normalize field_ids to a set of ints (empty set -> no fields shown)
+            desired_ids = set()
+            if field_ids is None:
+                desired_ids = set()
+            elif isinstance(field_ids, (list, tuple, set)):
+                try:
+                    desired_ids = {int(fid) for fid in field_ids}
+                except (TypeError, ValueError):
+                    return False
+            else:
+                # single id provided
+                try:
+                    desired_ids = {int(field_ids)}
+                except (TypeError, ValueError):
+                    return False
 
-            for field_name, field in dict(all_fields).items():
-                show = (field.id in field_ids)
+            try:
+                # load existing ItemField rows for this item in one query
+                existing = ItemField.query.filter_by(item_id=item_id).all()
+                existing_map = {row.field_id: row for row in existing}
 
-                instance_ = ItemField.query.filter_by(item_id=int(item_id), field_id=int(field.id)).first()
-                if instance_:
-                    if show:
-                        instance_.show = show
+                # create or update rows for desired_ids
+                for fid in desired_ids:
+                    row = existing_map.pop(fid, None)
+                    if row:
+                        # ensure show is True (preserve other attributes)
+                        if not row.show:
+                            row.show = True
                     else:
-                        db.session.delete(instance_)
-                    db.session.commit()
-                else:
-                    if show:
-                        instance_ = ItemField(item_id=int(item_id), field_id=int(field.id), show=show)
-                        db.session.add(instance_)
+                        # create new visible mapping
+                        db.session.add(ItemField(item_id=item_id, field_id=fid, show=True))
+
+                # any remaining rows in existing_map are not desired -> delete them
+                for row in existing_map.values():
+                    db.session.delete(row)
 
                 db.session.commit()
+                return True
+
+            except SQLAlchemyError as ex:
+                app.logger.error(f"set_field_status failed: {ex}")
+                db.session.rollback()
+                return False
 
     @staticmethod
     def get_all_fields():
@@ -97,7 +138,7 @@ class FieldService:
                 return []
 
     @staticmethod
-    def get_by_slug(slug: str):
+    def get_field_by_slug(slug: str):
         if not slug:
             return None
         return Field.query.filter_by(slug=slug).first()

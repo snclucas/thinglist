@@ -1,0 +1,129 @@
+/* static/css/field_selector.css */
+:root{
+  --table-border: #e6e6e6;
+  --header-bg: #f2f7f0; /* matches a light "success" tone */
+  --row-hover: #fbfdfb;
+  --muted: #6c757d;
+  --accent: #0d6efd;
+}
+
+/* Container (keeps original sizes but moves styles to CSS) */
+.overflow-auto {
+  max-width: 100pc;
+  max-height: 800px;
+  overflow: auto;
+  padding: 0.25rem;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+
+/* Main table */
+#item-field-table,
+#item-field-table.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  font-size: 0.95rem;
+  color: #222;
+  border: 1px solid var(--table-border);
+}
+
+/* Header */
+#item-field-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--table-border);
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  color: #103040;
+}
+
+/* Body rows */
+#item-field-table tbody tr {
+  transition: background-color 120ms ease;
+}
+#item-field-table tbody tr:hover {
+  background: var(--row-hover);
+}
+
+/* Cells */
+#item-field-table td {
+  padding: 0.45rem 0.75rem;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--table-border);
+}
+
+/* First column: field name - prevent wrapping and ellipsize */
+#item-field-table td:first-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 40ch;
+}
+
+/* Include column: center checkbox */
+#item-field-table td:nth-child(2) {
+  width: 1%;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* Align checkbox nicely */
+#item-field-table .form-check-input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+/* Hide the hidden input visually (keeps it in DOM) */
+#item-field-table input[type="hidden"] {
+  display: none;
+}
+
+/* Small visual focus for keyboard users */
+#item-field-table .form-check-input:focus {
+  outline: 2px solid rgba(13,110,253,0.25);
+  outline-offset: 2px;
+}
+
+/* Zebra effect for improved scanning */
+#item-field-table tbody tr:nth-child(odd) {
+  background: #a2b5e8;
+}
+#item-field-table tbody tr:nth-child(even) {
+  background: #d7d9e6;
+}
+
+/* Compact mode for small screens */
+@media (max-width: 576px) {
+  #item-field-table {
+    font-size: 0.9rem;
+  }
+  #item-field-table td:first-child {
+    max-width: 30ch;
+  }
+}
+
+/* WebKit custom scrollbar for container */
+.overflow-auto::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+.overflow-auto::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.12);
+  border-radius: 8px;
+}
+.overflow-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+
+#sort-field-table td:nth-child(1) {
+  cursor: move;
+}

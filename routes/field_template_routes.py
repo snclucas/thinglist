@@ -5,7 +5,6 @@ import bleach
 from flask import Blueprint, render_template, redirect, url_for, request, abort, Response
 from flask_login import login_required, current_user
 
-from models import FieldTemplate
 from services.field_service import FieldService
 from services.field_template_service import FieldTemplateService
 
@@ -24,7 +23,7 @@ def templates():
 @login_required
 def sort_template(template_id):
     if request.method == 'GET':
-        all_fields = dict(FieldService.get_all_fields())
+        all_fields = FieldService.get_all_fields()
 
         user_template_ = FieldTemplateService.get_user_template_by_id(template_id=template_id, user_id=current_user.id)
 
@@ -123,23 +122,69 @@ def delete_template():
 @field_template.route('/field-templates/add', methods=['POST'])
 @login_required
 def add_template():
-    template_id = request.form.get("template_id")
-    template_name = request.form.get("template_name")
-    template_fields = request.form.get("template_fields")
+    from flask import current_app
+    template_id_raw = request.form.get("template_id")
+    template_name = request.form.get("template_name", "")
+    template_fields_raw = request.form.get("template_fields", "")
 
-    new_template_data = {
-        "id": template_id,
-        "name": template_name,
-        "fields": template_fields,
-    }
+    # sanitize name
+    template_name = bleach.clean(template_name or "").strip()
+    if not template_name:
+        abort(Response("Template name is required", __BAD_REQUEST__))
 
-    potential_template = FieldTemplateService.find_template(template_id=int(template_id))
+    # parse template_fields: accept JSON array/obj or comma-separated list
+    field_ids = []
+    try:
+        if template_fields_raw:
+            s = template_fields_raw.strip()
+            if s.startswith(("[", "{")):
+                parsed = json.loads(s)
+                if isinstance(parsed, dict):
+                    # common payload shape: { "fields": [...] }
+                    parsed = parsed.get("fields", [])
+                if not isinstance(parsed, (list, tuple)):
+                    raise ValueError("Invalid JSON shape for template_fields")
+                field_ids = [int(x) for x in parsed]
+            else:
+                # comma separated string like "1,2,3"
+                field_ids = [int(x) for x in s.split(",") if x.strip()]
+    except (ValueError, TypeError, json.JSONDecodeError) as exc:
+        current_app.logger.warning("Invalid template_fields: %s", exc)
+        abort(Response("Invalid template fields format", __BAD_REQUEST__))
 
-    if potential_template is None:
-        template_ = FieldTemplate(name=new_template_data['name'], fields=new_template_data['fields'])
-        FieldTemplateService.add_new_template(name=template_name,
-                                              fields=template_fields, to_user=current_user)
-    else:
-        FieldTemplateService.update_template_by_id(template_data=new_template_data, user=current_user)
+    # require at least one valid positive integer field id
+    field_ids = [fid for fid in field_ids if isinstance(fid, int) and fid > 0]
+    if not field_ids:
+        abort(Response("At least 1 valid field id is required", __BAD_REQUEST__))
+
+    # normalize template_id (optional)
+    template_id = None
+    if template_id_raw:
+        try:
+            template_id = int(template_id_raw)
+            if template_id <= 0:
+                template_id = None
+        except (ValueError, TypeError):
+            current_app.logger.info("Ignoring invalid template_id: %r", template_id_raw)
+            template_id = None
+
+    try:
+        if template_id is None:
+            # create new template
+            FieldTemplateService.add_new_template(name=template_name, fields=field_ids, to_user=current_user)
+        else:
+            # update existing template: ensure it exists and belongs to the current user
+            potential_template = FieldTemplateService.find_template_by_id(template_id=template_id)
+            if potential_template is None:
+                abort(Response("Template not found", __BAD_REQUEST__))
+            owner_id = getattr(potential_template, "user_id", None)
+            if owner_id is not None and owner_id != current_user.id:
+                abort(Response("Forbidden", 403))
+            new_template_data = {"id": template_id, "name": template_name, "fields": field_ids}
+            FieldTemplateService.update_template_by_id(template_data=new_template_data, user=current_user)
+
+    except Exception as exc:  # log and return generic server error
+        current_app.logger.error("Failed to save template: %s", exc, exc_info=True)
+        abort(Response("Failed to save template", 500))
 
     return redirect(url_for('field_template.templates'))

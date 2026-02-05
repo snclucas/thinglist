@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/field_selector.css') }}">
+{% endblock %}
+
 {% block content %}
 
     <div class="content">
@@ -28,13 +33,11 @@
                                         </thead>
                                         <tbody>
                                         {% for field_order, field_data in fields.items() %}
-
-                                                <tr>
-                                                    <td>{{ field_order }}</td>
-                                                    <td>{{ field_data['id'] }}</td>
-                                                    <td>{{ field_data['name'] }}</td>
-                                                </tr>
-
+                                            <tr data-field-id="{{ field_data['id'] }}">
+                                                <td>{{ field_order }}</td>
+                                                <td>{{ field_data['id'] }}</td>
+                                                <td>{{ field_data['name'] }}</td>
+                                            </tr>
                                         {% endfor %}
                                         </tbody>
                                     </table>
@@ -56,66 +59,62 @@
 {% block footer %}
     {{ super() }}
 
+
     <script>
         $(document).ready(function () {
             let table = $('#sort-field-table').DataTable({
-                "searching": false,
+                searching: false,
                 paging: false,
                 info: true,
                 columnDefs: [
-                    {targets: 0, visible: false},
-                    {targets: 1, visible: false}
+                    { targets: [0, 1], visible: false } // keep order/id columns hidden
                 ],
                 rowReorder: {
-                    selector: 'tr'
+                    // let users drag by the visible "Field" cell (3rd column)
+                    selector: 'td:nth-child(1)',
+                    snapX: true
                 }
             });
 
-            table.on('row-reordered', function (e, diff, edit) {
-                table.one('draw', function () {
-                    console.log('Redraw occurred at: ' + new Date().getTime());
-
-                    table.rows().every(function (rowIdx, tableLoop, rowLoop) {
-                        console.log(rowIdx, this.data());
-                    });
-
-                });
+            // optional: log reorder diffs for debugging
+            table.on('row-reorder', function (e, diff, edit) {
+                if (diff && diff.length) {
+                    console.log('row-reorder diff:', diff);
+                }
             });
 
             $("#save-order-btn").on("click", function (e) {
                 e.preventDefault();
 
-                let row_order = {}
-                table.rows().every(function (rowIdx, tableLoop, rowLoop) {
-                    row_order[rowLoop] = this.data()
+                // Build an ordered array of {id, position} from the current applied order
+                let row_order = [];
+                table.rows({ order: 'applied' }).every(function (rowIdx, tableLoop, rowLoop) {
+                    let data = this.data(); // DOM-sourced row -> array: [order, id, name]
+                    // data[1] contains the field id (per your template)
+                    row_order.push({
+                        id: data[1],
+                        position: rowLoop
+                    });
                 });
 
                 $.ajax({
                     type: "POST",
-                    url: "{{ url_for('field_template.sort_template', template_id=template_id)}}",
+                    url: "{{ url_for('field_template.sort_template', template_id=template_id) }}",
                     contentType: 'application/json;charset=UTF-8',
                     headers: {
                         "X-CSRFToken": "{{ csrf_token() }}",
                     },
-                    data: JSON.stringify(
-                        {
-                            'row_order': row_order
-                        }
-                    ),
+                    data: JSON.stringify({ row_order: row_order }),
                     success: function () {
-                        window.location.href = "{{ url_for('field_template.templates')}}"
+                        window.location.href = "{{ url_for('field_template.templates') }}";
                     },
                     error: function () {
                         location.reload();
                     }
                 });
-
-
             });
 
         });
-
-
     </script>
 
 {% endblock %}
