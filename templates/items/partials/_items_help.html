@@ -1,24 +1,101 @@
+<!-- html -->
+<section class="items-help-section" aria-labelledby="items-help-title">
+  <style>
+    .help-card { margin: 1rem auto; }
+    .help-header { display:flex; gap:0.6rem; align-items:center; }
+    .help-icon { font-size:1.6rem; color:#0d6efd; }
+    .help-list { list-style:none; padding:0; margin:0; }
+    .help-list li { display:flex; gap:0.6rem; align-items:flex-start; padding:0.45rem 0; border-bottom:1px solid rgba(0,0,0,0.04); }
+    .help-list li:last-child { border-bottom:none; }
+    .example { background:#f8f9fa; border:1px solid rgba(0,0,0,0.04); padding:0.6rem; border-radius:4px; font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace; }
+    .muted { color:#6c757d; }
+    details summary { cursor:pointer; font-weight:600; }
+    .icon-lg { font-size:1.25rem; width:1.6rem; text-align:center; }
+  </style>
+
+  <div class="card help-card" role="region" aria-labelledby="items-help-title">
+    <div class="card-body">
+      <div class="help-header">
+        <i class="fas fa-th-list help-icon" aria-hidden="true"></i>
+        <div>
+          <h4 id="items-help-title" class="mb-0">Items list — quick reference</h4>
+          <div class="muted">Short guide to the item list toolbar and common actions</div>
+        </div>
+      </div>
+
+      <hr>
+
+      <p class="small muted">This view shows items in the current inventory. Use the toolbar icons to add, filter, select and manage items quickly.</p>
+
+      {% if is_inventory_owner or inventory_access_level == __COLLABORATOR__ %}
+      <ul class="help-list mt-3" aria-hidden="false">
+        <li>
+          <div class="icon-lg"><i class="fas fa-list" aria-hidden="true"></i></div>
+          <div>
+            <strong>Default fields</strong>
+            <div class="muted">Open the default fields control to choose which fields are preselected when creating new items in this inventory.</div>
+          </div>
+        </li>
+
+        <li>
+          <div class="icon-lg"><i class="fas fa-plus" aria-hidden="true"></i></div>
+          <div>
+            <strong>Add new item</strong>
+            <div class="muted">Creates a new item using the inventory's default fields. Fill required fields then save.</div>
+          </div>
+        </li>
+
+        <li>
+          <div class="icon-lg"><i class="fas fa-minus" aria-hidden="true"></i></div>
+          <div>
+            <strong>Delete selected</strong>
+            <div class="muted">Delete one or more items selected via the checkboxes. Deleted items are removed immediately; use caution.</div>
+          </div>
+        </li>
+
+        <li>
+          <div class="icon-lg"><i class="fas fa-filter" aria-hidden="true"></i></div>
+          <div>
+            <strong>Filter list</strong>
+            <div class="muted">Apply filters to narrow results by field values, tags or text. Combine filters for precise searches.</div>
+          </div>
+        </li>
+
+        <li>
+          <div class="icon-lg"><i class="fas fa-ellipsis-v" aria-hidden="true"></i></div>
+          <div>
+            <strong>Button bar</strong>
+            <div class="muted">Open for more actions such as moving, bulk editing, exporting or changing visibility.</div>
+          </div>
+        </li>
+
+        <li>
+          <div class="icon-lg"><i class="fas fa-exchange-alt" aria-hidden="true"></i></div>
+          <div>
+            <strong>Move items</strong>
+            <div class="muted">Move selected items to another inventory; attachments and fields are preserved.</div>
+          </div>
+        </li>
+
+        <li>
+          <div class="icon-lg"><i class="fas fa-edit" aria-hidden="true"></i></div>
+          <div>
+            <strong>Bulk edit</strong>
+            <div class="muted">Edit a field across multiple selected items in one operation.</div>
+          </div>
+        </li>
+      </ul>
+      {% else %}
+      <p class="muted">You have read-only access to this inventory. Contact the owner to request edit permissions.</p>
+      {% endif %}
+
+      <hr>
 
 
-<p>This is the list of your magnificent items.</p>
-
-{% if is_inventory_owner or inventory_access_level == __COLLABORATOR__ %}
-
-    <p><i class="fas fa-list fa-2x"></i> &nbsp; sets the default fields used for new items added to a particular inventory.</p>
-
-    <p><i class="fas fa-plus fa-2x"></i> &nbsp; adds a new item.
-
-    <p><i class="fas fa-minus fa-2x"></i> &nbsp; delete one or more selected items (via the checkboxes).</p>
-
-    <p><i class="fas fa-filter fa-2x"></i> &nbsp; allows you apply a filter on the item list.</p>
-
-    <p><i class="fas fa-ellipsis-v fa-2x"></i> &nbsp; open up the <strong>button bar</strong> with more things to do.</p>
-
-    <hr>
-    <p><strong>Within the button bar</strong></p>
-
-    <p><i class="fas fa-exchange-alt fa-2x"></i> &nbsp; allows you to move items between inventories.</p>
-
-    <p><i class="fas fa-edit fa-2x"></i> &nbsp; allows you to bulk edit your items.</p>
-
-{% endif %}
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="muted">Need more detail? Visit the Templates or Settings pages.</div>
+        <div><small class="text-muted">Last updated: February 2026</small></div>
+      </div>
+    </div>
+  </div>
+</section>

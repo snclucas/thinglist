@@ -1,67 +1,191 @@
-.autoComplete_wrapper {
-  position: relative;
+/* css
+   Modernized autocomplete styles: variables, improved spacing, accessible focus, smooth transitions,
+   refined scrollbar, responsive behavior and optional helper classes for other autocomplete libs.
+*/
+
+:root{
+  --ac-bg: #ffffff;
+  --ac-border: rgba(33,33,33,0.08);
+  --ac-shadow: 0 10px 30px rgba(28,40,74,0.06);
+  --ac-accent: #4567cd;
+  --ac-text: #243248;
+  --ac-muted: #6b7380;
+  --ac-radius: 10px;
+  --ac-z: 2200;
+  --ac-max-h: 320px;
 }
 
+/* Wrapper keeps dropdown positioned relative to the input */
+.autoComplete_wrapper {
+  position: relative;
+  width: 100%;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
 
-.autoComplete_wrapper > ul {
+/* Dropdown list */
+.autoComplete_wrapper > ul,
+.autoComplete_results_list,
+.ac-results {
   position: absolute;
-  max-height: 226px;
-  overflow-y: scroll;
-  box-sizing: border-box;
   left: 0;
   right: 0;
   margin: 0.5rem 0 0 0;
-  padding: 0;
-  z-index: 1;
+  padding: 6px;
   list-style: none;
-  border-radius: 0.6rem;
-  background-color: #fff;
-  border: 1px solid rgba(33, 33, 33, 0.07);
-  box-shadow: 0 3px 6px rgba(149, 157, 165, 0.15);
+  box-sizing: border-box;
+  z-index: var(--ac-z);
+  background: var(--ac-bg);
+  border: 1px solid var(--ac-border);
+  border-radius: var(--ac-radius);
+  box-shadow: var(--ac-shadow);
+  max-height: var(--ac-max-h);
+  overflow-y: auto;
   outline: none;
-  transition: opacity 0.15s ease-in-out;
-  -moz-transition: opacity 0.15s ease-in-out;
-  -webkit-transition: opacity 0.15s ease-in-out;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  -webkit-overflow-scrolling: touch;
 }
 
+/* Hidden state */
 .autoComplete_wrapper > ul[hidden],
 .autoComplete_wrapper > ul:empty {
   display: block;
   opacity: 0;
-  transform: scale(0);
+  transform: scale(0.98);
+  pointer-events: none;
 }
 
-.autoComplete_wrapper > ul > li {
-  margin: 0.3rem;
-  padding: 0.3rem 0.5rem;
-  text-align: left;
-  font-size: 1rem;
-  color: #212121;
-  border-radius: 0.35rem;
-  background-color: rgba(255, 255, 255, 1);
+/* Each item */
+.autoComplete_wrapper > ul > li,
+.autoComplete_result,
+.ac-result {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0.5rem 0.75rem;
+  margin: 0.25rem 0;
+  color: var(--ac-text);
+  font-size: 0.95rem;
+  border-radius: 8px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: all 0.2s ease;
-}
-
-.autoComplete_wrapper > ul > li mark {
-  background-color: transparent;
-  color: rgba(255, 122, 122, 1);
-  font-weight: bold;
-}
-
-.autoComplete_wrapper > ul > li:hover {
   cursor: pointer;
-  background-color: rgba(255, 122, 122, 0.15);
+  transition: background-color 0.12s ease, transform 0.05s ease;
 }
 
-.autoComplete_wrapper > ul > li[aria-selected="true"] {
-  background-color: rgba(255, 122, 122, 0.15);
+/* Highlight / hover states (mouse & keyboard) */
+.autoComplete_wrapper > ul > li:hover,
+.autoComplete_result:hover,
+.autoComplete_wrapper > ul > li[aria-selected="true"],
+.autoComplete_highlighted,
+.ac-result--highlight {
+  background: linear-gradient(90deg, rgba(236,241,252,0.6), rgba(246,249,255,0.6));
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(28,40,74,0.04);
 }
 
-@media only screen and (max-width: 600px) {
-  .autoComplete_wrapper > input {
-    width: 18rem;
+/* Strong match styling inside results */
+.autoComplete_wrapper > ul > li mark,
+.autoComplete_result mark {
+  background-color: transparent;
+  color: var(--ac-accent);
+  font-weight: 700;
+  padding: 0;
+}
+
+/* Small meta text aligned to the right */
+.ac-meta,
+.autoComplete_item_meta {
+  margin-left: auto;
+  color: var(--ac-muted);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+/* No results message */
+.autoComplete_no_result,
+.no_result {
+  display: block;
+  padding: 0.75rem 0.75rem;
+  color: var(--ac-muted);
+  text-align: center;
+  font-style: italic;
+  border-radius: 8px;
+  background: rgba(245,247,250,0.8);
+}
+
+/* Input inside wrapper: ensure full width and subtle focus */
+.autoComplete_wrapper > input,
+.autoComplete_wrapper input[type="search"] {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(33,33,33,0.06);
+  transition: box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+/* Focus-visible for keyboard users */
+.autoComplete_wrapper > input:focus,
+.autoComplete_wrapper > input:focus-visible {
+  outline: none;
+  box-shadow: 0 6px 20px rgba(36,50,72,0.08);
+  border-color: rgba(36,50,72,0.12);
+}
+
+/* Visible focus ring on items for accessibility */
+.autoComplete_wrapper > ul > li:focus,
+.autoComplete_wrapper > ul > li:focus-visible {
+  outline: 2px solid rgba(36,50,72,0.08);
+  outline-offset: 2px;
+}
+
+/* Refined scrollbar - WebKit */
+.autoComplete_wrapper > ul::-webkit-scrollbar,
+.autoComplete_results_list::-webkit-scrollbar,
+.ac-results::-webkit-scrollbar {
+  width: 8px;
+}
+.autoComplete_wrapper > ul::-webkit-scrollbar-thumb,
+.autoComplete_results_list::-webkit-scrollbar-thumb {
+  background: rgba(36,50,72,0.08);
+  border-radius: 8px;
+}
+.autoComplete_wrapper > ul::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Firefox scrollbar */
+@supports (scrollbar-width: thin) {
+  .autoComplete_wrapper > ul,
+  .autoComplete_results_list,
+  .ac-results {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(36,50,72,0.08) transparent;
   }
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .autoComplete_wrapper > ul,
+  .autoComplete_wrapper > ul > li {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  :root { --ac-max-h: 220px; --ac-radius: 8px; }
+  .autoComplete_wrapper > input { font-size: 0.95rem; }
+}
+
+/* Small utility classes for alternative themes */
+.autoComplete_wrapper.dark {
+  --ac-bg: #0f1720;
+  --ac-text: #e6eef8;
+  --ac-border: rgba(255,255,255,0.04);
+  --ac-shadow: 0 8px 24px rgba(2,6,23,0.6);
+  --ac-muted: #9aa6b2;
+  --ac-accent: #ffb3b3;
 }

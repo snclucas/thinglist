@@ -1,46 +1,111 @@
+<!-- html -->
 {% extends "base.html" %}
 
 {% block content %}
 
-    <link href="{{ url_for('static', filename='css/auth.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/auth.css') }}" rel="stylesheet">
 
-    <div class="wrapper">
+<style>
+  /* Small, focused tweaks to improve spacing and contrast */
+  .auth-wrapper { display:flex; align-items:center; justify-content:center; min-height:70vh; padding:2rem 1rem; }
+  .auth-card { max-width:420px; width:100%; border-radius:0.5rem; box-shadow:0 6px 18px rgba(0,0,0,0.08); }
+  .auth-logo { max-height:90px; margin-bottom:0.75rem; }
+  .form-help { font-size:0.9rem; color:#6c757d; }
+  .text-small-muted { font-size:0.85rem; color:#6c757d; }
+  .password-toggle { cursor:pointer; user-select:none; }
+</style>
 
-        <div class="auth-content">
-            <div class="card">
-                <div class="card-body text-center">
-                        <img class="img-fluid" src="{{ url_for('static', filename='img/thinglist-logo-50pc.png') }}"
-                             alt="ThingList logo">
-                    <form action="/login" method="POST">
-                        <div class="mb-3 text-start">
-                            <label for="email" class="form-label">Username:</label>
-                            <input type="text" name="username" class="form-control" placeholder="Enter username"
-                                   required="">
-                        </div>
-                        <div class="mb-3 text-start">
-                            <label for="password" class="form-label">Password:</label>
-                            <input type="password" name="password" class="form-control" placeholder="Password"
-                                   required="">
-                        </div>
+<div class="auth-wrapper">
+  <div class="card auth-card">
+    <div class="card-body">
+      <div class="text-center mb-3">
+        <img class="img-fluid auth-logo" src="{{ url_for('static', filename='img/thinglist-logo-50pc.png') }}" alt="ThingList logo">
+        <h4 class="mb-0">Sign in</h4>
+        <div class="form-help">Secure access to your ThingList account</div>
+      </div>
 
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button class="btn btn-primary shadow-2 mb-4">Login</button>
-                    </form>
+      {% include '_flash_messages.html' %}
 
-                    <p class="mb-0 text-muted"> <a href="/reset-password">Forgot your password?</a></p>
+      <form action="{{ url_for('auth_flask_login.login') }}" method="post" autocomplete="on" novalidate="false" aria-describedby="login-help" class="needs-validation" novalidate>
+        <div id="login-help" class="visually-hidden">Enter your username and password to sign in.</div>
 
-                    {% if allow_registrations %}
-                        <p class="mb-0 text-muted"> <a href="/register">Don't have account yet?</a></p>
-                    {% else %}
-                        <p class="mb-0 text-muted">Sorry, we will be accepting new registrations soon! [<script>email("thing-master", "thinglist", "org");</script>]</p>
-                    {% endif %}
-
-                    {% include '_flash_messages.html' %}
-
-                </div>
-            </div>
+        <div class="mb-3 text-start">
+          <label for="username" class="form-label">Username</label>
+          <input id="username" name="username" type="text" class="form-control" placeholder="Enter username" required autocomplete="username" maxlength="254" autofocus aria-required="true" aria-label="Username">
         </div>
 
+        <div class="mb-3 text-start position-relative">
+          <label for="password" class="form-label">Password</label>
+          <div class="input-group">
+            <input id="password" name="password" type="password" class="form-control" placeholder="Password" required autocomplete="current-password" maxlength="128" aria-required="true" aria-label="Password">
+            <button id="toggle-password" type="button" class="btn btn-outline-secondary password-toggle" aria-pressed="false" aria-label="Show password">
+              <i class="fas fa-eye" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="form-help mt-1">Use a strong password. Passwords are never shown after submission.</div>
+        </div>
+
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="d-grid gap-2 mb-3">
+          <button class="btn btn-primary" type="submit">Login</button>
+        </div>
+      </form>
+
+      <div class="text-center text-small-muted mb-2">
+        <p class="mb-1"><a href="{{ url_for('auth_flask_login.reset_password') }}" rel="noopener noreferrer">Forgot your password?</a></p>
+
+        {% if allow_registrations %}
+          <p class="mb-1"><a href="{{ url_for('auth_flask_login.register') }}" rel="noopener noreferrer">Don't have an account yet? Register</a></p>
+        {% else %}
+          <p class="mb-1">Registrations are currently closed. Contact the administrator:
+            <a id="contact-admin" data-user="thing-master" data-domain="thinglist.org" rel="noopener noreferrer">[email]</a>
+            <noscript>
+              <span> — email: thing-master AT thinglist DOT org</span>
+            </noscript>
+          </p>
+        {% endif %}
+      </div>
+
+      {% include '_flash_messages.html' %}
+
     </div>
+  </div>
+</div>
+
+<script>
+  // Toggle password visibility - minimal, non-exfiltrating logic
+  (function () {
+    var pwd = document.getElementById('password');
+    var toggle = document.getElementById('toggle-password');
+    if (!pwd || !toggle) return;
+
+    toggle.addEventListener('click', function () {
+      var isHidden = pwd.type === 'password';
+      pwd.type = isHidden ? 'text' : 'password';
+      toggle.setAttribute('aria-pressed', String(isHidden));
+      toggle.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+      // swap icon if FontAwesome available
+      var icon = toggle.querySelector('i');
+      if (icon) {
+        icon.classList.toggle('fa-eye');
+        icon.classList.toggle('fa-eye-slash');
+      }
+    });
+  }());
+
+  // Create an unobtrusive mailto link from data attributes to avoid exposing raw address in source
+  (function () {
+    var contact = document.getElementById('contact-admin');
+    if (!contact) return;
+    var user = contact.getAttribute('data-user');
+    var domain = contact.getAttribute('data-domain');
+    if (!(user && domain)) return;
+    var addr = user + '@' + domain;
+    contact.textContent = addr;
+    contact.href = 'mailto:' + addr;
+    contact.setAttribute('aria-label', 'Email administrator at ' + addr);
+  }());
+</script>
 
 {% endblock %}

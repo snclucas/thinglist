@@ -399,7 +399,9 @@ def relate_items():
     inventory_slug = bleach.clean(inventory_slug)
     item_slug = bleach.clean(item_slug)
 
-    relateditem_ = ItemService.get_item_by_slug(item_slug=relateditem_slug, user_id=current_user.id)
+    relateditem_data = ItemService.get_item_by_slug(item_slug=relateditem_slug, user_id=current_user.id)
+    relateditem_, itemtype_, inventory_item_ = relateditem_data
+
     if relateditem_ is None:
         return jsonify({"message": "No such item"}), __NOT_FOUND__
 

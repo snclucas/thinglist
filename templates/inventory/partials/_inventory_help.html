@@ -1,18 +1,82 @@
+<!-- html -->
+<section class="help-section">
+    <style>
+        .help-card { margin: 1rem auto; }
+        .help-header { display: flex; gap: 0.75rem; align-items: center; }
+        .help-icon { font-size: 1.6rem; color: #0d6efd; }
+        .feature-list { list-style: none; padding-left: 0; margin-bottom: 0.5rem; }
+        .feature-list li { display: flex; gap: 0.75rem; align-items: flex-start; padding: 0.35rem 0; border-bottom: 1px solid rgba(0,0,0,0.04); }
+        .feature-list li:last-child { border-bottom: none; }
+        .muted { color: #6c757d; }
+        .example { background: #f8f9fa; border: 1px solid rgba(0,0,0,0.04); padding: 0.6rem; border-radius: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace; }
+        .small-note { font-size: 0.9rem; color: #495057; }
+        details summary { cursor: pointer; font-weight: 600; }
+    </style>
 
-<p>Lists are collections of objects forming a common theme, such as your
-    collection of retro computers your partner hates, or your collection of Mongolian tooth flossing sticks.</p>
+    <div class="card help-card" role="region" aria-labelledby="inventory-help-title">
+        <div class="card-body">
+            <div class="help-header">
+                <i class="fas fa-boxes help-icon" aria-hidden="true"></i>
+                <div>
+                    <h4 id="inventory-help-title" class="mb-0">Inventory lists — quick help</h4>
+                    <div class="muted">Overview of lists, visibility, fields and common actions</div>
+                </div>
+            </div>
 
-<p>You can add a new list by clicking the <i class="fas fa-plus"></i> icon at the top. Along with the list <em>name</em>
-and <em>description</em>, you can specifiy whether the list will be private (default) or allow item level visibility.
-Item level visibility allows items within the list to be publically viewable. By default, items are created private.</p>
+            <hr>
 
-<p>The <i class="fas fa-lock"></i> icon indicates that the list is private (to you).
-    The <i class="fas fa-unlock" style="color:red;"></i> indicates an list with item level visibility. </p>
+            <p class="small-note">
+                Lists are collections of related items (for example: retro computers, hobby projects, or tools).
+                Each list has a name and description and can be either private or allow item-level visibility.
+            </p>
 
-<p>Items (or more precisely things) can be moved between lists from within the lists themselves. </p>
+            <h5 class="mt-3">Quick actions</h5>
+            <ul class="feature-list" aria-hidden="false">
+                <li>
+                    <i class="fas fa-plus-circle" style="color: #198754;" aria-hidden="true"></i>
+                    <div>
+                        <strong>Add a new list</strong>
+                        <div class="muted">Click the <i class="fas fa-plus"></i> icon. Provide a name and description. Choose privacy settings.</div>
+                    </div>
+                </li>
 
-<p>In addition to user defined fields and templates, items within lists will, by default display a few default fields
-    such as <em>type, location, tags</em> and <em>images</em>. If you dont want to show these on the item pages for this list you can
-    turn them off on the Add or Edit list form.</p>
+                <li>
+                    <i class="fas fa-user-lock" aria-hidden="true"></i>
+                    <div>
+                        <strong>Privacy vs item-level visibility</strong>
+                        <div class="muted">
+                            By default lists are private. Enable item-level visibility to allow individual items to be public. Use the <i class="fas fa-lock"></i> icon for private lists and <i class="fas fa-unlock" style="color:red;"></i> for lists that allow item-level visibility.
+                        </div>
+                    </div>
+                </li>
 
+                <li>
+                    <i class="fas fa-arrows-alt" aria-hidden="true"></i>
+                    <div>
+                        <strong>Move items between lists</strong>
+                        <div class="muted">Open an item and choose the destination list to move it. Items retain their fields and attachments when moved.</div>
+                    </div>
+                </li>
 
+                <li>
+                    <i class="fas fa-pencil-alt" aria-hidden="true"></i>
+                    <div>
+                        <strong>Edit fields and templates</strong>
+                        <div class="muted">
+                            Lists show default fields such as <em>type</em>, <em>location</em>, <em>tags</em>, and <em>images</em>. You can add or hide fields per list using the Add/Edit list form or manage templates to reuse field combinations.
+                        </div>
+                    </div>
+                </li>
+            </ul>
+
+            <hr>
+
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="muted">Still need help? Visit the Settings or the Templates page for field management.</div>
+                <div>
+                    <small class="text-muted">Last updated: February 2026</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>

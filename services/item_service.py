@@ -97,232 +97,239 @@ class ItemService:
             return ddd
 
     @staticmethod
-    def get_item_custom_field_data(user_id: int, item_list=None):
+    def get_item_custom_field_data(user_id: int, item_list=None) -> tuple[dict, list, dict]:
         with app.app_context():
-            item_field_data_ = db.session.query(Item.id, Field.field, ItemField.value, Field.slug) \
-                .join(ItemField, ItemField.field_id == Field.id) \
-                .join(Item, ItemField.item_id == Item.id) \
-                .filter(Item.user_id == user_id) \
-                .filter(ItemField.show == True)
+            try:
+                q = db.session.query(Item.id, Field.field, ItemField.value, Field.slug) \
+                    .join(ItemField, ItemField.field_id == Field.id) \
+                    .join(Item, ItemField.item_id == Item.id) \
+                    .filter(Item.user_id == user_id) \
+                    .filter(ItemField.show.is_(True))
 
-            if item_list is not None:
-                if isinstance(item_list, list):
-                    item_field_data_ = item_field_data_.filter(Item.id.in_(item_list))
+                # allow a single int or any iterable of ids
+                if item_list is not None:
+                    if isinstance(item_list, (int, str)):
+                        q = q.filter(Item.id == int(item_list))
+                    else:
+                        try:
+                            ids = [int(i) for i in item_list]
+                            q = q.filter(Item.id.in_(ids))
+                        except (TypeError, ValueError):
+                            # invalid item_list; return empty
+                            return {}, [], {}
 
-            item_field_data_ = item_field_data_.all()
+                rows = q.all()
 
-            slugs = []
-            sdsd = {}
-            sdsd2 = {}
-            for row in item_field_data_:
-                _t = {"name": row[1], "value": row[2], "slug": row[3]}
-                if row[0] in sdsd:
-                    sdsd[row[0]][row[1]] = row[2]
-                    sdsd2[row[0]].append(_t)
-                else:
-                    sdsd[row[0]] = {row[1]: row[2]}
-                    sdsd2[row[0]] = [_t]
+                fields_by_item: dict[int, dict] = {}
+                list_by_item: dict[int, list] = {}
+                slugs_set: set[str] = set()
 
-                if row[3] not in slugs:
-                    slugs.append(row[3])
+                for item_id, field_name, value, slug in rows:
+                    fields_by_item.setdefault(item_id, {})[field_name] = value
+                    list_by_item.setdefault(item_id, []).append({"name": field_name, "value": value, "slug": slug})
+                    if slug:
+                        slugs_set.add(slug)
 
-            return sdsd, slugs, sdsd2
+                return fields_by_item, list(slugs_set), list_by_item
+            except SQLAlchemyError as e:
+                app.logger.exception(f"get_item_custom_field_data DB error: {e}")
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+                return {}, [], {}
 
     @staticmethod
     def find_items_new(logged_in_user=None, requested_username=None, inventory_id=None, query_params=None):
+        from sqlalchemy import asc, desc
 
-        def _find_my_items(logged_in_user: User, inventory_id, query_params):
-            with app.app_context():
-                if inventory_id is not None and inventory_id != '':
-                    # query = db.session.query(Item, ItemType.name, Location.name, InventoryItem.access_level,
-                    #                         InventoryItem.is_link, UserInventory) \
-                    query = db.session.query(Item, ItemType.name, Location.name, InventoryItem.access_level,
-                                             InventoryItem.is_link, UserInventory) \
-                        .join(ItemType, ItemType.id == Item.item_type) \
-                        .join(Location, or_(Location.id == Item.location_id, Item.location_id == None))
+        def _safe_int(val, default):
+            try:
+                return int(val)
+            except (TypeError, ValueError):
+                return default
 
-                    query = query.join(InventoryItem, InventoryItem.item_id == Item.id)
-                    query = query.join(Inventory, Inventory.id == InventoryItem.inventory_id)
-                    query = query.filter(InventoryItem.inventory_id == inventory_id)
+        def _pagination_query(q_params, q):
+            start = _safe_int(q_params.get("start", 0), 0)
+            length = _safe_int(q_params.get("length", 50), 50)
+            # enforce sane bounds
+            if length <= 0:
+                length = 50
+            max_len = 500
+            if length > max_len:
+                length = max_len
 
-                    query = query.filter(UserInventory.inventory_id == inventory_id)
-                    query = query.filter(UserInventory.user_id == logged_in_user.id)
-                else:
-                    query = db.session.query(Item, ItemType.name, Location.name, InventoryItem.access_level,
-                                             InventoryItem.is_link) \
-                        .join(ItemType, ItemType.id == Item.item_type) \
-                        .join(Location, Location.id == Item.location_id)
+            order_0 = q_params.get("order_0", None)
+            dir_0 = q_params.get("dir_0", "asc")
+            dir_0 = "asc" if dir_0 not in ("asc", "desc") else dir_0
 
-                    query = query.join(InventoryItem, InventoryItem.item_id == Item.id)
+            # map ordering keys to columns; only apply if those tables are present (joins added elsewhere)
+            if order_0 == '0':
+                q = q.order_by(Item.name.asc() if dir_0 == "asc" else Item.name.desc())
+            elif order_0 == '1':
+                q = q.order_by(ItemType.name.asc() if dir_0 == "asc" else ItemType.name.desc())
+            elif order_0 == '2':
+                q = q.order_by(Location.name.asc() if dir_0 == "asc" else Location.name.desc())
 
-                query = query.filter(Item.user_id == logged_in_user.id)
+            page = start // length
+            q = q.limit(length).offset(page * length)
+            return q
 
-                query = _find_query_parameters(query_=query, query_params=query_params)
+        def _find_query_parameters(query_, qp):
+            if not qp:
+                return query_
+            item_type = qp.get('item_type')
+            item_location = qp.get('item_location')
+            item_specific_location = qp.get('item_specific_location')
+            item_tags = qp.get('item_tags')
 
-                query = _pagination_query(query_params, query)
-
-                results_ = query.all()
-
-                return results_
-
-        def _find_query_parameters(query_, query_params):
-            item_type = query_params.get('item_type', None)
-            item_location = query_params.get('item_location', None)
-            item_specific_location = query_params.get('item_specific_location', None)
-            item_tags = query_params.get('item_tags', None)
-
-            if item_type is not None and item_type != '':
+            if item_type not in (None, ''):
                 query_ = query_.filter(Item.item_type == item_type)
 
-            if item_location is not None and item_location != '':
+            if item_location not in (None, ''):
+                # Location is explicitly joined in all paths below
                 query_ = query_.filter(Location.id == item_location)
 
-            if item_specific_location is not None and item_specific_location != '':
+            if item_specific_location not in (None, ''):
                 query_ = query_.filter(Item.specific_location == item_specific_location)
 
-            if item_tags is not None and item_tags != "":
-                item_tags = item_tags.split(",")
-
-                for tag_ in item_tags:
-                    tag_ = tag_.strip()
-                    # tag_ = tag_.replace(" ", "@#$")
+            if item_tags not in (None, ''):
+                tags = [t.strip() for t in str(item_tags).split(",") if t.strip()]
+                for tag_ in tags:
                     t_ = TagService.get_tag_by_str(tag_str=tag_)
-
                     if t_ is not None:
+                        # preserve original semantics; if this is a relationship/JSON column adapt accordingly
                         query_ = query_.filter(Item.tags.contains(t_))
+
+            # search term
+            search = qp.get("search")
+            if search not in (None, ""):
+                query_ = query_.filter(Item.name.contains(search))
 
             return query_
 
-        def _pagination_query(query_params, query):
-            search = query_params.get("search", None)
-
-            if search is not None:
-                if search != "":
-                    query = query.filter(Item.name.contains(search))
-
-            start = query_params.get("start", 0)
-            length = query_params.get("length", 50)
-
-            order_0 = query_params.get("order_0", None)
-            dir_0 = query_params.get("dir_0", None)
-
-            if order_0 is not None and dir_0 is not None:
-                if order_0 == '0':
-                    if dir_0 == 'asc':
-                        query = query.order_by(Item.name.asc())
-                    else:
-                        query = query.order_by(Item.name.desc())
-                elif order_0 == '1':
-                    if dir_0 == 'asc':
-                        query = query.order_by(ItemType.name.asc())
-                    else:
-                        query = query.order_by(ItemType.name.desc())
-                elif order_0 == '2':
-                    if dir_0 == 'asc':
-                        query = query.order_by(Location.name.asc())
-                    else:
-                        query = query.order_by(Location.name.desc())
-
-            page = int((int(start) / int(length)))
-            # page = query_params.get("page", 1)
-            per_page = int(query_params.get("length", 50))
-
-            if length is not None:
-                query = query.limit(per_page)
-            if page is not None:
-                query = query.offset(page * per_page)
-
-            return query
-
-        def _find_someone_elses_items_loggedin(logged_in_user: User, request_user_id, inventory_id, query_params):
-            with app.app_context():
-                query = db.session.query(Item, ItemType.name, Location.name, InventoryItem.access_level,
-                                         InventoryItem.is_link) \
-                    .join(ItemType, ItemType.id == Item.item_type) \
-                    .join(Location, Location.id == Item.location_id)
-
-                query = query.join(InventoryItem, InventoryItem.item_id == Item.id)
-                query = query.join(Inventory, Inventory.id == InventoryItem.inventory_id)
-                query = query.filter(InventoryItem.inventory_id == inventory_id)
-
-                query = query.filter(and_(
-                    UserInventory.user_id == logged_in_user.id,
-                    UserInventory.inventory_id == inventory_id))
-
-                query = query.filter(Item.user_id == request_user_id)
-                # query = query.filter(InventoryItem.access_level == 2)
-
-                query = _find_query_parameters(query_=query, query_params=query_params)
-                query = _pagination_query(query_params, query)
-
-                results_ = query.all()
-
-                return results_
-
-        def _find_someone_elses_items_notloggedin(request_user_id, inventory_id, query_params):
-            with app.app_context():
-                query = db.session.query(Item, ItemType.name, Location.name, InventoryItem.access_level,
-                                         InventoryItem.is_link) \
-                    .join(ItemType, ItemType.id == Item.item_type) \
-                    .join(Location, Location.id == Item.location_id)
-
-                query = query.join(InventoryItem, InventoryItem.item_id == Item.id)
-                query = query.join(Inventory, Inventory.id == InventoryItem.inventory_id)
-                query = query.filter(InventoryItem.inventory_id == inventory_id)
-
-                query = query.filter(and_(
-                    # UserInventory.user_id == logged_in_user.id,
-                    UserInventory.inventory_id == inventory_id))
-
-                query = query.filter(Item.user_id == request_user_id)
-                # query = query.filter(InventoryItem.access_level == 2)
-
-                query = _find_query_parameters(query_=query, query_params=query_params)
-
-                results_ = query.all()
-
-                return results_
+        def _base_entities(include_userinventory=False):
+            ents = [Item, ItemType.name, Location.name, InventoryItem.access_level, InventoryItem.is_link]
+            if include_userinventory:
+                ents.append(UserInventory)
+            return ents
 
         if query_params is None:
             query_params = {}
 
-        logged_in_user_id = None
-        request_user_id = None
-        requested_user = None
-
-        if logged_in_user is not None:
-            logged_in_user_id = logged_in_user.id
-
-        if requested_username is None:
+        try:
+            requested_user = None
+            logged_in_user_id = getattr(logged_in_user, "id", None)
             request_user_id = None
-        else:
-            if logged_in_user is not None:
-                if requested_username == logged_in_user.username:
+
+            if requested_username:
+                if logged_in_user and requested_username == getattr(logged_in_user, "username", None):
                     requested_user = logged_in_user
                 else:
                     requested_user = UserService.get_user_by_username(username=requested_username)
+                if requested_user:
+                    request_user_id = requested_user.id
+
+            # require at least one of logged_in_user or requested_user
+            if logged_in_user is None and requested_user is None:
+                return []
+
+            # --- helpers for each path ---
+            def _find_my_items():
+                with app.app_context():
+                    try:
+                        # explicit select_from and joins to avoid cartesian products
+                        query = db.session.query(*_base_entities(include_userinventory=True)).select_from(Item)
+                        query = query.join(ItemType, ItemType.id == Item.item_type, isouter=True)
+                        query = query.join(Location, Location.id == Item.location_id, isouter=True)
+                        query = query.join(InventoryItem, InventoryItem.item_id == Item.id)
+                        query = query.join(Inventory, Inventory.id == InventoryItem.inventory_id)
+                        # ensure we join UserInventory when we filter it
+                        query = query.join(UserInventory, UserInventory.inventory_id == Inventory.id)
+
+                        if inventory_id not in (None, ''):
+                            query = query.filter(InventoryItem.inventory_id == inventory_id)
+                            query = query.filter(UserInventory.inventory_id == inventory_id)
+                            query = query.filter(UserInventory.user_id == logged_in_user.id)
+
+                        query = query.filter(Item.user_id == logged_in_user.id)
+
+                        query = _find_query_parameters(query, query_params)
+                        query = _pagination_query(query_params, query)
+                        return query.all()
+                    except SQLAlchemyError:
+                        db.session.rollback()
+                        app.logger.exception("Error in _find_my_items")
+                        return []
+
+            def _find_someone_elses_items_loggedin():
+                with app.app_context():
+                    try:
+                        query = db.session.query(*_base_entities(include_userinventory=True)).select_from(Item)
+                        query = query.join(ItemType, ItemType.id == Item.item_type, isouter=True)
+                        query = query.join(Location, Location.id == Item.location_id, isouter=True)
+                        query = query.join(InventoryItem, InventoryItem.item_id == Item.id)
+                        query = query.join(Inventory, Inventory.id == InventoryItem.inventory_id)
+                        query = query.join(UserInventory, UserInventory.inventory_id == Inventory.id)
+
+                        if inventory_id not in (None, ''):
+                            query = query.filter(InventoryItem.inventory_id == inventory_id)
+                            query = query.filter(and_(
+                                UserInventory.user_id == logged_in_user.id,
+                                UserInventory.inventory_id == inventory_id))
+
+                        if request_user_id is not None:
+                            query = query.filter(Item.user_id == request_user_id)
+
+                        query = _find_query_parameters(query, query_params)
+                        query = _pagination_query(query_params, query)
+                        return query.all()
+                    except SQLAlchemyError:
+                        db.session.rollback()
+                        app.logger.exception("Error in _find_someone_elses_items_loggedin")
+                        return []
+
+            def _find_someone_elses_items_notloggedin():
+                with app.app_context():
+                    try:
+                        query = db.session.query(*_base_entities(include_userinventory=True)).select_from(Item)
+                        query = query.join(ItemType, ItemType.id == Item.item_type, isouter=True)
+                        query = query.join(Location, Location.id == Item.location_id, isouter=True)
+                        query = query.join(InventoryItem, InventoryItem.item_id == Item.id)
+                        query = query.join(Inventory, Inventory.id == InventoryItem.inventory_id)
+                        # still join UserInventory so DB knows the relation even if we don't check a user id
+                        query = query.join(UserInventory, UserInventory.inventory_id == Inventory.id)
+
+                        if inventory_id not in (None, ''):
+                            query = query.filter(InventoryItem.inventory_id == inventory_id)
+                            query = query.filter(UserInventory.inventory_id == inventory_id)
+
+                        if request_user_id is not None:
+                            query = query.filter(Item.user_id == request_user_id)
+
+                        query = _find_query_parameters(query, query_params)
+                        query = _pagination_query(query_params, query)
+                        return query.all()
+                    except SQLAlchemyError:
+                        db.session.rollback()
+                        app.logger.exception("Error in _find_someone_elses_items_notloggedin")
+                        return []
+
+            # --- decide path and execute ---
+            if logged_in_user is not None and requested_user is None:
+                return _find_my_items()
+
+            if logged_in_user is not None and logged_in_user_id == request_user_id:
+                return _find_my_items()
+
+            if logged_in_user is not None:
+                return _find_someone_elses_items_loggedin()
             else:
-                requested_user = UserService.get_user_by_username(username=requested_username)
+                return _find_someone_elses_items_notloggedin()
 
-            if requested_user is not None:
-                request_user_id = requested_user.id
-
-        if logged_in_user is None and requested_user is None:
-            return {}
-
-        if logged_in_user is not None and requested_user is None:
-            return _find_my_items(logged_in_user=logged_in_user, inventory_id=inventory_id, query_params=query_params)
-
-        if logged_in_user is not None and logged_in_user_id == request_user_id:
-            return _find_my_items(logged_in_user=logged_in_user, inventory_id=inventory_id, query_params=query_params)
-
-        if logged_in_user is not None:
-            # if logged_in_user is not None:
-            return _find_someone_elses_items_loggedin(request_user_id=request_user_id, inventory_id=inventory_id,
-                                                      query_params=query_params, logged_in_user=logged_in_user)
-        else:
-            return _find_someone_elses_items_notloggedin(request_user_id=request_user_id, inventory_id=inventory_id,
-                                                         query_params=query_params)
+        except Exception:
+            app.logger.exception("Unhandled error in find_items_new")
+            return []
 
     @staticmethod
     def update_item_fields(data, item_id: int):

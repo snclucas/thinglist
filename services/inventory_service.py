@@ -933,7 +933,7 @@ class InventoryService:
                               inventory_id=None, user_id=None, item_quantity=1, item_url=None,
                               item_location_id=None, item_specific_location="", custom_fields=None,
                               item_token=None) -> dict:
-
+        from services.item_service import ItemService
         if item_name is None:
             return {"status": "error", "item": {}, "msg": "Item name cannot be None"}
         if item_desc is None:
@@ -979,7 +979,7 @@ class InventoryService:
                     _item_type_int = item_type_.id
 
                 if item_token is not None:
-                    from services.item_service import ItemService
+
                     new_item = ItemService.get_item_by_token(user_id=user_id, item_token=item_token)
 
                 if item_token is None or new_item is None:

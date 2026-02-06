@@ -14,21 +14,25 @@ from services.user_service import UserService, post_user_add_hook
 
 auth_flask_login = Blueprint('auth_flask_login', __name__, template_folder='templates')
 
+@auth_flask_login.route('/reset_password>', methods=['GET', 'POST'])
+def reset_password():
+    pass
 
-# @auth_flask_login.route('/reset_password/<token>', methods=['GET', 'POST'])
-# def reset_password(token):
-#     if current_user.is_authenticated:
-#         return redirect(url_for('index'))
-#     user = User.verify_reset_password_token(token)
-#     if not user:
-#         return redirect(url_for('index'))
-#     form = ResetPasswordForm()
-#     if form.validate_on_submit():
-#         user.set_password(form.password.data)
-#         db.session.commit()
-#         flash('Your password has been reset.')
-#         return redirect(url_for('login'))
-#     return render_template('reset_password_request.html', form=form)
+#@auth_flask_login.route('/reset_password/<token>', methods=['GET', 'POST'])
+#def reset_password(token):
+    pass
+    # if current_user.is_authenticated:
+    #     return redirect(url_for('index'))
+    # user = User.verify_reset_password_token(token)
+    # if not user:
+    #     return redirect(url_for('index'))
+    # form = ResetPasswordForm()
+    # if form.validate_on_submit():
+    #     user.set_password(form.password.data)
+    #     db.session.commit()
+    #     flash('Your password has been reset.')
+    #     return redirect(url_for('login'))
+    # return render_template('reset_password_request.html', form=form)
 
 
 def sanitize(input_string):
@@ -375,7 +379,6 @@ def reauth():
 @login_required
 def logout():
     logout_user()
-    flash("Logged out.")
     return redirect('/login')
 
 

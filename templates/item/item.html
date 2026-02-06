@@ -17,6 +17,8 @@
     {% endblock %}
 
     <link href="{{ url_for('static', filename='css/autoComplete.css') }}" rel="stylesheet">
+
+
 {% endblock %}
 
 {% block content %}
@@ -328,101 +330,115 @@
 
 
         const autoCompleteJS = new autoComplete({
-            selector: "#autoComplete",
-            placeHolder: "Search for Food...",
-            data: {
-                src: async (query) => {
-                    try {
-                        // Fetch Data from external Source
-                        const source = await fetch(`{{ url_for('api.user_item_types')}}?query=${query}`);
-                        // Data should be an array of `Objects` or `Strings`
-                        const data = await source.json();
-
-                        return data;
-                    } catch (error) {
-                        return error;
-                    }
-                },
-                // Data source 'Object' key to be searched
-                //keys: ["food"]
-            },
-            threshold: 0,
-            resultsList: {
-                element: (list, data) => {
-                    if (!data.results.length) {
-                        // Create "No Results" message element
-                        const message = document.createElement("div");
-                        // Add class to the created element
-                        message.setAttribute("class", "no_result");
-                        // Add message text content
-                        message.innerHTML = `<span>Save to add new type "${data.query}"</span>`;
-                        // Append message element to the results list
-                        list.prepend(message);
-                    }
-                },
-                noResults: true,
-                maxResults: undefined,
-            },
-            resultItem: {
-                highlight: true,
-            },
-            events: {
-                input: {
-                    selection: (event) => {
-                        const selection = event.detail.selection.value;
-                        autoCompleteJS.input.value = selection;
-                    }
+    selector: "#autoComplete",
+    placeHolder: "Search for Food...",
+    data: {
+        src: async (query) => {
+            try {
+                const source = await fetch(`{{ url_for('api.user_item_types')}}?query=${query}`);
+                const data = await source.json();
+                return data;
+            } catch (error) {
+                return error;
+            }
+        }
+    },
+    threshold: 0,
+    resultsList: {
+        element: (list, data) => {
+            // add our styled class to the list container
+            list.classList.add('ac-results', 'autoComplete_results_list');
+            // show a nicer "no results" message (library still receives the element)
+            if (!data.results.length) {
+                const message = document.createElement("div");
+                message.setAttribute("class", "no_result");
+                message.innerHTML = `<span>Save to add new type "${data.query}"</span>`;
+                list.prepend(message);
+            }
+        },
+        noResults: true,
+        maxResults: 10
+    },
+    resultItem: {
+        highlight: true,
+        element: (item, data) => {
+            // Add our result class so CSS applies consistently
+            item.classList.add('ac-result', 'autoComplete_result');
+            // if the suggestion includes meta data, append a small meta span
+            if (data && data.value && typeof data.value === 'object') {
+                const metaText = data.value.type || data.value.category || '';
+                if (metaText) {
+                    const meta = document.createElement('span');
+                    meta.className = 'ac-meta';
+                    meta.textContent = metaText;
+                    item.appendChild(meta);
                 }
             }
-        });
-
-        const autoCompleteJS44 = new autoComplete({
-            selector: "#relateditem",
-            placeHolder: "Search for items ... ",
-            data: {
-                src: async (query) => {
-                    try {
-                        // Fetch Data from external Source
-                        const source = await fetch(`{{ url_for('api.user_items')}}?query=${query}`);
-                        // Data should be an array of `Objects` or `Strings`
-                        const data = await source.json();
-                        console.log(data);
-                        return data;
-                    } catch (error) {
-                        return error;
-                    }
-                }
-            },
-            threshold: 0,
-            autoFill: true,
-            resultsList: {
-                element: (list, data) => {
-                    if (!data.results.length) {
-                        // Create "No Results" message element
-                        const message = document.createElement("div");
-                        // Add class to the created element
-                        message.setAttribute("class", "no_result");
-                        // Add message text content
-                        message.innerHTML = `<span>Save to add new type "${data.query}"</span>`;
-                        // Append message element to the results list
-                        list.prepend(message);
-                    }
-                },
-                noResults: false,
-                maxResults: undefined,
-            },
-            resultItem: {
-                highlight: true,
-            },
-            events: {
-                input: {
-                    selection: (event) => {
-                        const selection = event.detail.selection.value;
-                        autoCompleteJS44.input.value = selection;
-                    }
-                }
+        }
+    },
+    resultItem: { highlight: true },
+    events: {
+        input: {
+            selection: (event) => {
+                const selection = event.detail.selection.value;
+                autoCompleteJS.input.value = selection;
             }
-        });
+        }
+    }
+});
+
+// Updated constructor for the related-item autocomplete
+const autoCompleteJS44 = new autoComplete({
+    selector: "#relateditem",
+    placeHolder: "Search for items ... ",
+    data: {
+        src: async (query) => {
+            try {
+                const source = await fetch(`{{ url_for('api.user_items')}}?query=${query}`);
+                const data = await source.json();
+                return data;
+            } catch (error) {
+                return error;
+            }
+        }
+    },
+    threshold: 0,
+    autoFill: true,
+    resultsList: {
+        element: (list, data) => {
+            list.classList.add('ac-results', 'autoComplete_results_list');
+            if (!data.results.length) {
+                const message = document.createElement("div");
+                message.setAttribute("class", "no_result");
+                message.innerHTML = `<span>No results for "${data.query}" — try a different term</span>`;
+                list.prepend(message);
+            }
+        },
+        noResults: false,
+        maxResults: 12
+    },
+    resultItem: {
+        highlight: true,
+        element: (item, data) => {
+            item.classList.add('ac-result', 'autoComplete_result');
+            // show a subtle count or owner if present
+            if (data && data.value && data.value.owner) {
+                const meta = document.createElement('span');
+                meta.className = 'ac-meta';
+                meta.textContent = '@' + data.value.owner;
+                item.appendChild(meta);
+            }
+        }
+    },
+    events: {
+        input: {
+            selection: (event) => {
+                const selection = event.detail.selection.value;
+                autoCompleteJS44.input.value = selection;
+            }
+        }
+    }
+});
 
     </script>
 
