@@ -16,10 +16,15 @@ field_template = Blueprint('field_template', __name__)
 @field_template.route('/field-templates')
 @login_required
 def templates():
-    return templates_with_username(username=current_user.username)
+    all_fields = FieldService.get_all_fields()
+    user_template_fields = FieldTemplateService.get_user_templates_with_fields(user_id=current_user.id)
+
+    return render_template(template_name_or_list='field_template/field_templates.html',
+                           name=current_user.username, all_fields=all_fields,
+                           user_template_fields=user_template_fields)
 
 
-@field_template.route('/field-templates/<int:template_id>/sort', methods=['GET', 'POST'])
+@field_template.route(rule='/field-templates/<int:template_id>/sort', methods=['GET', 'POST'])
 @login_required
 def sort_template(template_id):
     if request.method == 'GET':
@@ -56,7 +61,7 @@ def sort_template(template_id):
         return json.dumps({'success': True}), 200, {'ContentType': 'application/json'}
 
 
-@field_template.route('/field-templates/<int:template_id>')
+@field_template.route(rule='/field-templates/<int:template_id>')
 @login_required
 def template(template_id):
     """
@@ -79,43 +84,100 @@ def template(template_id):
                            selected_field_ids=selected_field_ids, template_id=template_id)
 
 
-@field_template.route('/@<string:username>/field-templates')
-@login_required
-def templates_with_username(username):
-    all_fields = FieldService.get_all_fields()
-    user_templates = FieldTemplateService.get_user_templates(user_id=current_user.id)
-    return render_template(template_name_or_list='field_template/field_templates.html',
-                           name=current_user.username, templates=user_templates, all_fields=all_fields)
-
-
 @field_template.route('/set-template-fields', methods=['POST'])
 @login_required
 def set_template_fields():
     request_xhr_key = request.headers.get('X-Requested-With')
-    if request_xhr_key and request_xhr_key == 'XMLHttpRequest':
-        json_data = request.json
-        template_name = json_data['template_name']
-        # sanitise template name
-        template_name = bleach.clean(template_name)
+    is_xhr = request_xhr_key == 'XMLHttpRequest'
 
-        field_ids = json_data['field_ids']
-        if len(field_ids) == 0:
-            abort(Response("At least 1 field is required for the template", __BAD_REQUEST__))
+    # Prefer local import for `current_app` so module-level imports aren't required
+    from flask import current_app, jsonify
 
-        field_ids = [int(x) for x in field_ids]  # was str(x)
+    json_data = request.get_json(silent=True) or {}
+    template_name = bleach.clean((json_data.get('template_name') or "").strip())
+    if not template_name:
+        abort(Response("Template name is required", __BAD_REQUEST__))
 
-        status, msg, template_id = FieldTemplateService.save_template_fields(template_name=template_name,
-                                                                             fields=field_ids, user_id=current_user.id)
+    raw_field_ids = json_data.get('field_ids', [])
+    if not isinstance(raw_field_ids, (list, tuple)):
+        current_app.logger.warning("set_template_fields: invalid field_ids type: %r", type(raw_field_ids))
+        abort(Response("Invalid field_ids format", __BAD_REQUEST__))
 
+    # normalize and validate ids
+    try:
+        field_ids = [int(x) for x in raw_field_ids]
+    except (ValueError, TypeError):
+        current_app.logger.warning("set_template_fields: non-integer field id in %r", raw_field_ids)
+        abort(Response("Field ids must be integers", __BAD_REQUEST__))
+
+    field_ids = [fid for fid in field_ids if fid > 0]
+    if not field_ids:
+        abort(Response("At least 1 valid field is required for the template", __BAD_REQUEST__))
+
+    try:
+        status, msg, template_id = FieldTemplateService.save_template_fields(
+            template_name=template_name, fields=field_ids, user_id=current_user.id
+        )
+    except Exception as exc:
+        current_app.logger.exception("Failed to save template fields: %s", exc)
+        abort(Response("Failed to save template", 500))
+
+    if is_xhr:
+        # return JSON for AJAX callers
+        return jsonify(success=True, status=status, message=msg, template_id=template_id), 200
+
+    # fallback for non-AJAX clients
     return redirect(url_for('field_template.templates'))
 
 
 @field_template.route('/field-templates/delete', methods=['POST'])
 @login_required
 def delete_template():
-    json_data = request.json
-    template_ids = json_data['template_ids']
-    FieldTemplateService.delete_templates_from_db(user_id=current_user.id, template_ids=template_ids)
+    from flask import current_app, jsonify
+
+    is_xhr = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+    # accept JSON payload or form data (list or comma-separated string)
+    json_data = request.get_json(silent=True) or {}
+    raw = json_data.get('template_ids', None)
+
+    if raw is None:
+        # try form values: supports multiple form fields or a single CSV string
+        form_list = request.form.getlist('template_ids')
+        if form_list:
+            raw = form_list
+        else:
+            raw = request.form.get('template_ids')
+
+    # normalize to list of strings/ints
+    if isinstance(raw, (list, tuple)):
+        ids_raw = list(raw)
+    elif isinstance(raw, str):
+        ids_raw = [s.strip() for s in raw.split(',') if s.strip()]
+    else:
+        current_app.logger.warning("delete_template: missing or invalid template_ids payload: %r", raw)
+        abort(Response("template_ids is required", __BAD_REQUEST__))
+
+    # convert to positive ints
+    try:
+        template_ids = [int(x) for x in ids_raw]
+    except (ValueError, TypeError):
+        current_app.logger.warning("delete_template: non-integer template id in %r", ids_raw)
+        abort(Response("Template ids must be integers", __BAD_REQUEST__))
+
+    template_ids = [tid for tid in template_ids if tid > 0]
+    if not template_ids:
+        abort(Response("At least one valid template id is required", __BAD_REQUEST__))
+
+    try:
+        FieldTemplateService.delete_templates_from_db(user_id=current_user.id, template_ids=template_ids)
+    except Exception as exc:
+        current_app.logger.exception("Failed to delete templates %r for user %s: %s", template_ids, current_user.id, exc)
+        abort(Response("Failed to delete templates", 500))
+
+    if is_xhr:
+        return jsonify(success=True, deleted=len(template_ids)), 200
+
     return redirect(url_for('field_template.templates'))
 
 

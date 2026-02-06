@@ -54,7 +54,7 @@ def lists():
     number_inventories: int = len(user_invs) - 1  # -1 to count for the 'hidden' default inventory
     unlisted_item_count: int = ItemService.get_user_unlisted_item_count(user_id=current_user.id)
 
-    return render_template(template_name_or_list='inventory/inventories.html',
+    return render_template(template_name_or_list='list/lists.html',
                            list_username=current_user.username,
                            inventories=user_invs,
                            unlisted_item_count=unlisted_item_count,
@@ -128,7 +128,7 @@ def inventories_for_username(list_username: str):
         unlisted_item_count = 0
 
     return render_template(
-        template_name_or_list='inventory/inventories.html',
+        template_name_or_list='list/lists.html',
         unlisted_item_count=unlisted_item_count,
         inventories=lists_,
         list_username=safe_username,
@@ -232,7 +232,7 @@ def add_inventory():
 
 @inv.route(rule='/list/delete', methods=['POST'])
 @login_required
-def del_inventory():
+def delete_list_endpoint():
     json_data = request.get_json(silent=True)
     if not json_data:
         flash("No data provided for deletion")
@@ -504,7 +504,7 @@ def delete_from_inventory(username: str, inventory_slug: str, item_id):
 
 @inv.route('/list/additem', methods=['POST'])
 @login_required
-def add_to_inventory():
+def add_to_list_endpoint():
     item_name = bleach.clean(request.form.get("name", "")).strip()
     if not item_name:
         flash("Item name cannot be empty")

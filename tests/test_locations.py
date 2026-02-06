@@ -1,6 +1,6 @@
 import unittest
 
-from database.database_functions import \
+from database_utils import \
     update_location_by_id, get_number_user_locations
 from services.thinglist_services import LocationService, UserService
 from tests.test_parent import TestAppParent

@@ -2,7 +2,7 @@ from slugify import slugify
 from sqlalchemy import select, or_
 from sqlalchemy.exc import SQLAlchemyError
 from app import db, app
-from database.database_functions import get_or_create, _commit
+from database_utils import get_or_create, _commit
 from models import User, Field, ItemField
 
 

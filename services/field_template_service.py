@@ -1,10 +1,10 @@
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from app import db, app
-from database.database_functions import _commit
+from database_utils import _commit
 
 from models import Inventory, User, FieldTemplate, TemplateField, Field
 from services.field_service import FieldService
@@ -129,7 +129,7 @@ class FieldTemplateService:
         return True, ""
 
     @staticmethod
-    def add_new_template(name: str, fields: str, to_user: User) -> Optional[FieldTemplate]:
+    def add_new_template(name: str, fields: List[int], to_user: User) -> Optional[FieldTemplate]:
         with app.app_context():
             try:
                 template_ = FieldTemplate(name=name, fields=fields, user_id=to_user.id)
@@ -170,6 +170,30 @@ class FieldTemplateService:
             .where(FieldTemplate.id == template_id)
         r = session.execute(stmt).all()
         return r
+
+    @staticmethod
+    def get_user_templates_with_fields(user_id: int):
+        """
+        Return a list of dicts: { 'template': FieldTemplate, 'fields': [Field,...] }
+        The fields list for each template is ordered by TemplateField.order.
+        """
+        session = db.session
+        stmt = select(FieldTemplate, TemplateField, Field) \
+            .join(TemplateField, TemplateField.template_id == FieldTemplate.id) \
+            .join(Field, Field.id == TemplateField.field_id) \
+            .where(FieldTemplate.user_id == user_id) \
+            .order_by(FieldTemplate.id, TemplateField.order)
+
+        rows = session.execute(stmt).all()
+
+        grouped: dict[int, dict] = {}
+        for ft, tf, f in rows:
+            tid = ft.id
+            if tid not in grouped:
+                grouped[tid] = {"template": ft, "fields": []}
+            grouped[tid]["fields"].append(f)
+
+        return list(grouped.values())
 
     @staticmethod
     def set_template_fields_orders(field_data, template_id: int, user_id: int):

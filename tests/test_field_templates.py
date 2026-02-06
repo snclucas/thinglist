@@ -1,6 +1,6 @@
 import unittest
 
-from database.database_functions import get_user_template_by_id, \
+from database_utils import get_user_template_by_id, \
     delete_templates_from_db, update_template_by_id
 from services.thinglist_services import FieldTemplateService
 

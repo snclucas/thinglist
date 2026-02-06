@@ -5,7 +5,7 @@ from slugify import slugify
 from sqlalchemy import select, or_, func, and_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError, NoResultFound, InvalidRequestError
 from app import db, app
-from database.database_functions import _commit
+from database_utils import _commit
 
 from models import UserInventory, Relateditems, Inventory, User, Item, Location, ItemType, \
     TemplateField, Field, Tag, InventoryItem, ItemField
@@ -141,7 +141,6 @@ class ItemService:
 
     @staticmethod
     def find_items_new(logged_in_user=None, requested_username=None, inventory_id=None, query_params=None):
-        from sqlalchemy import asc, desc
 
         def _safe_int(val, default):
             try:

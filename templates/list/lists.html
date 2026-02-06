@@ -63,21 +63,21 @@
                                         <div class="collapse" id="collapseInventoryAdd" aria-expanded="false">
                                             <div class="card card-body">
                                                 <h5>Add new list:</h5>
-                                                {% include 'inventory/partials/_add_inventory_form.html' %}
+                                                {% include 'list/partials/_add_list_form.html' %}
                                             </div>
                                         </div>
 
                                         <div class="collapse" id="collapseInventoryEdit" aria-expanded="false">
                                             <div class="card card-body">
                                                 <h5>Edit list:</h5>
-                                                {% include 'inventory/partials/_edit_inventory_form.html' %}
+                                                {% include 'list/partials/_edit_list_form.html' %}
                                             </div>
                                         </div>
 
                                     {% endif %}
 
                                     <div class="collapse" id="collapseInventoryHelp" aria-expanded="false">
-                                        {% include 'inventory/partials/_inventory_help.html' %}
+                                        {% include 'list/partials/_list_help.html' %}
                                         <hr>
                                     </div>
 
@@ -95,7 +95,7 @@
                                             <hr>
                                         </div>
                                     </div>
-                                    {% include 'inventory/partials/_inventory-table.html' %}
+                                    {% include 'list/partials/_list-table.html' %}
                                 </div>
                             </div>
                         </div>
@@ -118,7 +118,7 @@
         window.INVENTORY_PAGE = {{ {
             "csrfToken": csrf_token() | default(None),
             "username": list_username | default(None),
-            "delInventoryUrl": url_for('inv.del_inventory') | default(None)
+            "delInventoryUrl": url_for('inv.delete_list_endpoint') | default(None)
           } | tojson }};
     </script>
 

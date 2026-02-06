@@ -4,7 +4,7 @@ import os
 
 from slugify import slugify
 
-from database.database_functions import get_or_create
+from database_utils import get_or_create
 from site_globals import __NONE__
 from models import Field, ItemType, ReservedWords
 

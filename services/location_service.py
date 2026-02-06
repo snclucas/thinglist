@@ -4,7 +4,7 @@ from sqlalchemy import select, func
 from sqlalchemy.exc import SQLAlchemyError, InvalidRequestError, NoResultFound
 
 from app import db, app
-from database.database_functions import _commit, _to_dict
+from database_utils import _commit, _to_dict
 from models import Location, User, Item
 from services.user_service import UserService
 

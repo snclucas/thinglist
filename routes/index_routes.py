@@ -1,5 +1,7 @@
+from urllib.parse import quote
+
 import bleach
-from flask import Blueprint, render_template, request, redirect, url_for
+from flask import Blueprint, render_template, request, redirect, url_for, abort
 from flask_login import login_required, current_user
 
 from app import app
@@ -48,12 +50,32 @@ def testimages(image_id):
     return render_template(template_name_or_list='testimages.html', image_id=image_id)
 
 @main.route('/images/<int:user_id>/<string:image_id>')
-def images(user_id, image_id):
-    user_id = bleach.clean(str(user_id))
-    image_id = bleach.clean(str(image_id))
-    base_url = app.config['USER_IMAGES_BASE_URL']
-    image = f"{base_url}/{user_id}/{image_id}"
-    return image
+def images(user_id: int, image_id: str):
+    """
+    Redirect to the external user image URL.
+
+    - Ensures `USER_IMAGES_BASE_URL` is configured.
+    - Sanitizes inputs with `bleach`.
+    - URL\-encodes path segments to avoid invalid URLs.
+    - Returns a 302 redirect to the composed image URL.
+    """
+    base_url = app.config.get('USER_IMAGES_BASE_URL')
+    if not base_url:
+        abort(500, description='USER_IMAGES_BASE_URL is not configured')
+
+    # Sanitize inputs
+    user_id_clean = bleach.clean(str(user_id))
+    image_id_clean = bleach.clean(str(image_id))
+
+    # URL\-encode path components (no safe characters so everything is encoded appropriately)
+    user_enc = quote(user_id_clean, safe='')
+    image_enc = quote(image_id_clean, safe='')
+
+    # Normalize base URL (avoid double slashes)
+    base_url = base_url.rstrip('/')
+
+    image_url = f"{base_url}/{user_enc}/{image_enc}"
+    return redirect(image_url, code=302)
 
 @main.route('/about')
 def about():
@@ -72,15 +94,14 @@ def del_notification():
 
     :return: None
     """
-    if request.method == 'POST':
-        json_data = request.json
-        username = json_data['username']
-        notification_id = json_data.get('notification_id')
-        if notification_id is None:
-            return "Missing 'notification_id'", __BAD_REQUEST__
-        NotificationService.delete_notification_by_id(notification_id=notification_id, user=current_user)
+    json_data = request.json
+    username = json_data['username']
+    notification_id = json_data.get('notification_id')
+    if notification_id is None:
+        return "Missing 'notification_id'", __BAD_REQUEST__
+    NotificationService.delete_notification_by_id(notification_id=notification_id, user=current_user)
 
-        return redirect(url_for(endpoint='main.profile', username=username))
+    return redirect(url_for(endpoint='main.profile', username=username))
 
 
 @main.route(rule='/@<username>', methods=['GET'])

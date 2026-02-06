@@ -1,6 +1,6 @@
 import unittest
 
-from database.database_functions import get_all_user_notifications, add_user_notification, \
+from database_utils import get_all_user_notifications, add_user_notification, \
     get_number_of_user_notifications, delete_notification_by_id
 from tests.test_parent import TestAppParent
 

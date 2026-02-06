@@ -1,8 +1,6 @@
 import unittest
 
-from database.database_functions import \
-    get_user_item_type_count, find_item_type_by_text
-from services.thinglist_services import ItemTypeService
+from services.item_type_service import ItemTypeService
 from tests.test_parent import TestAppParent
 
 

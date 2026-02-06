@@ -5,7 +5,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from app import app, db
-from database.database_functions import _to_dict, _commit
+from database_utils import _to_dict, _commit
 from models import ItemType, Item
 
 from site_globals import __NONE__, __none__

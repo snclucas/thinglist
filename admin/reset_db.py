@@ -1,5 +1,5 @@
 from app import app
-from database.database_functions import drop_then_create
+from database_utils import drop_then_create
 
 with app.app_context():
     drop_then_create()

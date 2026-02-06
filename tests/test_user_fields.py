@@ -1,6 +1,6 @@
 import unittest
 
-from database.database_functions import get_all_user_fields, delete_fields_from_db, \
+from database_utils import get_all_user_fields, delete_fields_from_db, \
     get_all_user_and_system_fields, get_all_system_fields
 from services.thinglist_services import FieldService
 from tests.test_parent import TestAppParent
