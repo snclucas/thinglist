@@ -329,19 +329,34 @@ class FieldTemplateService:
                                                          fields=template_data['fields'], user_id=user.id)
 
     @staticmethod
-    def get_user_templates(user_id: int):
+    def get_user_templates(user_id: int) -> List[FieldTemplate]:
         """
         Retrieve the templates associated with a given user.
 
-        :param user_id: The user id for which templates are to be retrieved.
-
-        :return: A list of templates associated with the user.
-        :rtype: list
+        Validates and coerces `user_id`, returns a list of FieldTemplate objects,
+        and handles SQL errors by logging and returning an empty list.
         """
-        with app.app_context():
-            stmt = select(FieldTemplate).join(User).where(User.id == user_id)
-            r = db.session.execute(stmt).all()
-            return r
+        if user_id is None:
+            return []
+
+        try:
+            user_id = int(user_id)
+        except (TypeError, ValueError):
+            app.logger.debug("get_user_templates: invalid user_id %r", user_id)
+            return []
+
+        try:
+            with app.app_context():
+                stmt = select(FieldTemplate).where(FieldTemplate.user_id == user_id)
+                templates: List[FieldTemplate] = db.session.execute(stmt).scalars().all()
+                return templates
+        except SQLAlchemyError as e:
+            app.logger.exception("get_user_templates DB error: %s", e)
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+            return []
 
     @staticmethod
     def add_field(self, template_id: int, field_id: int, order: Optional[int] = None) -> TemplateField:

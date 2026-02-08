@@ -97,7 +97,7 @@ class ItemService:
             return ddd
 
     @staticmethod
-    def get_item_custom_field_data(user_id: int, item_list=None) -> tuple[dict, list, dict]:
+    def get_item_custom_field_data(user_id: int, item_list=None) -> dict:
         with app.app_context():
             try:
                 q = db.session.query(Item.id, Field.field, ItemField.value, Field.slug) \
@@ -116,28 +116,23 @@ class ItemService:
                             q = q.filter(Item.id.in_(ids))
                         except (TypeError, ValueError):
                             # invalid item_list; return empty
-                            return {}, [], {}
+                            return {}
 
                 rows = q.all()
 
-                fields_by_item: dict[int, dict] = {}
                 list_by_item: dict[int, list] = {}
-                slugs_set: set[str] = set()
 
                 for item_id, field_name, value, slug in rows:
-                    fields_by_item.setdefault(item_id, {})[field_name] = value
                     list_by_item.setdefault(item_id, []).append({"name": field_name, "value": value, "slug": slug})
-                    if slug:
-                        slugs_set.add(slug)
 
-                return fields_by_item, list(slugs_set), list_by_item
+                return list_by_item
             except SQLAlchemyError as e:
                 app.logger.exception(f"get_item_custom_field_data DB error: {e}")
                 try:
                     db.session.rollback()
                 except Exception:
                     pass
-                return {}, [], {}
+                return {}
 
     @staticmethod
     def find_items_new(logged_in_user=None, requested_username=None, inventory_id=None, query_params=None):

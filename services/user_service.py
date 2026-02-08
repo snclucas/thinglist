@@ -29,13 +29,14 @@ def post_user_add_hook(new_user: User):
     with app.app_context():
         from services.inventory_service import InventoryService
         _ret = InventoryService.add_user_list(name=f"{__DEFAULT__}_{new_user.username}",
-                                              description=f"Default inventory for {new_user.username}",
+                                              description=f"Default inventory",
                                               access_level=0,
                                               inventory_type=1,
+                                              is_default=True,
                                               user_id=new_user.id)
         from services.location_service import LocationService
         LocationService.get_or_add_new_location(location_name=f"{__DEFAULT__}_{new_user.username}",
-                                                location_description=f"Default location for {new_user.username}",
+                                                location_description=f"Default location",
                                                 to_user_id=new_user.id)
         # add_new_user_itemtype(name=_NONE_, user_id=new_user.id)
 

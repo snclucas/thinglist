@@ -178,5 +178,3 @@ class ImageService:
                 app.logger.error(err_msg)
                 db.session.rollback()
                 return False, err_msg
-
-

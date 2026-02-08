@@ -5,6 +5,8 @@ from typing import Dict, Optional, Union, Tuple, List, Any
 from slugify import slugify
 from sqlalchemy import select, func, and_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm import selectinload
+
 from app import db, app
 
 from models import UserInventory, Inventory, User, Item, ItemType, Tag, InventoryItem
@@ -14,6 +16,7 @@ from services.notification_service import NotificationService
 from services.user_service import UserService
 
 from site_globals import __DEFAULT__, __PRIVATE__, __INVENTORY__, __PUBLIC__, __OWNER__
+
 
 
 class InventoryService:
@@ -144,19 +147,30 @@ class InventoryService:
             return -1
 
     @staticmethod
-    def find_all_user_inventories(user_id: int) -> list:
-        if user_id is None:
-            raise ValueError("User cannot be None")
+    def find_all_user_inventories(user_id: int) -> list[tuple[Inventory, UserInventory]]:
+        """
+        Return a list of (UserInventory, Inventory) tuples for the given `user_id`.
+        Validates input, runs the query inside the Flask app context, and handles DB errors.
+        """
+        if not isinstance(user_id, int):
+            app.logger.debug("find_all_user_inventories: user_id must be an int")
+            return []
 
         try:
-            select_query = select(UserInventory, Inventory) \
-                .join(Inventory) \
-                .join(User) \
-                .where(user_id == UserInventory.user_id)
-            result = db.session.execute(select_query).all()
-            return result
-        except Exception as ex:
-            app.logger.error(f"Error finding all user inventories: {str(ex)}")
+            with app.app_context():
+                stmt = select(UserInventory, Inventory).join(Inventory).where(UserInventory.user_id == user_id)
+                rows = db.session.execute(stmt).all()
+                # normalize SQLAlchemy Row objects to simple tuples
+                return [(r[1], r[0]) for r in rows]
+        except SQLAlchemyError as e:
+            app.logger.exception("find_all_user_inventories DB error: %s", e)
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+            return []
+        except Exception as e:
+            app.logger.exception("find_all_user_inventories unexpected error: %s", e)
             return []
 
     @staticmethod
@@ -497,7 +511,7 @@ class InventoryService:
                     "inventory_item_count": len(inv.items),
                     "inventory_type": inv.type,
                     "inventory_show_default_fields": 1 if inv.show_default_fields else 0,
-
+                    "is_default": 1 if inv.is_default else 0,
                     "inventory_show_item_images": 1 if inv.show_item_images else 0,
                     "inventory_show_item_type": 1 if inv.show_item_type else 0,
                     "inventory_show_item_url": 1 if inv.show_item_url else 0,
@@ -510,17 +524,56 @@ class InventoryService:
             return ret_results, True, ""
 
     @staticmethod
-    def get_user_default_inventory(user_id: int) -> Optional[Inventory]:
-        def _get_user_default_inventory_name(username: str) -> str:
-            from site_globals import __DEFAULT__
-            return f"{__DEFAULT__}_{username}"
+    def add_default_user_list(user_id: int) -> Tuple[Optional[dict], bool, str]:
+        user_ = UserService.get_user_by_id(user_id=user_id)
+        default_list_dict, status, status_msg = InventoryService.add_user_list(name=f"{__DEFAULT__}_{user_.username}",
+                                              description=f"Default inventory for {user_.username}",
+                                              access_level=0,
+                                              inventory_type=1,
+                                              user_id=user_.id)
+        return default_list_dict, status, status_msg
 
-        with app.app_context():
-            # Find user default inventory
-            user_ = UserService.get_user_by_id(user_id=user_id)
-            user_default_inventory_ = Inventory.query.filter_by(
-                name=_get_user_default_inventory_name(user_.username)).filter_by().first()
-            return user_default_inventory_
+    @staticmethod
+    def get_user_default_inventory(user_id: int) -> Optional[Inventory]:
+        """
+        Return the user's default Inventory or None.
+
+        - Validates `user_id`.
+        - Safely handles missing user or username.
+        - Uses a single query and handles DB errors with logging/rollback.
+        """
+        if not isinstance(user_id, int):
+            app.logger.debug("get_user_default_inventory: user_id must be an int")
+            return None
+
+        try:
+            with app.app_context():
+                user_ = UserService.get_user_by_id(user_id=user_id)
+                if user_ is None:
+                    app.logger.debug("get_user_default_inventory: user not found for id %s", user_id)
+                    return None
+
+                username = getattr(user_, "username", None)
+                if not isinstance(username, str) or not username:
+                    app.logger.debug("get_user_default_inventory: invalid username for user id %s", user_id)
+                    return None
+
+                default_name = f"{__DEFAULT__}_{username}"
+                inventory_ = db.session.query(Inventory).filter(
+                    Inventory.name == default_name,
+                    Inventory.owner_id == user_.id
+                ).one_or_none()
+                return inventory_
+        except SQLAlchemyError as e:
+            app.logger.exception("get_user_default_inventory DB error: %s", e)
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+            return None
+        except Exception as e:
+            app.logger.exception("get_user_default_inventory unexpected error: %s", e)
+            return None
 
     @staticmethod
     def _create_list(name: str,
@@ -533,6 +586,7 @@ class InventoryService:
                      show_item_location: int = 1,
                      show_item_tags: int = 1,
                      show_item_url: int = 1,
+                     is_default: bool = False,
                      to_user: User = None,
                      access_level: int = __PRIVATE__, token=None):
         """
@@ -561,6 +615,7 @@ class InventoryService:
                                       show_item_url=show_item_url,
                                       show_item_location=show_item_location,
                                       show_item_tags=show_item_tags,
+                                      is_default=is_default,
                                       access_level=access_level)
             db.session.expire_on_commit = False
             db.session.add(new_inventory)
@@ -643,6 +698,7 @@ class InventoryService:
                       show_item_location: int = True,
                       show_item_tags: int = True,
                       show_item_url: int = False,
+                      is_default: bool = False,
                       slug: str = None,
                       access_level: int = 1, token=None) -> Tuple[Optional[dict], bool, str]:
         if name == "":
@@ -667,6 +723,7 @@ class InventoryService:
                                                                                 show_item_location=show_item_location,
                                                                                 show_item_tags=show_item_tags,
                                                                                 slug=slug, to_user=to_user,
+                                                                                is_default=is_default,
                                                                                 access_level=access_level,
                                                                                 token=token)
 
@@ -725,6 +782,110 @@ class InventoryService:
             existing_ids.add(item.id)
 
         db.session.commit()
+
+
+    @staticmethod
+    def get_user_inventories2(current_user_id: int, requesting_user_id: int, access_level: int = -1):
+        if not isinstance(access_level, int):
+            return [], False, "access_level must be an integer"
+
+        if not isinstance(current_user_id, int) and current_user_id is not None:
+            return [], False, "current_user_id must be an integer"
+
+        if not isinstance(requesting_user_id, int) and requesting_user_id is not None:
+            return [], False, "requesting_user_id must be an integer"
+
+        with app.app_context():
+            # eager load Inventory.items and each Item's related_items, location and item_type
+            base_q = db.session.query(Inventory, UserInventory, User) \
+                .options(
+                selectinload(Inventory.items).selectinload(Item.related_items),
+                selectinload(Inventory.items).selectinload(Item.location),
+                selectinload(Inventory.items).selectinload(Item.item_type_obj),
+            ) \
+                .join(UserInventory, UserInventory.inventory_id == Inventory.id) \
+                .join(User, User.id == Inventory.owner_id)
+
+            if current_user_id is not None and requesting_user_id is not None:
+                is_current_user = (current_user_id == requesting_user_id)
+            else:
+                if requesting_user_id is None:
+                    return [], True, ""
+                is_current_user = False
+
+            if is_current_user:
+                if access_level == -1:
+                    stmt = base_q.filter(UserInventory.user_id == current_user_id)
+                else:
+                    stmt = base_q.filter(
+                        UserInventory.user_id == current_user_id,
+                        UserInventory.access_level == access_level
+                    )
+            else:
+                stmt = base_q.filter(
+                    Inventory.owner_id == requesting_user_id,
+                    Inventory.access_level == __PUBLIC__
+                )
+
+            try:
+                # scalars() returns the Inventory instances (first entity) with the eager-loaded relationships
+                r = db.session.execute(stmt).scalars().all()
+            except SQLAlchemyError as e:
+                app.logger.exception("get_user_inventories DB error: %s", e)
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+                return [], False, "Database error"
+
+            return r
+
+    @staticmethod
+    def get_serialized_user_inventories(inventories) -> list:
+        """
+        Return a JSON-serializable list of inventories (with items, locations, item types, related items)
+        for `user_id`. All relationships are eager-loaded and accessed while the session is open.
+        """
+        with app.app_context():
+            out = []
+            for inv in inventories:
+                inv_dict = {
+                    "id": inv.ident,
+                    "name": inv.name,
+                    "slug": inv.slug,
+                    "type": inv.type,
+                    "access_level": inv.access_level,
+                    "owner_id": inv.owner_id,
+                    "items": []
+                }
+                for item in getattr(inv, "items", []) or []:
+                    item_dict = {
+                        "id": item.id,
+                        "ident": item.ident,
+                        "item_token": item.item_token,
+                        "name": item.name,
+                        "description": item.description,
+                        "quantity": item.quantity,
+                        "specific_location": getattr(item, "specific_location", None),
+                        "location": {
+                            "ident": item.location.ident,
+                            "name": item.location.name
+                        } if getattr(item, "location", None) else None,
+                        "item_type": {
+                            #"ident": getattr(item, "item_type_obj", None).ident,
+                            "name": getattr(item, "item_type_obj", None).name
+                        } if getattr(item, "item_type_obj", None) else None,
+                        "related_items": [
+                            {"ident": ri.ident, "item_token": ri.item_token, "name": ri.name}
+                            for ri in getattr(item, "related_items", []) or []
+                        ],
+                        "tags": [t.tag for t in getattr(item, "tags", []) or []]
+                    }
+                    inv_dict["items"].append(item_dict)
+
+                out.append(inv_dict)
+
+            return out
 
     @staticmethod
     def get_inventory_by_access_token(access_token: str) -> Optional[Inventory]:

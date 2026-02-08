@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import json
 import os
+from typing import Dict
 
 import bleach
 from flask import current_app
@@ -59,7 +60,13 @@ def items_load(json_data, current_user, overwrite_or_not, inventory_slug_from_fo
         inventory_token_ = bleach.clean(inventory_token_)
 
         if __DEFAULT__ in inventory_slug_:
-            found_inv = InventoryService.get_user_default_inventory(user_id=current_user)
+            found_inv = InventoryService.get_user_default_inventory(user_id=current_user.id)
+            if not found_inv:
+                load_log += f"<br>Default inventory not found for user {username}. Creating it...<br>"
+                found_inv, status, msg = InventoryService.add_default_user_list(user_id=current_user.id)
+                if not status:
+                    load_log += f"Error creating default inventory for user {username}.<br>"
+                    continue
         else:
             # look for the inventory by slug (was by slub before)
             found_inv, found_userinv = InventoryService.find_inventory_by_token(inventory_token=inventory_token_,
@@ -212,6 +219,26 @@ def items_load(json_data, current_user, overwrite_or_not, inventory_slug_from_fo
 
 
 def items_save(inventory_slug, current_user, request_params):
+    entire_json = {}
+
+    def serialise_field_data() -> list:
+        try:
+            _field_data = []
+            _user_templates = FieldTemplateService.get_user_templates(user_id=current_user.id)
+            # save user_templates to the json
+            for ut in _user_templates:
+                _field_data.append(
+                    {
+                        "ident": ut.ident,
+                        "name": ut.name,
+                        "fields": [{"ident": f.ident, "name": f.field, "slug": f.slug, "type": f.type} for f in ut.fields]
+                    }
+                )
+            return _field_data
+
+        except Exception as e:
+            current_app.logger.error("Error fetching user templates: %s", str(e))
+            return []
 
     def proc_img(current_user_id, item_, tmp_json):
         item_images = []
@@ -238,37 +265,24 @@ def items_save(inventory_slug, current_user, request_params):
             item_images.append(tmp_img_dict)
         tmp_json["images"] = item_images
 
+    uinv_inv_list = []
+
+    sdsd = InventoryService.get_user_inventories2(current_user_id=current_user.id,
+                                           requesting_user_id=current_user.id)
+
+    ddd = InventoryService.get_serialized_user_inventories(inventories=sdsd)
+
     try:
-
-        # create a safe filename
-        from werkzeug.utils import secure_filename
-        safe_slug = secure_filename(inventory_slug) or __ALL__
-        filename = f"{secure_filename(current_user.username)}_{safe_slug}_export.json"
-
-        # build inventory list
-        inventory_list = []
         if inventory_slug == __ALL__:
             try:
-                user_inventories, status, msg = InventoryService.get_user_inventories(current_user_id=current_user.id,
-                                                                      requesting_user_id=current_user.id)
-                if not isinstance(user_inventories, (list, tuple)):
-                    user_inventories = []
-                for ui in user_inventories:
-                    # support dict or object shapes
-                    slug = None
-                    if isinstance(ui, dict):
-                        slug = ui.get("inventory_slug")
-                    else:
-                        slug = getattr(ui, "inventory_slug", None)
-                    if slug:
-                        inventory_list.append(bleach.clean(str(slug)))
+                uinv_inv_list = InventoryService.find_all_user_inventories(user_id=current_user.id)
             except Exception as e:
                 current_app.logger.error("Error fetching user inventories: %s", str(e))
-                inventory_list = []
         else:
-            inventory_list = [inventory_slug]
+            inventory_, user_inventory_ = InventoryService.find_inventory_by_slug(inventory_slug=inventory_slug)
+            uinv_inv_list = [(inventory_, user_inventory_)]
 
-        entire_json = []
+
 
         # fetch user-level data defensively
         try:
@@ -277,21 +291,15 @@ def items_save(inventory_slug, current_user, request_params):
             current_app.logger.error("Error fetching user fields: %s", str(e))
             _user_fields = []
 
-        try:
-            _user_templates = FieldTemplateService.get_user_templates(user_id=current_user.id)
-        except Exception as e:
-            current_app.logger.error("Error fetching user templates: %s", str(e))
-            _user_templates = []
+        entire_json["fields"] = serialise_field_data()
 
+        # temp remove first item from list
+        uinv_inv_list = uinv_inv_list[1:] if len(uinv_inv_list) > 1 else uinv_inv_list
+
+        inventory_data_ = []
         # loop over inventories
-        for inv_slug in inventory_list:
+        for inventory_, user_inventory_ in uinv_inv_list:
             try:
-
-                inventory_, user_inventory_ = InventoryService.find_inventory_by_slug(
-                    inventory_slug=inv_slug,
-                    inventory_owner_id=current_user.id,
-                    viewing_user_id=current_user.id)
-
                 field_template_ = None
                 if inventory_ is None:
                     return None, None, None
@@ -303,11 +311,6 @@ def items_save(inventory_slug, current_user, request_params):
                     if field_template_id_ is not None:
                         field_template_ = FieldTemplateService.find_template_by_id(template_id=field_template_id_)
 
-                # skip missing inventories (when not exporting all)
-                if inventory_slug != __ALL__ and inventory_ is None:
-                    current_app.logger.warning("Inventory not found during export: %s", inv_slug)
-                    continue
-
                 data_dict, item_id_list = ItemService.find_items_query(
                     requested_username=current_user.username,
                     logged_in_user=current_user,
@@ -315,47 +318,31 @@ def items_save(inventory_slug, current_user, request_params):
                     request_params=request_params
                 )
 
-                dd, slugs, newdd = ItemService.get_item_custom_field_data(user_id=current_user.id, item_list=item_id_list)
+                newdd = ItemService.get_item_custom_field_data(user_id=current_user.id, item_list=item_id_list)
 
-                inventory_field_template_name = field_template_.name if field_template_ else None
-
-                # build field set deterministically
-                field_set = set()
-                for dv in dd.values():
-                    dv_lower = [x.lower() for x in list(dv.keys())]
-                    field_set.update(dv_lower)
-
-                wewe = {}
-                for dvvv in newdd.values():
-                    for df in dvvv:
-                        slug = df.get('slug')
-                        if slug:
-                            wewe[slug] = df
+                field_set = [f.field for f in field_template_.fields]
 
                 headers_ = ["id", "name", "description", "tags", "type",
                             "location", "specific location", "quantity", "url"]
                 headers_.extend(sorted(field_set))
 
-                if inventory_ is not None:
-                    json_output = {
-                        "inventory": {
-                            "ident": inventory_.ident,
-                            "inventory_token": inventory_.inventory_token,
-                            "name": inventory_.name,
-                            "description": inventory_.description,
-                            "slug": inv_slug,
-                            "custom_field_set": wewe,
-                            "standard_fields": headers_,
-                            "field_set": {
-                                "name": inventory_field_template_name,
-                                "fields": list(sorted(field_set)),
-                                "slugs": slugs
-                            },
-                            "items": []
-                        }
+                json_output = {
+                    "inventory": {
+                        "ident": inventory_.ident,
+                        "inventory_token": inventory_.inventory_token,
+                        "name": inventory_.name,
+                        "description": inventory_.description,
+                        "slug": inventory_.slug,
+                        #"custom_field_set": wewe,
+                        "standard_fields": headers_,
+                        "field_set": {
+                            "name": field_template_.name,
+                            "ident": field_template_.ident,
+                            "fields": field_set,
+                        },
+                        "items": []
                     }
-                else:
-                    json_output = {"inventory": {"items": []}}
+                }
 
                 # process each item, isolating per-item errors
                 for row in data_dict:
@@ -408,7 +395,7 @@ def items_save(inventory_slug, current_user, request_params):
                 entire_json.append(json_output)
 
             except Exception as e:
-                current_app.logger.error("Error exporting inventory %s: %s", inv_slug, str(e))
+                current_app.logger.error("Error exporting inventory %s: %s", inventory_.slug, str(e))
                 continue
 
         # produce JSON text; use the AlchemyEncoder for SQLAlchemy objects

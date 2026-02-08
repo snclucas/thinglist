@@ -22,7 +22,7 @@ from services.location_service import LocationService
 from services.user_service import UserService
 
 from site_globals import _COPY_, _MOVE_, __ALL__, __DEFAULT__, __NOT_FOUND__, __PRIVATE__, __PUBLIC__
-from user_save_load import items_save
+from user_save_load import items_save, items_load
 
 items_routes = Blueprint('items', __name__)
 
@@ -40,7 +40,7 @@ def my_utility_processor():
 
 @items_routes.route('/items/load', methods=['POST'])
 @login_required
-def items_load():
+def items_load_endpoint():
     load_log = ""
     username = current_user.username
 
@@ -220,11 +220,10 @@ def items_save_pdf():
 @items_routes.route(rule='/items/manage', methods=['POST'])
 @login_required
 def items_manage():
-    if request.method == 'POST':
-        if request.form.get('export-items-btn', None) is not None:
-            return items_save_endpoint()
-        else:
-            return items_load()
+    if request.form.get('export-items-btn', None) is not None:
+        return items_save_endpoint()
+    else:
+        return items_load_endpoint()
 
 
 @items_routes.route(rule='/items/save', methods=['POST'])
@@ -250,7 +249,7 @@ def items_save_endpoint():
         output.mimetype = "application/json; charset=utf-8"
         return output
 
-    except Exception:
+    except Exception as e:
         current_app.logger.exception("Unhandled error during items export")
         flash("There was a problem exporting your things!")
         return redirect(
