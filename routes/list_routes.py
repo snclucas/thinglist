@@ -119,7 +119,15 @@ def inventories_for_username(list_username: str):
     if not lists_:
         return render_template(template_name_or_list='404.html', message="No inventories"), __NOT_FOUND__
 
-    number_inventories = max(0, len(lists_) - 1)  # -1 to count for the 'hidden' default inventory
+    number_inventories = max(0, len(lists_))
+    if not current_user.preferences.show_default_list:
+        # remove default inventory from lists_
+        for l_ in lists_:
+            if l_["is_default"]:
+                lists_.remove(l_)
+                break
+
+        number_inventories -= 1
 
     try:
         unlisted_item_count = ItemService.get_user_unlisted_item_count(user_id=requesting_user_id)
