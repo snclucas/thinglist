@@ -12,11 +12,22 @@ from services.item_service import ItemService
 from services.item_type_service import ItemTypeService
 from services.location_service import LocationService
 from services.notification_service import NotificationService
+from services.preferences_service import PreferencesService
 from services.user_service import UserService
 
 from site_globals import __BAD_REQUEST__
 
 main = Blueprint('main', __name__)
+
+
+
+
+
+@main.route('/update-preferences', methods=['POST'])
+@login_required
+def update_preferences():
+    data = request.get_json(silent=True) or request.form or {}
+    return PreferencesService.update_preferences(data=data, current_user=current_user)
 
 
 @main.route('/')

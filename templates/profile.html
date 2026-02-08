@@ -238,4 +238,46 @@
 {% block footer %}
     {{ super() }}
     <script src="{{ url_for('static', filename='js/profile.js') }}"></script>
+
+    <script>
+        (function () {
+
+            async function sendUpdate(name, checked) {
+                let csrf_token = "{{ csrf_token() }}";
+                const url = "{{ url_for('main.update_preferences') }}";
+                const body = {};
+                body[name] = checked ? '1' : '0';
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrf_token,
+                }
+
+                try {
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: headers,
+                        body: JSON.stringify(body)
+                    });
+                    if (!res.ok) {
+                        console.error('Failed to update preference', name, await res.text());
+                    }
+                } catch (err) {
+                    console.error('Network error updating preference', err);
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', function () {
+                const selector = 'input[name="public_profile"], input[name="show_default_list"]';
+                document.querySelectorAll(selector).forEach(function (el) {
+                    el.addEventListener('change', function (e) {
+                        sendUpdate(e.target.name, e.target.checked);
+                    });
+                });
+            });
+        })();
+    </script>
+
+
+
 {% endblock %}
