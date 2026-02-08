@@ -1,4 +1,4 @@
-
+import re
 import string
 from random import choice
 from secrets import token_urlsafe
@@ -7,6 +7,7 @@ from uuid import uuid4
 from flask_login import UserMixin
 from slugify import slugify
 from sqlalchemy import UniqueConstraint, event, func
+from sqlalchemy.orm import relationship
 
 from app import db
 from sqlalchemy.ext.declarative import declarative_base
@@ -64,6 +65,7 @@ class Preferences(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     default_public = db.Column(db.Boolean(), default=False)
     public_profile = db.Column(db.Boolean(), default=False)
+    show_default_list = db.Column(db.Boolean(), default=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
 
 class Notification(db.Model):
@@ -71,12 +73,8 @@ class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     date = db.Column(db.DateTime(), default=func.now())
     text = db.Column(db.String(255), nullable=True, unique=False)
-    # AI from_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True, nullable=False)
     from_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     from_user_username = db.Column(db.String(255), nullable=True, unique=False)
-    #from_user = db.relationship(User, overlaps="notifications, users", load_on_pending=True, lazy='subquery',
-    #                            passive_deletes="all")
-#viewonly=True,
 
 
 class FieldTemplate(db.Model):
@@ -129,11 +127,10 @@ class Inventory(db.Model):
     __searchable__ = ['name', 'description']
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(50))
-    slug = db.Column(db.String(50), nullable=True, unique=False)
+    slug = db.Column(db.String(50), nullable=True, unique=True)
     ident = db.Column(db.String(36), nullable=False, unique=True, index=True, default=lambda: str(uuid4()))
     description = db.Column(db.String(255))
     owner_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
-    # AI owner_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), primary_key=True, nullable=False)
     users = db.relationship('User', secondary='inventory_users', back_populates='inventories', lazy='subquery', cascade="all,delete")
     items = db.relationship('Item', secondary='inventory_items', back_populates='inventories', lazy='subquery', cascade="all,delete")
     default_fields = db.Column(db.String(1000), default="-1")
@@ -148,23 +145,46 @@ class Inventory(db.Model):
     show_item_type = db.Column(db.Boolean(), nullable=False, unique=False, default=True)
     show_item_tags = db.Column(db.Boolean(), nullable=False, unique=False, default=True)
     show_item_url = db.Column(db.Boolean(), nullable=False, unique=False, default=True)
+    is_default = db.Column(db.Boolean(), nullable=False, unique=False, default=False)
     inventory_token = db.Column(db.String(255), nullable=True, unique=True)
     invtags = db.relationship('Invtag', secondary='inventory_tags', back_populates='inventories', lazy='subquery')
 
-
-    # AI __table_args__ = (UniqueConstraint('slug', 'owner_id', name='_item_field_uc'),)
     __table_args__ = (UniqueConstraint('slug', 'owner_id', name='_inventory_slug_owner_uc'),)
-                      #)
+
 @event.listens_for(Inventory, 'before_insert')
-def create_inventory_unique_token(mapper, connect, target):
+def list_before_insert(mapper, connect, target):
     target.inventory_token = token_urlsafe()
-
-
-@event.listens_for(Inventory, 'before_insert')
-def create_inventory_short_code(mapper, connect, target):
-    # target is an instance of Table
     target.short_code = generate_short_id(num_of_chars=6)
-    target.ident = generate_short_id(num_of_chars=32)
+    base = slugify(target.name or "")[:50]  # trim to column length if desired
+    target.slug = _make_unique_slug(base, target.owner_id)
+
+def _make_unique_slug(base_slug: str, owner_id: int):
+    """
+    Return a unique slug for `owner_id` by appending -N if needed.
+    """
+    session = db.session
+    if not base_slug:
+        base_slug = "inventory"
+    pattern = f"{base_slug}%"
+    rows = session.query(Inventory.slug).filter(
+        Inventory.owner_id == owner_id,
+        Inventory.slug.like(pattern)
+    ).all()
+    existing = [r[0] for r in rows if r[0]]
+    if base_slug not in existing:
+        return base_slug
+
+    max_n = 1
+    for s in existing:
+        m = re.match(rf"^{re.escape(base_slug)}-(\d+)$", s)
+        if m:
+            n = int(m.group(1))
+            if n >= max_n:
+                max_n = n + 1
+        elif s == base_slug:
+            max_n = max(max_n, 2)
+
+    return f"{base_slug}-{max_n}"
 
 
 class Relateditems(db.Model):
@@ -179,6 +199,7 @@ class Item(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     item_type = db.Column(db.Integer, db.ForeignKey('item_type.id'), nullable=False)
+    item_type_obj = relationship("ItemType", primaryjoin="ItemType.id==Item.item_type", lazy="selectin", viewonly=True)
     name = db.Column(db.String(255), nullable=False, unique=False)
     slug = db.Column(db.String(255), nullable=True, unique=False)
     ident = db.Column(db.String(36), nullable=False, unique=True, index=True, default=lambda: str(uuid4()))
@@ -188,6 +209,8 @@ class Item(db.Model):
     inventories = db.relationship('Inventory', secondary='inventory_items', back_populates='items', lazy='subquery')
     tags = db.relationship('Tag', secondary='item_tags', back_populates='items', lazy='subquery')
     location_id = db.Column(db.Integer, db.ForeignKey('locations.id'), default=None, nullable=True)
+    # relationship so you can eager-load Item.location
+    location = relationship("Location", primaryjoin="Location.id==Item.location_id", lazy="selectin")
     specific_location = db.Column(db.String(50), nullable=True, unique=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     images = db.relationship('Image', secondary='item_images', back_populates='items', lazy='subquery')
@@ -316,3 +339,59 @@ class UserLocation(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
     location_id = db.Column(db.Integer, db.ForeignKey('locations.id', ondelete='CASCADE'))
+
+
+from sqlalchemy import Index
+#
+# # Inventory: common lookup by owner and slug; also owner alone
+# Index('ix_inventories_owner_id', Inventory.__table__.c.owner_id)
+# Index('ix_inventories_owner_slug', Inventory.__table__.c.owner_id, Inventory.__table__.c.slug)
+#
+# # Item: lookups by user, type, location and short_code
+# Index('ix_items_user_id', Item.__table__.c.user_id)
+# Index('ix_items_item_type', Item.__table__.c.item_type)
+# Index('ix_items_location_id', Item.__table__.c.location_id)
+#
+# # Notifications: filter by sender and recent date ordering
+# Index('ix_notifications_from_user_id', Notification.__table__.c.from_user_id)
+# Index('ix_notifications_date', Notification.__table__.c.date)
+#
+# # Associations and join tables: index the FK columns used in joins/filters
+# Index('ix_item_fields_field_id', ItemField.__table__.c.field_id)
+# Index('ix_item_fields_item_id', ItemField.__table__.c.item_id)
+#
+Index('ix_inventory_items_inventory_id', InventoryItem.__table__.c.inventory_id)
+Index('ix_inventory_items_item_id', InventoryItem.__table__.c.item_id)
+#
+Index('ix_inventory_users_user_id', UserInventory.__table__.c.user_id)
+Index('ix_inventory_users_inventory_id', UserInventory.__table__.c.inventory_id)
+#
+# Index('ix_item_images_item_id', ItemImage.__table__.c.item_id)
+# Index('ix_item_images_image_id', ItemImage.__table__.c.image_id)
+#
+# Index('ix_item_tags_item_id', ItemTag.__table__.c.item_id)
+# Index('ix_item_tags_tag_id', ItemTag.__table__.c.tag_id)
+#
+# Index('ix_inventory_tags_inventory_id', InventoryTag.__table__.c.inventory_id)
+# Index('ix_inventory_tags_tag_id', InventoryTag.__table__.c.tag_id)
+#
+# Index('ix_related_items_item_id', Relateditems.__table__.c.item_id)
+# Index('ix_related_items_related_item_id', Relateditems.__table__.c.related_item_id)
+#
+# # Users and preferences: common lookups
+# Index('ix_preferences_user_id', Preferences.__table__.c.user_id)
+# Index('ix_users_email', User.__table__.c.email)  # unique already creates index; explicit for clarity
+# Index('ix_users_username', User.__table__.c.username)
+#
+# # Fields, types, tags, locations: per-user lookups and joins
+# Index('ix_fields_user_id', Field.__table__.c.user_id)
+# Index('ix_field_templates_user_id', FieldTemplate.__table__.c.user_id)
+# Index('ix_item_type_user_id', ItemType.__table__.c.user_id)
+# Index('ix_locations_user_id', Location.__table__.c.user_id)
+# Index('ix_images_user_id', Image.__table__.c.user_id)
+# Index('ix_tags_user_id', Tag.__table__.c.user_id)
+# Index('ix_invtags_user_id', Invtag.__table__.c.user_id)
+#
+# # Searchable ordering / frequently-sorted columns
+# Index('ix_inventories_ident', Inventory.__table__.c.ident)
+# Index('ix_items_ident', Item.__table__.c.ident)

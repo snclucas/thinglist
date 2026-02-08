@@ -1,7 +1,6 @@
-<strong class="mb-0">Settings</strong>
-<p>Please enable system alert you will get.</p>
-<hr class="my-4"/>
+
 <div class="list-group mb-5 shadow">
+
     <div class="list-group-item">
         <div class="row align-items-center">
             <div class="col">
@@ -11,42 +10,29 @@
             <div class="col-auto">
                 <div class="custom-control custom-switch">
                     <input type="checkbox" class="custom-control-input"
-                           id="alert3" checked=""/>
+                       id="alert5" name="public_profile" value="1"
+                       {% if user_preferences.public_profile %}checked{% endif %}/>
                     <span class="custom-control-label"></span>
                 </div>
             </div>
         </div>
     </div>
+
     <div class="list-group-item">
         <div class="row align-items-center">
             <div class="col">
-                <strong class="mb-0">Default public lists</strong>
-                <p class="text-muted mb-0">New lists will be public (viewable).</p>
+                <strong class="mb-0">Show default list</strong>
+                <p class="text-muted mb-0">Make your default list visible to you in your list page.</p>
             </div>
             <div class="col-auto">
                 <div class="custom-control custom-switch">
                     <input type="checkbox" class="custom-control-input"
-                           id="alert4" checked=""/>
+                       id="alert5" name="show_default_list" value="1"
+                       {% if user_preferences.show_default_list %}checked{% endif %}/>
                     <span class="custom-control-label"></span>
                 </div>
             </div>
         </div>
     </div>
-    <div class="list-group-item">
-        <div class="row align-items-center">
-            <div class="col">
-                <strong class="mb-0">Notify me about tips on using
-                    account</strong>
-                <p class="text-muted mb-0">Donec in quam sed urna
-                    bibendum tincidunt quis mollis mauris.</p>
-            </div>
-            <div class="col-auto">
-                <div class="custom-control custom-switch">
-                    <input type="checkbox" class="custom-control-input"
-                           id="alert5"/>
-                    <span class="custom-control-label"></span>
-                </div>
-            </div>
-        </div>
-    </div>
+
 </div>

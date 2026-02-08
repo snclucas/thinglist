@@ -15,10 +15,10 @@
 
         {% for option in inventory_templates %}
 
-            {% if inventory.field_template == option[0].id %}
-                <option value="{{ option[0].id }}" selected>{{ option[0].name }}</option>
+            {% if inventory.field_template == option.id %}
+                <option value="{{ option.id }}" selected>{{ option.name }}</option>
             {% else %}
-                <option value="{{ option[0].id }}">{{ option[0].name }}</option>
+                <option value="{{ option.id }}">{{ option.name }}</option>
             {% endif %}
 
         {% endfor %}

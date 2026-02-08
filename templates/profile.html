@@ -9,7 +9,8 @@
 {% endblock %}
 
 {% block content %}
-    <div id="page-vars" data-username="{{list_username}}" data-del_notification_url="{{url_for('main.del_notification')}}" data-csrf="{{csrf_token()}}"></div>
+    <div id="page-vars" data-username="{{ list_username }}"
+         data-del_notification_url="{{ url_for('main.del_notification') }}" data-csrf="{{ csrf_token() }}"></div>
     <div class="content">
         <div class="container">
 
@@ -49,9 +50,6 @@
                     </div>
 
                 </div>
-
-
-
 
 
                 <div class="row">
@@ -179,7 +177,7 @@
                         <div class="content text-left">
 
                             <a id="move-items-btn" data-bs-toggle="collapse" href="#collapseManageData"
-                               role="button" aria-expanded="false" aria-controls="moveInventory">
+                               role="button" aria-expanded="false" aria-controls="collapseManageData">
                                 <h5>Manage your data (import / export)</h5>
                             </a>
 
@@ -204,30 +202,17 @@
                 <div class="col-md-12">
                     <div class="card">
                         <div class="content text-left">
-
                             <a id="move-items-btn" data-bs-toggle="collapse" href="#collapseUserSettings"
-                               role="button" aria-expanded="false" aria-controls="moveInventory">
+                               role="button" aria-expanded="false" aria-controls="collapseUserSettings">
                                 <h5>Settings & Account</h5>
                             </a>
-
                             <div class="collapse" id="collapseUserSettings" aria-expanded="false">
-
                                 <div class="container">
-                                    <div class="row justify-content-left">
-                                        <div class="col-12 col-lg-10 col-xl-8 mx-auto">
-                                            <div class="my-4">
-
-                                                {% include '_settings.html' %}
-                                                {% include '_account.html' %}
-
-                                            </div>
-                                        </div>
-                                    </div>
-
+                                    <br>
+                                    {% include '_settings.html' %}
+                                    {% include '_account.html' %}
                                 </div>
-
                             </div>
-
                         </div>
                     </div>
                 </div>
