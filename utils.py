@@ -48,3 +48,10 @@ def generate_item_image_filename(item_slug: str, item_id: int, img_type: str) ->
     rand_ = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
     img_filename = f"{item_slug}_{item_id}_{rand_}.{img_type}"
     return img_filename
+
+def _to_bool(value):
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    return str(value).lower() in ('1', 'true', 'on', 'yes')

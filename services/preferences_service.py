@@ -1,13 +1,6 @@
 from flask import jsonify
 from app import db, app
-
-
-def _to_bool(value):
-    if isinstance(value, bool):
-        return value
-    if value is None:
-        return False
-    return str(value).lower() in ('1', 'true', 'on', 'yes')
+from utils import _to_bool
 
 
 class PreferencesService:
@@ -18,7 +11,6 @@ class PreferencesService:
         show_default_list = _to_bool(data.get('show_default_list'))
 
         try:
-            # Adjust these assignments to match your user model
             current_user.preferences.public_profile = public_profile
             current_user.preferences.show_default_list = show_default_list
             db.session.commit()
