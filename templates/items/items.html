@@ -90,6 +90,9 @@
                             <div class="row">
                                 <div class="col-md-6 show-big">
                                     {% include 'items/partials/_items_view_buttons.html' %}
+                                    <button id="export-csv-btn" type="button" class="btn btn-outline-primary ml-2" title="Export visible table to CSV">
+        Export CSV
+    </button>
                                 </div>
                                 <div class="col-md-6">
                                     {% include 'items/partials/_list_filter_form.html' %}
@@ -119,7 +122,7 @@
     </script>
 
     {% include js_file_to_include %}
-    <script src="{{ url_for('static', filename='js/items.js') }}"></script>
+
     <script>
         window.ITEMS_PAGE_VARS = {{ {
       'csrf_token': csrf_token(),
@@ -142,5 +145,8 @@
       'inventory_url_template': (url_for('items.items_with_username_and_inventory', list_username=list_username, inventory_slug='INV') | replace('%40','@'))
     } | tojson | safe }};
     </script>
+
+    <script src="{{ url_for('static', filename='js/items.js') }}"></script>
+
 
 {% endblock %}

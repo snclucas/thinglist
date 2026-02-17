@@ -1,22 +1,25 @@
+import hashlib
+import hmac
+import os
 import uuid
 from secrets import token_urlsafe
 from typing import Dict, Optional, Union, Tuple, List, Any
 
 from slugify import slugify
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, or_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import selectinload
 
 from app import db, app
 
-from models import UserInventory, Inventory, User, Item, ItemType, Tag, InventoryItem
+from models import UserInventory, Inventory, User, Item, ItemType, Tag, InventoryItem, ItemField, Field, TemplateField, FieldTemplate
+import base64
 from services.item_type_service import ItemTypeService
 from services.location_service import LocationService
 from services.notification_service import NotificationService
 from services.user_service import UserService
 
 from site_globals import __DEFAULT__, __PRIVATE__, __INVENTORY__, __PUBLIC__, __OWNER__
-
 
 
 class InventoryService:
@@ -522,7 +525,6 @@ class InventoryService:
                 ret_results.append(d)
 
             return ret_results, True, ""
-
     @staticmethod
     def add_default_user_list(user_id: int) -> Tuple[Optional[dict], bool, str]:
         user_ = UserService.get_user_by_id(user_id=user_id)
@@ -665,10 +667,10 @@ class InventoryService:
                     db.session.commit()
                     return True, "success"
                 except SQLAlchemyError as error:
-                    return True, "Could not edit list"
+                    return False, "Could not edit list"
 
             else:
-                return True, "Could not edit list"
+                return False, "Could not edit list"
 
     @staticmethod
     def regenerate_inventory_token(user_id, inventory_id, new_token) -> Tuple[bool, str]:
@@ -740,7 +742,7 @@ class InventoryService:
 
             except SQLAlchemyError as error:
                 app.logger.error(f"Error adding list: {str(error)}")
-                return None, True, "Could not add list"
+                return None, False, "Could not add list"
 
     @staticmethod
     def set_inventory_default_fields(inventory_id, user, default_fields):
@@ -838,10 +840,100 @@ class InventoryService:
                     pass
                 return [], False, "Database error"
 
+            # Attach extra field values (from item_fields) to each Item as `extra_fields`.
+            # Also, if an Inventory has a `field_template`, include template-defined fields (even without values)
+            try:
+                # collect all item ids from the inventories
+                item_ids = set()
+                template_ids = set()
+                for inv in r:
+                    if getattr(inv, 'field_template', None):
+                        template_ids.add(inv.field_template)
+                    for it in getattr(inv, 'items', []) or []:
+                        if getattr(it, 'id', None) is not None:
+                            item_ids.add(it.id)
+
+                # map item_id -> { field_id: {meta... , value: ...} }
+                item_field_map = {}
+                if item_ids:
+                    stmt_if = select(ItemField, Field).join(Field, ItemField.field_id == Field.id) \
+                        .where(ItemField.item_id.in_(list(item_ids)))
+                    rows_if = db.session.execute(stmt_if).all()
+                    for itemfield, field in rows_if:
+                        imap = item_field_map.setdefault(itemfield.item_id, {})
+                        imap[field.id] = {
+                            "item_field_id": itemfield.id,
+                            "field_id": field.id,
+                            "field_name": field.field,
+                            "field_slug": field.slug,
+                            "field_type": field.type,
+                            "field_data": field.data,
+                            "field_ident": field.ident,
+                            "value": itemfield.value,
+                            "show": bool(itemfield.show)
+                        }
+
+                # build template_fields_map: {template_id: [field_meta ordered by TemplateField.order]}
+                template_fields_map = {}
+                if template_ids:
+                    stmt_tf = select(TemplateField, Field).join(Field, TemplateField.field_id == Field.id) \
+                        .where(TemplateField.template_id.in_(list(template_ids)))
+                    rows_tf = db.session.execute(stmt_tf).all()
+                    # collect and then sort per template
+                    for tf, field in rows_tf:
+                        lst = template_fields_map.setdefault(tf.template_id, [])
+                        lst.append({
+                            "field_id": field.id,
+                            "field_name": field.field,
+                            "field_slug": field.slug,
+                            "field_type": field.type,
+                            "field_data": field.data,
+                            "field_ident": field.ident,
+                            "order": tf.order
+                        })
+                    for tid, fl in template_fields_map.items():
+                        fl.sort(key=lambda x: (x.get('order', 9999), x.get('field_id')))
+
+                # attach extra_fields to each item on the Inventory objects
+                for inv in r:
+                    tpl_fields = template_fields_map.get(inv.field_template)
+                    for it in getattr(inv, 'items', []) or []:
+                        imap = item_field_map.get(it.id, {})
+                        extras = []
+                        if tpl_fields:
+                            # include each template-defined field in order, filling values from imap when present
+                            for f in tpl_fields:
+                                val = imap.get(f['field_id'])
+                                if val:
+                                    # remove field_id, and item_field_id
+                                    val.pop('field_id', None)
+                                    val.pop('item_field_id', None)
+                                    extras.append(val)
+                                else:
+                                    extras.append({
+                                        #"item_field_id": None,
+                                        #"field_id": f['field_id'],
+                                        "field_name": f['field_name'],
+                                        "field_slug": f['field_slug'],
+                                        "field_type": f['field_type'],
+                                        "field_data": f['field_data'],
+                                        "field_ident": f['field_ident'],
+                                        "value": None,
+                                        "show": False
+                                    })
+                        else:
+                            # no template: include only fields that have values for this item
+                            extras = sorted(list(imap.values()), key=lambda x: x.get('field_name'))
+
+                        setattr(it, 'extra_fields', extras)
+
+            except Exception as e:
+                app.logger.exception(f"Error attaching extra item fields: {e}")
+
             return r
 
     @staticmethod
-    def get_serialized_user_inventories(inventories) -> list:
+    def get_serialized_user_inventories(inventories, include_images: bool = True) -> list:
         """
         Return a JSON-serializable list of inventories (with items, locations, item types, related items)
         for `user_id`. All relationships are eager-loaded and accessed while the session is open.
@@ -849,20 +941,40 @@ class InventoryService:
         with app.app_context():
             out = []
             for inv in inventories:
+                # resolve owner username for export (avoid exporting numeric DB ids)
+                owner_username = None
+                try:
+                    owner_row = db.session.query(User).filter(User.id == inv.owner_id).one_or_none()
+                    owner_username = owner_row.username if owner_row is not None else None
+                except Exception:
+                    owner_username = None
+
                 inv_dict = {
-                    "id": inv.ident,
+                    # use inventory.ident as the unique identifier (no DB id)
+                    "ident": inv.ident,
                     "name": inv.name,
+                    "description": inv.description,
                     "slug": inv.slug,
+                    "inventory_token": getattr(inv, 'inventory_token', None) or getattr(inv, 'token', None),
                     "type": inv.type,
+                    "default_fields": getattr(inv, 'default_fields', None),
+                    "show_default_fields": 1 if getattr(inv, 'show_default_fields', False) else 0,
+                    "show_item_images": 1 if getattr(inv, 'show_item_images', False) else 0,
+                    "show_item_type": 1 if getattr(inv, 'show_item_type', False) else 0,
+                    "show_item_location": 1 if getattr(inv, 'show_item_location', False) else 0,
+                    "show_item_tags": 1 if getattr(inv, 'show_item_tags', False) else 0,
+                    "show_item_url": 1 if getattr(inv, 'show_item_url', False) else 0,
                     "access_level": inv.access_level,
-                    "owner_id": inv.owner_id,
+                    # export owner as username (no numeric DB id)
+                    "owner": owner_username,
                     "items": []
                 }
                 for item in getattr(inv, "items", []) or []:
                     item_dict = {
-                        "id": item.id,
+                        #"id": item.id,
                         "ident": item.ident,
-                        "item_token": item.item_token,
+                        "item_token": getattr(item, 'item_token', None),
+                        #"item_token": item.item_token,
                         "name": item.name,
                         "description": item.description,
                         "quantity": item.quantity,
@@ -872,16 +984,95 @@ class InventoryService:
                             "name": item.location.name
                         } if getattr(item, "location", None) else None,
                         "item_type": {
-                            #"ident": getattr(item, "item_type_obj", None).ident,
-                            "name": getattr(item, "item_type_obj", None).name
+                            "slug": getattr(getattr(item, "item_type_obj", None), 'slug', None),
+                            "name": getattr(getattr(item, "item_type_obj", None), 'name', None)
                         } if getattr(item, "item_type_obj", None) else None,
+                        "type_slug": getattr(getattr(item, "item_type_obj", None), 'slug', None) or 'none',
                         "related_items": [
                             {"ident": ri.ident, "item_token": ri.item_token, "name": ri.name}
                             for ri in getattr(item, "related_items", []) or []
                         ],
-                        "tags": [t.tag for t in getattr(item, "tags", []) or []]
+                        "tags": [t.tag for t in getattr(item, "tags", []) or []],
+                        "images": []
                     }
+                    # include image binary data and hash for each image so imports can recreate files
+                    user_images_base = app.config.get('USER_IMAGES_BASE_PATH')
+                    image_secret_key = app.config.get('IMAGE_SECRET_KEY')
+                    for img in getattr(item, 'images', []) or []:
+                        img_filename = getattr(img, 'image_filename', None)
+                        is_main = 'true' if img_filename and getattr(item, 'main_image', None) == img_filename else 'false'
+                        image_entry = {"image_filename": img_filename, "is_main": is_main}
+                        try:
+                            if include_images and img_filename and user_images_base and image_secret_key is not None:
+                                img_path = os.path.join(app.root_path, user_images_base, str(inv.owner_id), img_filename)
+                                with open(img_path, 'rb') as f:
+                                    data = f.read()
+                                b64 = base64.b64encode(data).decode('utf-8')
+                                image_entry['image_data'] = b64
+                                # compute hmac as in process_images
+                                raw = b64.encode('utf-8')
+                                hashed = hmac.new(image_secret_key.encode('utf-8') if isinstance(image_secret_key, str) else image_secret_key, raw, hashlib.sha1)
+                                img_hmac_hash = base64.encodebytes(hashed.digest()).decode('utf-8')
+                                image_entry['image_hash'] = img_hmac_hash
+                            else:
+                                # don't include image binary data
+                                image_entry['image_data'] = None
+                                image_entry['image_hash'] = None
+                        except Exception:
+                            # if reading/encoding fails, include filename only
+                            image_entry['image_data'] = None
+                            image_entry['image_hash'] = None
+                        item_dict['images'].append(image_entry)
+
+                    # include extra_fields if attached by get_user_inventories2
+                    extras = getattr(item, 'extra_fields', None)
+                    if extras is not None:
+                        # sanitize extras to avoid exporting numeric DB ids
+                        cleaned_extras = []
+                        custom_map = {}
+                        for ef in extras:
+                            field_slug = ef.get('field_slug') or ef.get('field_ident')
+                            cleaned = {
+                                "field_ident": ef.get('field_ident'),
+                                "field_slug": field_slug,
+                                "field_name": ef.get('field_name'),
+                                "field_type": ef.get('field_type'),
+                                "field_data": ef.get('field_data'),
+                                "value": ef.get('value'),
+                                "show": bool(ef.get('show', False))
+                            }
+                            cleaned_extras.append(cleaned)
+                            # convenience map keyed by slug or ident
+                            key = field_slug or ef.get('field_ident')
+                            custom_map[key] = ef.get('value')
+
+                        item_dict['extra_fields'] = cleaned_extras
+                        item_dict['custom_fields'] = custom_map
+
                     inv_dict["items"].append(item_dict)
+
+                # include inventory's field template as a field_set for re-import
+                if getattr(inv, 'field_template', None):
+                    try:
+                        ft = db.session.query(FieldTemplate).filter(FieldTemplate.id == inv.field_template).one_or_none()
+                        if ft is not None:
+                            inv_dict['field_set'] = {"ident": ft.ident, "name": ft.name, "slugs": [f.slug for f in ft.fields]}
+                    except Exception:
+                        pass
+
+                # include user inventory (sharing) entries by username and access_level (no numeric ids)
+                try:
+                    ui_rows = db.session.query(User.username, UserInventory.access_level) \
+                        .join(User, User.id == UserInventory.user_id) \
+                        .filter(UserInventory.inventory_id == inv.id).all()
+                    inv_dict['user_inventory'] = []
+                    for uname, alevel in ui_rows:
+                        # skip exporting owner as part of collaborators
+                        if uname == owner_username:
+                            continue
+                        inv_dict['user_inventory'].append({"username": uname, "access_level": alevel})
+                except Exception:
+                    inv_dict['user_inventory'] = []
 
                 out.append(inv_dict)
 
@@ -1095,6 +1286,22 @@ class InventoryService:
                               item_location_id=None, item_specific_location="", custom_fields=None,
                               item_token=None) -> dict:
         from services.item_service import ItemService
+        app.logger.debug(f"add_item_to_inventory called with item_type_name_or_id={item_type_name_or_id!r} (type={type(item_type_name_or_id)}), user_id={user_id}")
+        # Coerce numeric-looking item_type parameters to int if possible (handles strings like '196')
+        try:
+            if item_type_name_or_id is not None and not isinstance(item_type_name_or_id, int):
+                if isinstance(item_type_name_or_id, str) and item_type_name_or_id.isdigit():
+                    item_type_name_or_id = int(item_type_name_or_id)
+                else:
+                    # try generic int() coercion for numeric-like objects
+                    try:
+                        coerced = int(item_type_name_or_id)
+                        item_type_name_or_id = coerced
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+        app.logger.debug(f"add_item_to_inventory called with item_type_name_or_id={item_type_name_or_id!r} (type={type(item_type_name_or_id)}), user_id={user_id}")
         if item_name is None:
             return {"status": "error", "item": {}, "msg": "Item name cannot be None"}
         if item_desc is None:
@@ -1118,30 +1325,111 @@ class InventoryService:
                 else:
                     _item_type_str = item_type_name_or_id
 
-                # If item_type is none set it to the in-built Not Set item type
-                if item_type_name_or_id is None:
-                    item_type_ = db.session.query(ItemType).filter_by(slug="not-set").filter_by(
-                        user_id=None).one_or_none()
+                # If no item_type provided (None or empty string), ensure there's a system-level 'not-set' ItemType and use it
+                if _item_type_int is not None:
+                    app.logger.debug(f"Numeric item_type provided; skipping name-resolution. _item_type_int={_item_type_int}")
+                # If no item_type provided (None or empty string), ensure there's a system-level 'not-set' ItemType and use it
+                elif item_type_name_or_id in (None, ''):
+                    item_type_ = db.session.query(ItemType).filter_by(slug="not-set", user_id=None).one_or_none()
+                    if item_type_ is None:
+                        # create system-level 'not-set' type if missing
+                        try:
+                            new_it = ItemType(name='Not Set', user_id=None)
+                            new_it.slug = 'not-set'
+                            db.session.add(new_it)
+                            db.session.commit()
+                            item_type_ = new_it
+                            app.logger.info("Created system item type 'not-set' (id=%s)", getattr(item_type_, 'id', None))
+                        except IntegrityError:
+                            try:
+                                db.session.rollback()
+                            except Exception:
+                                pass
+                            item_type_ = db.session.query(ItemType).filter_by(slug='not-set', user_id=None).one_or_none()
+
                     if item_type_ is not None:
                         _item_type_int = item_type_.id
-
+                        app.logger.debug("Using system item type 'not-set' id=%s for user_id=%s", _item_type_int, user_id)
                 else:
                     # check if the user has an item type with the same name
                     item_type_ = ItemTypeService.get_user_or_system_item_type(user_id=user_id,
                                                                               item_type_name_or_slug=_item_type_str)
 
                     if item_type_ is None:
-                        # add new user item type
-                        item_type_ = ItemType(name=_item_type_str, user_id=user_id)
-                        db.session.add(item_type_)
-                        db.session.commit()
-                        db.session.flush()
+                        # If an item type name/string was provided, resolve or create it safely.
+                        if _item_type_str:
+                            # Prefer existing user/system item type
+                            item_type_ = ItemTypeService.get_user_or_system_item_type(user_id=user_id,
+                                                                                      item_type_name_or_slug=_item_type_str)
 
-                    _item_type_int = item_type_.id
+                            if item_type_ is None:
+                                # Try to find by computed slug first to avoid duplicate insert races
+                                try:
+                                    slug_candidate = slugify(_item_type_str)
+                                except Exception:
+                                    slug_candidate = str(_item_type_str).lower()
 
+                                item_type_ = db.session.query(ItemType).filter(
+                                    ItemType.slug == slug_candidate,
+                                    or_(ItemType.user_id == user_id, ItemType.user_id.is_(None))
+                                ).one_or_none()
+
+                            if item_type_ is None:
+                                # Create new ItemType but guard against unique constraint by catching IntegrityError
+                                try:
+                                    new_it = ItemType(name=str(_item_type_str), user_id=user_id)
+                                    db.session.add(new_it)
+                                    db.session.commit()
+                                    db.session.flush()
+                                    item_type_ = new_it
+                                except IntegrityError:
+                                    # Another transaction likely created it concurrently; rollback and fetch it
+                                    try:
+                                        db.session.rollback()
+                                    except Exception:
+                                        pass
+                                    item_type_ = ItemTypeService.get_user_or_system_item_type(user_id=user_id,
+                                                                                              item_type_name_or_slug=_item_type_str)
+                                    if item_type_ is None:
+                                        # as a last resort, try system 'not-set' type
+                                        item_type_ = db.session.query(ItemType).filter_by(slug='not-set', user_id=None).one_or_none()
+
+                        _item_type_int = getattr(item_type_, 'id', None)
+                    else:
+                        # We already found an existing item_type_; use its id
+                        _item_type_int = getattr(item_type_, 'id', None)
+
+                # If caller provided an item_token, try to resolve existing item first
                 if item_token is not None:
-
                     new_item = ItemService.get_item_by_token(user_id=user_id, item_token=item_token)
+
+                # Debug: log resolved item type id before creating the item
+                try:
+                    app.logger.info(f"Resolved _item_type_int BEFORE create: {_item_type_int} (type={type(_item_type_int)}) for user_id={user_id} incoming_param={item_type_name_or_id!r})")
+                except Exception:
+                    pass
+
+                # Final safety BEFORE creating the Item: ensure _item_type_int is resolved (so INSERT won't attempt NULL)
+                if _item_type_int is None:
+                    item_type_ = db.session.query(ItemType).filter_by(slug='not-set', user_id=None).one_or_none()
+                    if item_type_ is None:
+                        try:
+                            new_it = ItemType(name='Not Set', user_id=None)
+                            new_it.slug = 'not-set'
+                            db.session.add(new_it)
+                            db.session.commit()
+                            item_type_ = new_it
+                            app.logger.info("Created system item type 'not-set' in fallback (id=%s)", getattr(item_type_, 'id', None))
+                        except IntegrityError:
+                            try:
+                                db.session.rollback()
+                            except Exception:
+                                pass
+                            item_type_ = db.session.query(ItemType).filter_by(slug='not-set', user_id=None).one_or_none()
+
+                    if item_type_ is not None:
+                        _item_type_int = item_type_.id
+                        app.logger.debug("Resolved fallback _item_type_int=%s for user_id=%s", _item_type_int, user_id)
 
                 if item_token is None or new_item is None:
                     # create the new item
@@ -1157,9 +1445,6 @@ class InventoryService:
                     db.session.flush()
                     item_slug = f"{str(new_item.id)}-{slugify(item_name)}"
                     new_item.slug = item_slug
-
-                # new_item.item_type = item_type_.id
-                # db.session.commit()
 
                 if item_tags is not None:
                     for tag in item_tags:
@@ -1213,12 +1498,13 @@ class InventoryService:
                     return_data['item']['tags'].append({"tag": tag.tag})
 
             except Exception as e:
+                # Log full exception with traceback to help debugging
+                app.logger.exception(f"add_item_to_inventory unexpected error: {e}")
                 return_data = {
                     "status": "error",
                     "item": {},
                     "msg": str(e)
                 }
-                # log this error
 
             return return_data
 

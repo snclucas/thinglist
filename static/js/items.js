@@ -331,7 +331,11 @@
         },
         resultItem: { highlight: true },
         events: {
-          input: { selection: (event) => { const sel = event.detail.selection.value; instanceVar.input.value = sel; } }
+          input: { selection: (event) => {
+              const sel = event.detail.selection.value;
+              instanceVar.input.value = sel;
+          }
+          }
         }
       });
 

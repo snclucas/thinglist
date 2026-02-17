@@ -63,21 +63,81 @@ class ItemService:
 
     @staticmethod
     def get_user_unlisted_items(user_id: int):
+        """
+        Return InventoryItem rows belonging to the user's default inventory.
+
+        Optimized to run a single DB query (join Inventory -> InventoryItem) and
+        avoid loading the Inventory object into Python. Returns an empty list
+        when no default inventory exists.
+        """
+        if not isinstance(user_id, int):
+            app.logger.debug("get_user_unlisted_items: user_id must be an int")
+            return []
+
         with app.app_context():
-            user_default_inventory_ = InventoryService.get_user_default_inventory(user_id=user_id)
-            items_ = InventoryItem.query.filter_by(user_id=user_id).filter_by(
-                inventory_id=user_default_inventory_.id).all()
-            return items_
+            try:
+                # Query InventoryItem rows where the linked Inventory is the user's default
+                stmt = db.session.query(InventoryItem).join(Inventory, Inventory.id == InventoryItem.inventory_id) \
+                    .filter(Inventory.owner_id == user_id, Inventory.is_default.is_(True))
+                results = stmt.all()
+                return results or []
+            except SQLAlchemyError as e:
+                app.logger.exception(f"get_user_unlisted_items DB error: {e}")
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+                return []
 
     @staticmethod
-    def get_user_unlisted_item_count(user_id: int) -> Optional[int]:
+    def get_user_unlisted_item_count(user_id: int) -> int:
+        """
+        Return the number of items in the user's default inventory.
+
+        Optimized: performs a single database query (join + group_by) and avoids
+        loading the Inventory object into Python. Returns 0 when the user has
+        no default inventory or on error.
+        """
+        if not isinstance(user_id, int):
+            app.logger.debug("get_user_unlisted_item_count: user_id must be an int")
+            return 0
+
         with app.app_context():
-            user_default_inventory_ = InventoryService.get_user_default_inventory(user_id=user_id)
-            if user_default_inventory_ is not None:
-                item_count = InventoryItem.query.filter_by(inventory_id=user_default_inventory_.id).count()
+            try:
+                # Join InventoryItem to Inventory and filter for the user's default inventory.
+                # Use group_by so we can detect "no inventory" (no rows returned) vs "inventory with 0 items".
+                stmt = (
+                    db.session.query(Inventory.id, func.count(InventoryItem.id).label('item_count'))
+                    .outerjoin(InventoryItem, InventoryItem.inventory_id == Inventory.id)
+                    .filter(Inventory.owner_id == user_id, Inventory.is_default.is_(True))
+                    .group_by(Inventory.id)
+                    .limit(1)
+                )
+
+                row = db.session.execute(stmt).first()
+                if not row:
+                    # no default inventory for this user
+                    return 0
+
+                # row may be a mapping-like Row or a positional tuple; try keyed access then fallback
+                item_count = 0
+                try:
+                    # preferred: access by label
+                    item_count = int(row['item_count'] or 0)
+                except Exception:
+                    try:
+                        # fallback: positional (Inventory.id, count)
+                        item_count = int(row[1] or 0)
+                    except Exception:
+                        item_count = 0
                 return item_count
-            else:
-                return None
+            except SQLAlchemyError as e:
+                app.logger.exception(f"Error counting unlisted items for user {user_id}: {e}")
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+                return 0
 
     @staticmethod
     def get_item_fields(item_id: int):
@@ -1163,6 +1223,8 @@ class ItemService:
                 item2_.related_items.append(item1_)
                 try:
                     db.session.commit()
+                    # Return success tuple so callers can unpack (ok, msg)
+                    return True, f"Items with ids {item1_id} and {item2_id} related"
                 except SQLAlchemyError:
                     db.session.rollback()
                     return False, f"Could not relate items with ids {item1_id} and {item2_id}"
@@ -1388,15 +1450,30 @@ class ItemService:
                     except Exception:
                         field_slug = str(field_name).lower().replace(" ", "-")
 
-                    # prefer user-specific field, fallback to system/global (user_id IS NULL)
-                    q = db.session.query(Field).filter(Field.slug == field_slug)
-                    q = q.filter(or_(Field.user_id == user_id, Field.user_id.is_(None)))
-                    field_ = q.order_by(Field.user_id.desc()).first()  # prefer user-specific
+                    # Try to find an existing field in this order:
+                    # 1) user-specific field for this user
+                    # 2) system/global field (user_id IS NULL)
+                    # 3) any field with the same slug (to avoid unique constraint errors)
+                    field_ = db.session.query(Field).filter(Field.slug == field_slug, Field.user_id == user_id).one_or_none()
+                    if field_ is None:
+                        field_ = db.session.query(Field).filter(Field.slug == field_slug, Field.user_id.is_(None)).one_or_none()
+                    if field_ is None:
+                        field_ = db.session.query(Field).filter(Field.slug == field_slug).one_or_none()
 
                     if field_ is None:
                         field_ = Field(field=field_name, slug=field_slug, user_id=user_id)
                         db.session.add(field_)
                         db.session.flush()  # ensure field_.id available
+                    else:
+                        # another transaction created the same slug concurrently; rollback and fetch it
+                        try:
+                            db.session.rollback()
+                        except Exception:
+                            pass
+                        field_ = db.session.query(Field).filter(Field.slug == field_slug).one_or_none()
+                        if field_ is None:
+                            # re-raise if we still don't have it
+                            raise
 
                     # ensure association between field and item
                     if item not in field_.items:

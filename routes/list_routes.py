@@ -70,7 +70,7 @@ def inventories_for_username(list_username: str):
         app.logger.warning("inventories_for_username: invalid username provided: %r", list_username)
         return render_template(template_name_or_list='404.html', message="No such inventory"), __NOT_FOUND__
 
-    user_is_authenticated = bool(getattr(current_user, "is_authenticated", False))
+    user_is_authenticated = current_user.is_authenticated
     current_user_id = None
     requesting_user_id = None
     user_ = None

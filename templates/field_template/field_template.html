@@ -103,7 +103,7 @@
                     }
                 ),
                 success: function () {
-                    window.location.href = window.location.origin + "/{{ url_for('field_template.templates_with_username', username=username) }}";
+                    window.location.href = window.location.origin + "/{{ url_for('field_template.templates', username=username) }}";
                 },
                 error: function (e) {
                     location.reload();

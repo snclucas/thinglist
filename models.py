@@ -40,6 +40,7 @@ class User(UserMixin, db.Model):
 
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    #ident = db.Column(db.String(36), nullable=False, unique=True, index=True, default=lambda: str(uuid4()))
     username = db.Column(db.String(50), nullable=True, unique=True)
     password = db.Column(db.String(255), nullable=False, server_default='')
     email = db.Column(db.String(255), nullable=False, unique=True)
@@ -290,11 +291,21 @@ class ItemType(db.Model):
     name = db.Column(db.String(255), nullable=True, unique=False)
     slug = db.Column(db.String(255), nullable=True, unique=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=True)
+    #ident = db.Column(db.String(36), nullable=False, unique=True, index=True, default=lambda: str(uuid4()))
     __table_args__ = (UniqueConstraint('slug', 'user_id', name='_name_userid_uc'),)
 
 @event.listens_for(ItemType, 'before_insert')
 def create_item_type_slug(mapper, connect, target):
-    target.slug = slugify(target.name)
+    # Guard against None or non-string names which can cause slugify to raise
+    name_val = target.name if target.name is not None else ""
+    try:
+        target.slug = slugify(name_val)
+    except Exception:
+        # Fallback: coerce to str and retry; if that fails use a safe default
+        try:
+            target.slug = slugify(str(name_val))
+        except Exception:
+            target.slug = "none"
 
 
 class Tag(db.Model):
