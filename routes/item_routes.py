@@ -71,6 +71,21 @@ def item_with_username_and_inventory(list_username: str, inventory_slug: str, it
     user_inventory_ = None
     inventory_ = None
     if inventory_slug != __ALL__:
+        # fast permission check
+        meta = InventoryService.find_inventory_meta_by_slug(inventory_slug=inventory_slug,
+                                                            inventory_owner_id=inventory_owner_id,
+                                                            viewing_user_id=requested_user_id)
+        if meta is None:
+            return render_template('404.html', message="No such item or you do not have access to this item"), __NOT_FOUND__
+
+        # check access
+        if not user_is_authenticated and meta['inventory_access_level'] != __PUBLIC__:
+            return render_template('404.html', message="No such item or you do not have access to this item"), __NOT_FOUND__
+
+        if user_is_authenticated and meta.get('user_access_level') is None and meta['inventory_access_level'] != __PUBLIC__:
+            return render_template('404.html', message="No such item or you do not have access to this item"), __NOT_FOUND__
+
+        # allowed: fetch full objects
         inventory_, user_inventory_ = InventoryService.find_inventory_by_slug(
             inventory_slug=inventory_slug,
             inventory_owner_id=inventory_owner_id,
@@ -169,7 +184,23 @@ def item_with_username_and_inventory2(list_username: str, inventory_slug: str, i
     inventory_ = None
     if inventory_slug != __ALL__:
 
-        # get the inventory to check permissions
+        # fast permission check using meta
+        meta = InventoryService.find_inventory_meta_by_slug(inventory_slug=inventory_slug,
+                                                            inventory_owner_id=inventory_owner_id,
+                                                            viewing_user_id=requested_user_id)
+        if meta is None:
+            return render_template(template_name_or_list='404.html',
+                                   message="No such item or you do not have access to this item"), __NOT_FOUND__
+
+        if not user_is_authenticated and meta['inventory_access_level'] != __PUBLIC__:
+            return render_template(template_name_or_list='404.html',
+                                   message="No such item or you do not have access to this item"), __NOT_FOUND__
+
+        if user_is_authenticated and meta.get('user_access_level') is None and meta['inventory_access_level'] != __PUBLIC__:
+            return render_template(template_name_or_list='404.html',
+                                   message="No such item or you do not have access to this item"), __NOT_FOUND__
+
+        # allowed: fetch full objects
         inventory_, user_inventory_ = InventoryService.find_inventory_by_slug(inventory_slug=inventory_slug,
                                                              inventory_owner_id=inventory_owner_id,
                                                              viewing_user_id=requested_user_id)

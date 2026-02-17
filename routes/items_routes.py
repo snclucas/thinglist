@@ -316,9 +316,9 @@ def items_with_username_and_inventory(list_username: str = None, inventory_slug:
     view = request_params.get("view", "list")  # 0 - list, 1 - grid
 
     if user_is_authenticated:
-        all_user_inventories = InventoryService.find_all_user_inventories(user_id=current_user.id)
+        all_user_inventories_meta = InventoryService.find_all_user_inventory_meta(user_id=current_user.id)
     else:
-        all_user_inventories = None
+        all_user_inventories_meta = None
 
     if inventory_owner is None:
         inventory_owner = UserService.get_user_by_username(username=list_username)
@@ -330,9 +330,35 @@ def items_with_username_and_inventory(list_username: str = None, inventory_slug:
     else:
         _inventory_slug = inventory_slug
 
-    inventory_, user_inventory_ = InventoryService.find_inventory_by_slug(inventory_slug=_inventory_slug,
-                                                                          inventory_owner_id=inventory_owner_id,
-                                                                          viewing_user_id=logged_in_user_id)
+    inventory_meta = InventoryService.find_inventory_meta_by_slug(inventory_slug=_inventory_slug,
+                                                              inventory_owner_id=inventory_owner_id,
+                                                              viewing_user_id=logged_in_user_id)
+
+    inventory_ = None
+    user_inventory_ = None
+
+    if inventory_meta is None:
+        # not found or not permitted
+        if _inventory_slug != __ALL__:
+            return render_template(template_name_or_list='404.html', message="No such inventory"), __NOT_FOUND__
+    else:
+        # meta exists; check permission and then fetch full Inventory only if needed
+        inv_id = inventory_meta['inventory_id']
+        inv_access = inventory_meta['inventory_access_level']
+        ui_access = inventory_meta.get('user_access_level')
+
+        # if not logged in and private, deny
+        if not user_is_authenticated and inv_access == __PRIVATE__:
+            return render_template(template_name_or_list='404.html', message="No such inventory"), __NOT_FOUND__
+
+        # if logged in and user has no access and it's not public, deny
+        if user_is_authenticated and ui_access is None and inv_access != __PUBLIC__:
+            return render_template(template_name_or_list='404.html', message="No such inventory or no permissions to view inventory"), __NOT_FOUND__
+
+        # allowed — load full inventory and user_inventory for later use
+        inventory_, user_inventory_ = InventoryService.find_inventory_by_slug(inventory_slug=_inventory_slug,
+                                                                              inventory_owner_id=inventory_owner_id,
+                                                                              viewing_user_id=logged_in_user_id)
 
     field_template_ = None
     inventory_id = None
@@ -432,7 +458,7 @@ def items_with_username_and_inventory(list_username: str = None, inventory_slug:
                            item_specific_location=request_params["requested_item_specific_location"],
                            selected_item_type=request_params["requested_item_type_string"],
                            selected_item_location_id=request_params["requested_item_location_id"],
-                           all_user_inventories=all_user_inventories, users_in_this_inventory=users_in_this_inventory,
+                           all_user_inventories=all_user_inventories_meta, users_in_this_inventory=users_in_this_inventory,
                            user_is_authenticated=user_is_authenticated, inventory_slug=inventory_slug)
 
 

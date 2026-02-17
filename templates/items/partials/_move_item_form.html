@@ -14,8 +14,8 @@
             {% endif %}
 
             {% for option in all_user_inventories %}
-                {% if __DEFAULT__ not in  option[1].name %}
-                    <option value="{{ option[1].id }}">{{ option[1].name }}</option>
+                {% if __DEFAULT__ not in  option[1] %}
+                    <option value="{{ option[0] }}">{{ option[1] }}</option>
                 {% endif %}
             {% endfor %}
 

@@ -150,6 +150,34 @@ class InventoryService:
             return -1
 
     @staticmethod
+    def find_all_user_inventory_meta(user_id: int) -> list[tuple[int, str, str]]:
+        """
+        Return a list of (Inventory, UserInventory) tuples for the given `user_id`.
+        Validates input, runs the query inside the Flask app context, and handles DB errors.
+        """
+        if not isinstance(user_id, int):
+            app.logger.debug("find_all_user_inventory_meta: user_id must be an int")
+            return []
+
+        try:
+            with app.app_context():
+                stmt = select(Inventory.id, Inventory.name, Inventory.slug, UserInventory).join(UserInventory).where(UserInventory.user_id == user_id)
+                rows = db.session.execute(stmt).all()
+                # normalize SQLAlchemy Row objects to simple tuples
+                return [(r[0], r[1], r[2]) for r in rows]
+        except SQLAlchemyError as e:
+            app.logger.exception("find_all_user_inventory_meta DB error: %s", e)
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+            return []
+        except Exception as e:
+            app.logger.exception("find_all_user_inventory_meta unexpected error: %s", e)
+            return []
+
+
+    @staticmethod
     def find_all_user_inventories(user_id: int) -> list[tuple[Inventory, UserInventory]]:
         """
         Return a list of (UserInventory, Inventory) tuples for the given `user_id`.
@@ -237,20 +265,29 @@ class InventoryService:
 
     @staticmethod
     def get_users_for_inventory(inventory_id: int) -> Optional[dict]:
-        if inventory_id is None:
-            return None
-
-        with app.app_context():
-            stmt = db.session.query(User, UserInventory.access_level) \
-                .join(User, UserInventory.user_id == User.id) \
-                .filter(UserInventory.inventory_id == inventory_id)
-
-            try:
-                result = db.session.execute(stmt).all()
-                return dict(result)
-            except Exception as e:
-                app.logger.error(f"Could not get users for inventory {inventory_id} due to: {str(e)}")
+        def get_users_for_inventory(inventory_id: int) -> Optional[dict]:
+            if inventory_id is None or not isinstance(inventory_id, int):
                 return None
+
+            with app.app_context():
+                try:
+                    stmt = select(User.username, UserInventory.access_level).join(
+                        UserInventory, User.id == UserInventory.user_id
+                    ).where(UserInventory.inventory_id == inventory_id)
+
+                    rows = db.session.execute(stmt).all()
+                    # build a simple username -> access_level map without loading full ORM objects
+                    return {row[0]: row[1] for row in rows} if rows else {}
+                except SQLAlchemyError as e:
+                    app.logger.exception(f"get_users_for_inventory DB error for inventory {inventory_id}: {e}")
+                    try:
+                        db.session.rollback()
+                    except Exception:
+                        pass
+                    return None
+                except Exception as e:
+                    app.logger.exception(f"get_users_for_inventory unexpected error for inventory {inventory_id}: {e}")
+                    return None
 
     @staticmethod
     def delete_user_to_inventory(inventory_id: int, user_to_delete_id: int) -> (bool, str):
@@ -427,6 +464,25 @@ class InventoryService:
                 if existing:
                     return existing
             raise
+
+    @staticmethod
+    def get_number_user_inventories(user_id: int) -> int:
+        if not isinstance(user_id, int):
+            app.logger.debug("get_number_user_inventories: user_id must be an int")
+            return 0
+
+        with app.app_context():
+            try:
+                stmt = select(func.count()).select_from(UserInventory).where(UserInventory.user_id == user_id)
+                count = db.session.execute(stmt).scalar_one()
+                return int(count or 0)
+            except SQLAlchemyError as e:
+                app.logger.exception(f"Error counting user inventories: {e}")
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+                return 0
 
     @staticmethod
     def get_user_inventories(current_user_id: int, requesting_user_id: int, access_level: int = -1) -> Tuple[
@@ -1149,42 +1205,57 @@ class InventoryService:
                 app.logger.error(err_msg)
                 return None, None
 
-            if not isinstance(inventory_owner_id, int):
-                err_msg = f"Error finding inventory by slug: supplied inventory_owner_id is not an integer"
+            if inventory_owner_id is not None and not isinstance(inventory_owner_id, int):
+                err_msg = f"Error finding inventory by {_q_str}: supplied inventory_owner_id is not an integer"
                 app.logger.error(err_msg)
                 return None, None
 
             user_is_logged_in = (viewing_user_id is not None)
 
-            # do some new code here to fix
-            # try to find a user inventory for the user and the inventory id
-            inventory_ = Inventory.query.filter(_q == _qa).one_or_none()
-            if not inventory_:
+            try:
+                # Build a single query that returns Inventory and (optional) UserInventory in one round-trip.
+                # Use an ON clause for the left join so we only get the UserInventory for the viewing_user_id.
+                from sqlalchemy import and_
+
+                join_condition = and_(UserInventory.inventory_id == Inventory.id,
+                                      UserInventory.user_id == viewing_user_id)
+
+                query = db.session.query(Inventory, UserInventory).outerjoin(UserInventory, join_condition).filter(_q == _qa)
+
+                # If an owner id is supplied, narrow the search to that owner (fast path).
+                if inventory_owner_id is not None:
+                    query = query.filter(Inventory.owner_id == inventory_owner_id)
+
+                row = query.one_or_none()
+                if not row:
+                    return None, None
+
+                inventory_obj, user_inventory_obj = row[0], row[1]
+
+                # If user not logged in, only allow access to public inventories
+                if not user_is_logged_in:
+                    if inventory_obj.access_level != __PUBLIC__:
+                        return None, None
+                    return inventory_obj, None
+
+                # user is logged in: if we have a UserInventory row that matches viewing_user_id return it
+                if user_inventory_obj is not None:
+                    return inventory_obj, user_inventory_obj
+
+                # otherwise, if inventory is public allow access without a UserInventory entry
+                if inventory_obj.access_level == __PUBLIC__:
+                    return inventory_obj, None
+
+                # not public and no explicit user access
                 return None, None
 
-            inventory_id = inventory_.id
-
-            # if the user is not logged in, then we can only get the inventory if it is public
-            if not user_is_logged_in:
-                if inventory_.access_level != __PUBLIC__:
-                    return None, None
-                else:
-                    # There will not be a user inventory
-                    return inventory_, None
-
-            else:
-                # if the user is logged in, then we can get the
-                # inventory if it is public or if the user has access to it
-                user_inventory_ = UserInventory.query.filter(UserInventory.user_id == viewing_user_id).filter(
-                    UserInventory.inventory_id == inventory_id).one_or_none()
-
-                if user_inventory_ is not None:
-                    return inventory_, user_inventory_
-                else:
-                    if inventory_.access_level == __PUBLIC__:
-                        return inventory_, None
-                    else:
-                        return None, None
+            except SQLAlchemyError as e:
+                app.logger.exception(f"_find_inventory_by DB error: {e}")
+                try:
+                    db.session.rollback()
+                except Exception:
+                    pass
+                return None, None
 
     @staticmethod
     def find_inventory_by_token(inventory_token: str,
@@ -1508,3 +1579,68 @@ class InventoryService:
 
             return return_data
 
+    @staticmethod
+    def find_inventory_meta_by_slug(inventory_slug: str, inventory_owner_id: int = None, viewing_user_id: int = None) -> Optional[dict]:
+        """
+        Lightweight metadata lookup for an inventory by slug (fast path).
+
+        Returns a dict (or None) with keys:
+          - inventory_id (int)
+          - owner_id (int)
+          - inventory_access_level (int)
+          - user_access_level (Optional[int])  # None if no UserInventory entry for viewing_user_id
+
+        This avoids creating full ORM Inventory/UserInventory objects and is suitable
+        for early permission checks in high-traffic endpoints.
+        """
+        if not isinstance(inventory_slug, str) or inventory_slug == "":
+            return None
+
+        if inventory_owner_id is not None and not isinstance(inventory_owner_id, int):
+            return None
+
+        try:
+            with app.app_context():
+                from sqlalchemy import and_
+                # select minimal columns
+                stmt = db.session.query(
+                    Inventory.id.label('inventory_id'),
+                    Inventory.owner_id.label('owner_id'),
+                    Inventory.access_level.label('inv_access'),
+                    UserInventory.access_level.label('ui_access')
+                ).outerjoin(UserInventory, and_(UserInventory.inventory_id == Inventory.id,
+                                                UserInventory.user_id == viewing_user_id))
+
+                stmt = stmt.filter(Inventory.slug == inventory_slug)
+                if inventory_owner_id is not None:
+                    stmt = stmt.filter(Inventory.owner_id == inventory_owner_id)
+
+                row = db.session.execute(stmt).first()
+                if not row:
+                    return None
+
+                # row may be positional or mapping-like
+                try:
+                    inv_id = int(row['inventory_id'])
+                    owner_id = int(row['owner_id'])
+                    inv_access = int(row['inv_access'])
+                    ui_access = row['ui_access'] if 'ui_access' in row and row['ui_access'] is not None else None
+                except Exception:
+                    # fallback positional
+                    inv_id = int(row[0])
+                    owner_id = int(row[1])
+                    inv_access = int(row[2])
+                    ui_access = row[3] if len(row) > 3 and row[3] is not None else None
+
+                return {
+                    'inventory_id': inv_id,
+                    'owner_id': owner_id,
+                    'inventory_access_level': inv_access,
+                    'user_access_level': ui_access
+                }
+        except SQLAlchemyError:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+            return None

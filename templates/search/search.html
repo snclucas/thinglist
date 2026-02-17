@@ -18,45 +18,103 @@
                                 <div class="row">
                                     <div class="col-md-12">
                                         <label class="form-label" for="q">Search:</label>
-                                        <input type="text" class="form-control" name="q" id="q" value="{{ q }}">
+                                        <input type="text" class="form-control" name="q" id="q" value="{{ q }}" data-username="{{ username if username else '' }}">
                                     </div>
                                 </div>
                                 <hr>
                                 <div class="row">
+                                    <div class="col-md-6">
+                                        <label class="form-label" for="per_page">Results per page:</label>
+                                        <select id="per_page_select" class="form-select">
+                                            <option value="10" {% if per_page|int == 10 %}selected{% endif %}>10</option>
+                                            <option value="20" {% if per_page|int == 20 %}selected{% endif %}>20</option>
+                                            <option value="50" {% if per_page|int == 50 %}selected{% endif %}>50</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 text-end">
+                                        <div id="search-spinner" style="display:none;">
+                                            <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-md-12">
+                                        <div id="search-error" class="alert alert-danger" style="display:none;"></div>
+                                    </div>
+                                </div>
+                                <div class="row">
                                     <div class="col-md-12 text-center">
                                         <button type="submit" class="btn btn-light">Search</button>
+                                        <button type="button" id="debug-search-btn" class="btn btn-outline-secondary ms-2">Debug query</button>
                                     </div>
                                 </div>
                             </form>
+                            <div class="row mt-2">
+                                <div class="col-md-12">
+                                    <pre id="search-debug" style="display:none; white-space:pre-wrap; background:#f8f9fa; padding:10px; border-radius:4px;"></pre>
+                                </div>
+                            </div>
                             <div class="row">
                                 <div class="col-md-12">
-
+                                    <div id="search-results">
+                                        {% if items | length > 0 %}
+                                            <!-- server-rendered results will be placed here when available -->
+                                        {% endif %}
+                                    </div>
 
                                     {% if items | length > 0 %}
+
+                                        <p id="search-counts">Showing {{ items|length }} of {{ total }} results</p>
 
                                         <table class="table collapse show dataTable" id="items-table">
                                             <thead>
                                             <th>Item</th>
+                                            <th>Tags</th>
+                                            <th>Snippet</th>
                                             </thead>
                                             <tbody>
                                             {% for item in items %}
                                                 <tr>
                                                     <td>
-                                                        <a href="{{ url_for('item.item_with_username_and_inventory', username=username,
+                                                        <a href="{{ url_for('item.item_with_username_and_inventory', list_username=username,
                                 inventory_slug=item.inventories[0].slug, item_slug=item.slug) | replace('%40', '@') }}">{{ item.name }}</a>
+                                                    </td>
+                                                    <td>
+                                                        {% if item.tags %}
+                                                            {% for tag in item.tags[:5] %}
+                                                                <span class="badge bg-secondary">{{ tag }}</span>
+                                                            {% endfor %}
+                                                        {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        {% if item.snippet %}
+                                                            {{ item.snippet | safe }}
+                                                        {% else %}
+                                                            &nbsp;
+                                                        {% endif %}
                                                     </td>
                                                 </tr>
                                             {% endfor %}
                                             </tbody>
                                         </table>
 
+                                        <nav aria-label="Search results pagination">
+                                            <ul class="pagination">
+                                                {% set prev_page = (page|int) - 1 %}
+                                                {% set next_page = (page|int) + 1 %}
+                                                <li class="page-item {% if page|int <= 1 %}disabled{% endif %}"><a class="page-link" href="#" data-page="{{ prev_page }}" data-per_page="{{ per_page }}">Previous</a></li>
+                                                <li class="page-item disabled"><a class="page-link">Page {{ page }} </a></li>
+                                                <li class="page-item {% if (page|int * per_page|int) >= total %}disabled{% endif %}"><a class="page-link" href="#" data-page="{{ next_page }}" data-per_page="{{ per_page }}">Next</a></li>
+                                            </ul>
+                                        </nav>
+
                                     {% else %}
 
                                         <p>Example searches:</p> <br>
 
-                                        <p>free text - searches the item names and descriptions</p>
-                                        <p>tags:XXX - searches tags</p>
-                                        <p>location:XXX - searches locations</p>
+                                        <p>free text - searches the item names, descriptions, tags, locations and fields</p>
+                                        <p>Use modifiers to narrow results, e.g.:</p>
+                                        <p>tags:hammer,drill location:kitchen color:blue drill</p>
 
 
                                     {% endif %}
@@ -76,78 +134,60 @@
 {% block footer %}
     {{ super() }}
     <script src="{{ url_for('static', filename='js/autoComplete.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/search_ajax.js') }}"></script>
 
     <script>
+        // Autocomplete now expects server to return objects: {category: 'tag'|'location'|'type'|'field', value: 'name'}
         const autoCompleteJS = new autoComplete({
             selector: "#q",
             placeHolder: "Search ... ",
             data: {
                 src: async (query) => {
+                    if (!query) return [];
                     try {
-                        // Fetch Data from external Source
-                        const source = await fetch(`{{ url_for('api.locations')}}?query=${query}`);
-                        // Data should be an array of `Objects` or `Strings`
-                        const data = await source.json();
-                        //return data;
-                        let ret = Object.entries(data).map(([ id, label ]) => ({ id, label }));
-                        return data;
-                    } catch (error) {
-                        return error;
+                        const res = await fetch(`{{ url_for('api.get_search_dropdown_entries') }}?query=${encodeURIComponent(query)}&limit=10`, { credentials: 'same-origin' });
+                        const json = await res.json();
+                        // json is array of {category:..., value:...}
+                        return json;
+                    } catch (err) {
+                        return [];
                     }
                 },
-                // Data source 'Object' key to be searched
-                keys: ["location", "tag", "type"],
+                keys: ["value"]
             },
 
-
             threshold: 0,
+            debounce: 200,
             autoFill: true,
 
             resultsList: {
-                element: (list, data) => {
-                    const info = document.createElement("p");
-                    if (data.results.length == 0) {
-                        info.innerHTML = `Found <strong>${data.matches.length}</strong> matching results for <strong>"${data.query}"</strong>`;
-                    }
-                    list.prepend(info);
-                },
-                noResults: true,
-                maxResults: 15,
+                maxResults: 10,
                 tabSelect: true
             },
 
-            resultsList2: {
-                element: (list, data) => {
-                    if (!data.results.length) {
-                        // Create "No Results" message element
-                        const message = document.createElement("div");
-                        // Add class to the created element
-                        message.setAttribute("class", "no_result");
-
-                        // Append message element to the results list
-                        list.prepend(message);
-                    }
-                },
-                noResults: true,
-                maxResults: undefined,
-            },
             resultItem: {
+                highlight: true,
                 element: (item, data) => {
-                    // Modify Results Item Style
-                    item.style = "display: flex; justify-content: space-between;";
-                    // Modify Results Item Content
-                    item.innerHTML = '<span style="text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">' + data.match + '</span>' +
-                        '<span style="display: flex; align-items: center; font-size: 13px; font-weight: 100; text-transform: uppercase; color: rgba(0,0,0,.7);">' + data.key + '</span>';
-                },
-                highlight: false,
+                    // item is the DOM element, data.value is the suggestion object
+                    const display = document.createElement('div');
+                    display.className = 'autocomplete-suggestion';
+                    const badge = document.createElement('span');
+                    badge.className = 'badge bg-primary me-2';
+                    badge.style.textTransform = 'capitalize';
+                    badge.innerText = data.value.category;
+                    const text = document.createElement('span');
+                    text.innerText = data.value.value;
+                    display.appendChild(badge);
+                    display.appendChild(text);
+                    item.innerHTML = display.outerHTML;
+                }
             },
+
             events: {
                 input: {
                     selection: (event) => {
-                        const selection = event.detail.selection.value;
-                        let key = Object.keys(selection);
-                        let value = Object.values(selection);
-                        autoCompleteJS.input.value = key + ":" + value;
+                        const selection = event.detail.selection.value; // {category, value}
+                        autoCompleteJS.input.value = `${selection.category}:${selection.value}`;
                     }
                 }
             }

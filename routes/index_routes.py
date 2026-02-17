@@ -145,19 +145,18 @@ def profile(username):
             else:
                 requesting_user_id = current_user.id
 
-        user_inventories, status, msg = (
-            InventoryService.get_user_inventories(current_user_id=current_user_id, requesting_user_id=requesting_user_id,
-                                                access_level=-1))
-
         user_notifications = current_user.notifications
         user_preferences = current_user.preferences
-        # -1 to remove the default inventory
+        number_user_inventories = InventoryService.get_number_user_inventories(user_id=current_user_id)
+        if current_user.preferences.show_default_list:
+                number_user_inventories = max(0, number_user_inventories - 1)
+
         return render_template(template_name_or_list='profile.html', name=current_user.username, num_items=num_items,
-                               num_item_types=num_item_types, list_username=username, user_inventories=user_inventories,
+                               num_item_types=num_item_types, list_username=username, #user_inventories=user_inventories,
                                user_preferences=user_preferences,
                                num_field_templates=num_field_templates, num_user_locations=num_user_locations,
                                user_notifications=user_notifications, user_is_authenticated=user_is_authenticated,
-                               num_inventories=len(list(user_inventories))-1, num_user_fields=num_user_fields)
+                               num_inventories=number_user_inventories, num_user_fields=num_user_fields)
 
     else:
         user_ = UserService.get_user_by_username(username=username)

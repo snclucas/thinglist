@@ -375,7 +375,10 @@ Index('ix_inventory_items_inventory_id', InventoryItem.__table__.c.inventory_id)
 Index('ix_inventory_items_item_id', InventoryItem.__table__.c.item_id)
 #
 Index('ix_inventory_users_user_id', UserInventory.__table__.c.user_id)
-Index('ix_inventory_users_inventory_id', UserInventory.__table__.c.inventory_id)
+Index('ix_inventory_users_inventory_id_user_id', UserInventory.__table__.c.inventory_id, UserInventory.__table__.c.user_id)
+#
+Index('ix_inventories_inventory_token', Inventory.__table__.c.inventory_token)
+Index('ix_inventories_token', Inventory.__table__.c.token)
 #
 # Index('ix_item_images_item_id', ItemImage.__table__.c.item_id)
 # Index('ix_item_images_image_id', ItemImage.__table__.c.image_id)

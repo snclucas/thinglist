@@ -321,11 +321,6 @@ class LocationService:
 
         with app.app_context():
             try:
-                # verify user exists to avoid querying for non-existent users
-                if UserService.get_user_by_id(user_id=user_id) is None:
-                    app.logger.debug(f"get_all_user_locations: no user found for id={user_id}")
-                    return []
-
                 stmt = select(Location).where(Location.user_id == user_id).order_by(Location.name)
                 locations = db.session.execute(stmt).scalars().all()
                 return locations

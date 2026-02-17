@@ -12,12 +12,12 @@
                 <option value="default">Default/None</option>
             {% endif %}
             {% for option in all_user_inventories %}
-                {% if __DEFAULT__ not in  option[0].name %}
-                    {% if inventory_slug == option[0].slug %}
-                        <option value="{{ option[0].slug }}"
-                                selected>{{ option[0].name }}</option>
+                {% if __DEFAULT__ not in  option[1] %}
+                    {% if inventory_slug == option[2] %}
+                        <option value="{{ option[2] }}"
+                                selected>{{ option[1] }}</option>
                     {% else %}
-                        <option value="{{ option[0].slug }}">{{ option[0].name }}</option>
+                        <option value="{{ option[2] }}">{{ option[1] }}</option>
                     {% endif %}
                 {% endif %}
             {% endfor %}

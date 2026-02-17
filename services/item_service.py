@@ -2,17 +2,16 @@ import os
 from typing import Dict, Optional, Union, Tuple
 
 from slugify import slugify
-from sqlalchemy import select, or_, func, and_
+from sqlalchemy import select, func, and_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError, NoResultFound, InvalidRequestError
 from app import db, app
 from database_utils import _commit
 
 from models import UserInventory, Relateditems, Inventory, User, Item, Location, ItemType, \
-    TemplateField, Field, Tag, InventoryItem, ItemField
+    TemplateField, Field, Tag, InventoryItem, ItemField, ItemTag
 from services.field_service import FieldService
 from services.inventory_service import InventoryService
 from services.item_type_service import ItemTypeService, _get_itemtype_id
-from services.tag_service import TagService
 from services.user_service import UserService
 
 
@@ -249,11 +248,27 @@ class ItemService:
 
             if item_tags not in (None, ''):
                 tags = [t.strip() for t in str(item_tags).split(",") if t.strip()]
-                for tag_ in tags:
-                    t_ = TagService.get_tag_by_str(tag_str=tag_)
-                    if t_ is not None:
-                        # preserve original semantics; if this is a relationship/JSON column adapt accordingly
-                        query_ = query_.filter(Item.tags.contains(t_))
+                if tags:
+                    try:
+                        # Normalize tags for case-insensitive matching and stored-space format.
+                        # Tags in the DB are often stored with spaces replaced by '@#$' during creation.
+                        normalized_tags = [t.replace(" ", "@#$").lower() for t in tags]
+                        # find tag ids in one query using lower() for case-insensitive match
+                        tag_rows = db.session.query(Tag.id).filter(func.lower(Tag.tag).in_(normalized_tags)).all()
+                        tag_ids = {r[0] for r in tag_rows}
+                    except SQLAlchemyError:
+                        db.session.rollback()
+                        # return a query that will produce no rows to preserve calling contract
+                        return query_.filter(Item.id == -1)
+
+                    if not tag_ids:
+                        # requested tags don't exist -> return empty query
+                        return query_.filter(Item.id == -1)
+
+                    # join ItemTag and require items have all requested tag_ids via group/having
+                    query_ = query_.join(ItemTag, ItemTag.item_id == Item.id)
+                    query_ = query_.filter(ItemTag.tag_id.in_(tag_ids))
+                    query_ = query_.group_by(Item.id).having(func.count(func.distinct(ItemTag.tag_id)) == len(tag_ids))
 
             # search term
             search = qp.get("search")
@@ -292,25 +307,98 @@ class ItemService:
             def _find_my_items():
                 with app.app_context():
                     try:
-                        # explicit select_from and joins to avoid cartesian products
-                        query = db.session.query(*_base_entities(include_userinventory=True)).select_from(Item)
-                        query = query.join(ItemType, ItemType.id == Item.item_type, isouter=True)
-                        query = query.join(Location, Location.id == Item.location_id, isouter=True)
-                        query = query.join(InventoryItem, InventoryItem.item_id == Item.id)
-                        query = query.join(Inventory, Inventory.id == InventoryItem.inventory_id)
-                        # ensure we join UserInventory when we filter it
-                        query = query.join(UserInventory, UserInventory.inventory_id == Inventory.id)
+                        # Build a paginated, distinct Item.id query to determine page of items
+                        id_q = db.session.query(Item.id).select_from(Item)
+                        id_q = id_q.join(ItemType, ItemType.id == Item.item_type, isouter=True)
+                        id_q = id_q.join(Location, Location.id == Item.location_id, isouter=True)
+                        # join InventoryItem/Inventory/UserInventory to allow inventory-scoped filtering
+                        id_q = id_q.join(InventoryItem, InventoryItem.item_id == Item.id)
+                        id_q = id_q.join(Inventory, Inventory.id == InventoryItem.inventory_id)
+                        id_q = id_q.join(UserInventory, UserInventory.inventory_id == Inventory.id)
 
                         if inventory_id not in (None, ''):
-                            query = query.filter(InventoryItem.inventory_id == inventory_id)
-                            query = query.filter(UserInventory.inventory_id == inventory_id)
-                            query = query.filter(UserInventory.user_id == logged_in_user.id)
+                            id_q = id_q.filter(InventoryItem.inventory_id == inventory_id)
+                            id_q = id_q.filter(UserInventory.inventory_id == inventory_id)
+                            id_q = id_q.filter(UserInventory.user_id == logged_in_user.id)
 
-                        query = query.filter(Item.user_id == logged_in_user.id)
+                        id_q = id_q.filter(Item.user_id == logged_in_user.id)
 
-                        query = _find_query_parameters(query, query_params)
-                        query = _pagination_query(query_params, query)
-                        return query.all()
+                        id_q = _find_query_parameters(id_q, query_params)
+                        id_q = _pagination_query(query_params, id_q)
+
+                        id_rows = id_q.distinct().all()
+                        if not id_rows:
+                            return []
+
+                        item_ids = [r[0] for r in id_rows]
+
+                        if app.config.get('DB_SUPPORTS_WINDOW_FUNCTIONS', False):
+                            # Build windowed subquery to pick preferred InventoryItem per item
+                            order_by_expr = []
+                            if inventory_id not in (None, ''):
+                                order_by_expr.append((InventoryItem.inventory_id == inventory_id).desc())
+                            order_by_expr.append(InventoryItem.is_link.asc())
+                            order_by_expr.append(InventoryItem.access_level.desc())
+                            order_by_expr.append(InventoryItem.id.asc())
+
+                            rn_col = func.row_number().over(partition_by=InventoryItem.item_id, order_by=order_by_expr).label('rn')
+                            pref_subq = db.session.query(
+                                InventoryItem.id.label('inv_id'),
+                                InventoryItem.item_id.label('item_id'),
+                                InventoryItem.inventory_id.label('inventory_id'),
+                                InventoryItem.access_level.label('access_level'),
+                                InventoryItem.is_link.label('is_link'),
+                                rn_col
+                            ).filter(InventoryItem.item_id.in_(item_ids)).subquery()
+
+                            # select one representative row per item (rn == 1)
+                            preferred = db.session.query(pref_subq).filter(pref_subq.c.rn == 1).subquery()
+
+                            # load final rows with joined ItemType/Location and the preferred inventory fields
+                            items_q = db.session.query(Item, ItemType.name, Location.name, preferred.c.access_level, preferred.c.is_link) \
+                                .outerjoin(ItemType, ItemType.id == Item.item_type) \
+                                .outerjoin(Location, Location.id == Item.location_id) \
+                                .join(preferred, preferred.c.item_id == Item.id) \
+                                .filter(Item.id.in_(item_ids))
+
+                            rows = items_q.all()
+                        else:
+                            # Python fallback: fetch InventoryItem rows and pick preferred per item in Python
+                            inv_rows = db.session.query(InventoryItem).filter(InventoryItem.item_id.in_(item_ids)).all()
+                            inv_map = {}
+                            for inv in inv_rows:
+                                inv_map.setdefault(inv.item_id, []).append(inv)
+
+                            def _inv_key(inv):
+                                inv_pref = 0 if (inventory_id not in (None, '') and inv.inventory_id == inventory_id) else 1
+                                is_link_key = 0 if not bool(inv.is_link) else 1
+                                access_level = inv.access_level or 0
+                                return (inv_pref, is_link_key, -access_level, inv.id)
+
+                            preferred_map = {}
+                            for iid, invs in inv_map.items():
+                                try:
+                                    preferred_map[iid] = min(invs, key=_inv_key)
+                                except ValueError:
+                                    continue
+
+                            # load item metadata and assemble rows
+                            items_meta = db.session.query(Item, ItemType.name, Location.name) \
+                                .outerjoin(ItemType, ItemType.id == Item.item_type) \
+                                .outerjoin(Location, Location.id == Item.location_id) \
+                                .filter(Item.id.in_(item_ids)).all()
+
+                            rows = []
+                            for itm, tname, lname in items_meta:
+                                inv = preferred_map.get(itm.id)
+                                if inv is not None:
+                                    rows.append((itm, tname, lname, inv.access_level or 0, inv.is_link))
+                                else:
+                                    rows.append((itm, tname, lname, 0, False))
+                        # map and preserve ordering
+                        result_by_item = {row[0].id: row for row in rows}
+                        ordered_results = [result_by_item[i] for i in item_ids if i in result_by_item]
+                        return ordered_results
                     except SQLAlchemyError:
                         db.session.rollback()
                         app.logger.exception("Error in _find_my_items")
@@ -319,25 +407,93 @@ class ItemService:
             def _find_someone_elses_items_loggedin():
                 with app.app_context():
                     try:
-                        query = db.session.query(*_base_entities(include_userinventory=True)).select_from(Item)
-                        query = query.join(ItemType, ItemType.id == Item.item_type, isouter=True)
-                        query = query.join(Location, Location.id == Item.location_id, isouter=True)
-                        query = query.join(InventoryItem, InventoryItem.item_id == Item.id)
-                        query = query.join(Inventory, Inventory.id == InventoryItem.inventory_id)
-                        query = query.join(UserInventory, UserInventory.inventory_id == Inventory.id)
+                        id_q = db.session.query(Item.id).select_from(Item)
+                        id_q = id_q.join(ItemType, ItemType.id == Item.item_type, isouter=True)
+                        id_q = id_q.join(Location, Location.id == Item.location_id, isouter=True)
+                        id_q = id_q.join(InventoryItem, InventoryItem.item_id == Item.id)
+                        id_q = id_q.join(Inventory, Inventory.id == InventoryItem.inventory_id)
+                        id_q = id_q.join(UserInventory, UserInventory.inventory_id == Inventory.id)
 
                         if inventory_id not in (None, ''):
-                            query = query.filter(InventoryItem.inventory_id == inventory_id)
-                            query = query.filter(and_(
+                            id_q = id_q.filter(InventoryItem.inventory_id == inventory_id)
+                            id_q = id_q.filter(and_(
                                 UserInventory.user_id == logged_in_user.id,
                                 UserInventory.inventory_id == inventory_id))
 
                         if request_user_id is not None:
-                            query = query.filter(Item.user_id == request_user_id)
+                            id_q = id_q.filter(Item.user_id == request_user_id)
 
-                        query = _find_query_parameters(query, query_params)
-                        query = _pagination_query(query_params, query)
-                        return query.all()
+                        id_q = _find_query_parameters(id_q, query_params)
+                        id_q = _pagination_query(query_params, id_q)
+
+                        id_rows = id_q.distinct().all()
+                        if not id_rows:
+                            return []
+                        item_ids = [r[0] for r in id_rows]
+
+                        if app.config.get('DB_SUPPORTS_WINDOW_FUNCTIONS', False):
+                            order_by_expr = []
+                            if inventory_id not in (None, ''):
+                                order_by_expr.append((InventoryItem.inventory_id == inventory_id).desc())
+                            order_by_expr.append(InventoryItem.is_link.asc())
+                            order_by_expr.append(InventoryItem.access_level.desc())
+                            order_by_expr.append(InventoryItem.id.asc())
+
+                            rn_col = func.row_number().over(partition_by=InventoryItem.item_id, order_by=order_by_expr).label('rn')
+                            pref_subq = db.session.query(
+                                InventoryItem.id.label('inv_id'),
+                                InventoryItem.item_id.label('item_id'),
+                                InventoryItem.inventory_id.label('inventory_id'),
+                                InventoryItem.access_level.label('access_level'),
+                                InventoryItem.is_link.label('is_link'),
+                                rn_col
+                            ).filter(InventoryItem.item_id.in_(item_ids)).subquery()
+
+                            preferred = db.session.query(pref_subq).filter(pref_subq.c.rn == 1).subquery()
+
+                            items_q = db.session.query(Item, ItemType.name, Location.name, preferred.c.access_level, preferred.c.is_link) \
+                                .outerjoin(ItemType, ItemType.id == Item.item_type) \
+                                .outerjoin(Location, Location.id == Item.location_id) \
+                                .join(preferred, preferred.c.item_id == Item.id) \
+                                .filter(Item.id.in_(item_ids))
+
+                            rows = items_q.all()
+                        else:
+                            inv_rows = db.session.query(InventoryItem).filter(InventoryItem.item_id.in_(item_ids)).all()
+                            inv_map = {}
+                            for inv in inv_rows:
+                                inv_map.setdefault(inv.item_id, []).append(inv)
+
+                            def _inv_key(inv):
+                                inv_pref = 0 if (inventory_id not in (None, '') and inv.inventory_id == inventory_id) else 1
+                                is_link_key = 0 if not bool(inv.is_link) else 1
+                                access_level = inv.access_level or 0
+                                return (inv_pref, is_link_key, -access_level, inv.id)
+
+                            preferred_map = {}
+                            for iid, invs in inv_map.items():
+                                try:
+                                    preferred_map[iid] = min(invs, key=_inv_key)
+                                except ValueError:
+                                    continue
+
+                            # load item metadata and assemble rows
+                            items_meta = db.session.query(Item, ItemType.name, Location.name) \
+                                .outerjoin(ItemType, ItemType.id == Item.item_type) \
+                                .outerjoin(Location, Location.id == Item.location_id) \
+                                .filter(Item.id.in_(item_ids)).all()
+
+                            rows = []
+                            for itm, tname, lname in items_meta:
+                                inv = preferred_map.get(itm.id)
+                                if inv is not None:
+                                    rows.append((itm, tname, lname, inv.access_level or 0, inv.is_link))
+                                else:
+                                    rows.append((itm, tname, lname, 0, False))
+                        # map and preserve ordering
+                        result_by_item = {row[0].id: row for row in rows}
+                        ordered_results = [result_by_item[i] for i in item_ids if i in result_by_item]
+                        return ordered_results
                     except SQLAlchemyError:
                         db.session.rollback()
                         app.logger.exception("Error in _find_someone_elses_items_loggedin")
@@ -346,24 +502,92 @@ class ItemService:
             def _find_someone_elses_items_notloggedin():
                 with app.app_context():
                     try:
-                        query = db.session.query(*_base_entities(include_userinventory=True)).select_from(Item)
-                        query = query.join(ItemType, ItemType.id == Item.item_type, isouter=True)
-                        query = query.join(Location, Location.id == Item.location_id, isouter=True)
-                        query = query.join(InventoryItem, InventoryItem.item_id == Item.id)
-                        query = query.join(Inventory, Inventory.id == InventoryItem.inventory_id)
+                        id_q = db.session.query(Item.id).select_from(Item)
+                        id_q = id_q.join(ItemType, ItemType.id == Item.item_type, isouter=True)
+                        id_q = id_q.join(Location, Location.id == Item.location_id, isouter=True)
+                        id_q = id_q.join(InventoryItem, InventoryItem.item_id == Item.id)
+                        id_q = id_q.join(Inventory, Inventory.id == InventoryItem.inventory_id)
                         # still join UserInventory so DB knows the relation even if we don't check a user id
-                        query = query.join(UserInventory, UserInventory.inventory_id == Inventory.id)
+                        id_q = id_q.join(UserInventory, UserInventory.inventory_id == Inventory.id)
 
                         if inventory_id not in (None, ''):
-                            query = query.filter(InventoryItem.inventory_id == inventory_id)
-                            query = query.filter(UserInventory.inventory_id == inventory_id)
+                            id_q = id_q.filter(InventoryItem.inventory_id == inventory_id)
+                            id_q = id_q.filter(UserInventory.inventory_id == inventory_id)
 
                         if request_user_id is not None:
-                            query = query.filter(Item.user_id == request_user_id)
+                            id_q = id_q.filter(Item.user_id == request_user_id)
 
-                        query = _find_query_parameters(query, query_params)
-                        query = _pagination_query(query_params, query)
-                        return query.all()
+                        id_q = _find_query_parameters(id_q, query_params)
+                        id_q = _pagination_query(query_params, id_q)
+
+                        id_rows = id_q.distinct().all()
+                        if not id_rows:
+                            return []
+                        item_ids = [r[0] for r in id_rows]
+
+                        if app.config.get('DB_SUPPORTS_WINDOW_FUNCTIONS', False):
+                            order_by_expr = []
+                            if inventory_id not in (None, ''):
+                                order_by_expr.append((InventoryItem.inventory_id == inventory_id).desc())
+                            order_by_expr.append(InventoryItem.is_link.asc())
+                            order_by_expr.append(InventoryItem.access_level.desc())
+                            order_by_expr.append(InventoryItem.id.asc())
+
+                            rn_col = func.row_number().over(partition_by=InventoryItem.item_id, order_by=order_by_expr).label('rn')
+                            pref_subq = db.session.query(
+                                InventoryItem.id.label('inv_id'),
+                                InventoryItem.item_id.label('item_id'),
+                                InventoryItem.inventory_id.label('inventory_id'),
+                                InventoryItem.access_level.label('access_level'),
+                                InventoryItem.is_link.label('is_link'),
+                                rn_col
+                            ).filter(InventoryItem.item_id.in_(item_ids)).subquery()
+
+                            preferred = db.session.query(pref_subq).filter(pref_subq.c.rn == 1).subquery()
+
+                            items_q = db.session.query(Item, ItemType.name, Location.name, preferred.c.access_level, preferred.c.is_link) \
+                                .outerjoin(ItemType, ItemType.id == Item.item_type) \
+                                .outerjoin(Location, Location.id == Item.location_id) \
+                                .join(preferred, preferred.c.item_id == Item.id) \
+                                .filter(Item.id.in_(item_ids))
+
+                            rows = items_q.all()
+                        else:
+                            inv_rows = db.session.query(InventoryItem).filter(InventoryItem.item_id.in_(item_ids)).all()
+                            inv_map = {}
+                            for inv in inv_rows:
+                                inv_map.setdefault(inv.item_id, []).append(inv)
+
+                            def _inv_key(inv):
+                                inv_pref = 0 if (inventory_id not in (None, '') and inv.inventory_id == inventory_id) else 1
+                                is_link_key = 0 if not bool(inv.is_link) else 1
+                                access_level = inv.access_level or 0
+                                return (inv_pref, is_link_key, -access_level, inv.id)
+
+                            preferred_map = {}
+                            for iid, invs in inv_map.items():
+                                try:
+                                    preferred_map[iid] = min(invs, key=_inv_key)
+                                except ValueError:
+                                    continue
+
+                            # load item metadata and assemble rows
+                            items_meta = db.session.query(Item, ItemType.name, Location.name) \
+                                .outerjoin(ItemType, ItemType.id == Item.item_type) \
+                                .outerjoin(Location, Location.id == Item.location_id) \
+                                .filter(Item.id.in_(item_ids)).all()
+
+                            rows = []
+                            for itm, tname, lname in items_meta:
+                                inv = preferred_map.get(itm.id)
+                                if inv is not None:
+                                    rows.append((itm, tname, lname, inv.access_level or 0, inv.is_link))
+                                else:
+                                    rows.append((itm, tname, lname, 0, False))
+                        # map and preserve ordering
+                        result_by_item = {row[0].id: row for row in rows}
+                        ordered_results = [result_by_item[i] for i in item_ids if i in result_by_item]
+                        return ordered_results
                     except SQLAlchemyError:
                         db.session.rollback()
                         app.logger.exception("Error in _find_someone_elses_items_notloggedin")

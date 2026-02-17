@@ -11,11 +11,8 @@ from flask_bcrypt import Bcrypt
 from flask_wtf.csrf import CSRFProtect
 from flask_mail import Mail
 
-#from flask_msearch import Search
 from site_globals import (__INVENTORY__, __LIST__, __URL_LIST__, __PUBLIC__, __PRIVATE__,
                           __VIEWER__, __LIST_ALL__, __COLLABORATOR__, __DEFAULT__, __OWNER__)
-
-#from pycharm_flask_debug_patch import restart_with_reloader_patch
 
 
 from dotenv import load_dotenv
@@ -116,6 +113,20 @@ app.config['ELASTICSEARCH_URL'] = ELASTICSEARCH_URL
 app.config['SQLALCHEMY_DATABASE_URI'] = SQLALCHEMY_DATABASE_URI
 
 db = SQLAlchemy(app, session_options={"expire_on_commit": "False"})
+
+# Detect whether the connected DB supports window functions (ROW_NUMBER) and cache the result.
+from sqlalchemy import text
+try:
+    # A small query using ROW_NUMBER to test support. Different DBs may accept this;
+    # if it raises, we'll assume window functions are not supported and fall back to Python selection.
+    with app.app_context():
+        db.session.execute(text("SELECT 1 FROM (SELECT row_number() OVER (ORDER BY (SELECT 1)) AS rn) AS t LIMIT 1"))
+        app.config['DB_SUPPORTS_WINDOW_FUNCTIONS'] = True
+except Exception as e:
+    app.logger.warning(f"DB does not appear to support window functions (row_number); falling back to Python selection: {e}")
+    app.config['DB_SUPPORTS_WINDOW_FUNCTIONS'] = False
+
+app.logger.info(f"DB_SUPPORTS_WINDOW_FUNCTIONS={app.config['DB_SUPPORTS_WINDOW_FUNCTIONS']}")
 
 #search = Search(db=db)
 #search.init_app(app)
