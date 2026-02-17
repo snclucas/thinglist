@@ -60,7 +60,7 @@
       const a = document.createElement('a');
       let invSlug = (item.inventories && item.inventories[0] && item.inventories[0].slug) ? item.inventories[0].slug : '';
       // build link consistent with other route names
-      a.href = `/items/@${encodeURIComponent(username)}/${encodeURIComponent(invSlug)}/${encodeURIComponent(item.slug)}`.replace('%40','@');
+      a.href = `/@${encodeURIComponent(username)}/${encodeURIComponent(invSlug)}/${encodeURIComponent(item.slug)}`.replace('%40','@');
       a.textContent = item.name;
       tdName.appendChild(a);
 
