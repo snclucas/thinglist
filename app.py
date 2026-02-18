@@ -44,6 +44,7 @@ ELASTICSEARCH_URL = os.environ.get('ELASTICSEARCH_URL')
 app.config['PRESERVE_CONTEXT_ON_EXCEPTION'] = False
 
 app.config['LOG_DIRECTORY'] = os.environ.get('LOG_DIRECTORY', '')
+# SECRET_KEY must be set in production. Default to a non-empty value in dev if provided, but fail-fast
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', '')
 app.config['IMAGE_SECRET_KEY'] = os.environ.get('IMAGE_SECRET_KEY', '')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -60,8 +61,34 @@ app.config['FILE_UPLOADS'] = os.environ.get('FILE_UPLOADS', '')
 
 app.config['POSTS_PER_PAGE'] = os.environ.get('POSTS_PER_PAGE', 10)
 
-app.debug = os.environ.get('DEBUG', bool(os.environ.get('DEBUG', '')))
+def _parse_bool_env(val, default=False):
+    if isinstance(val, bool):
+        return val
+    if val is None:
+        return default
+    return str(val).lower() in ("1", "true", "yes", "on")
 
+# Parse DEBUG explicitly from env
+app.debug = _parse_bool_env(os.environ.get('DEBUG', ''), False)
+
+# Secure cookie and session settings. Respect explicit env overrides; otherwise default to secure values in non-debug.
+_env_session_secure = os.environ.get('SESSION_COOKIE_SECURE')
+if _env_session_secure is not None and _env_session_secure != '':
+    app.config['SESSION_COOKIE_SECURE'] = _parse_bool_env(_env_session_secure)
+else:
+    app.config['SESSION_COOKIE_SECURE'] = False if app.debug else True
+
+_env_session_httponly = os.environ.get('SESSION_COOKIE_HTTPONLY')
+if _env_session_httponly is not None and _env_session_httponly != '':
+    app.config['SESSION_COOKIE_HTTPONLY'] = _parse_bool_env(_env_session_httponly)
+else:
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+
+_env_session_samesite = os.environ.get('SESSION_COOKIE_SAMESITE')
+if _env_session_samesite is not None and _env_session_samesite != '':
+    app.config['SESSION_COOKIE_SAMESITE'] = _env_session_samesite
+else:
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER')
 app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT') or 25)
@@ -92,10 +119,18 @@ app.config['PROCESS_IMAGE_FORMAT'] = os.environ.get('PROCESS_IMAGE_FORMAT', "JPE
 
 
 # Configure Flask logging
-if not os.path.exists(app.config['LOG_DIRECTORY']):
-    os.mkdir(app.config['LOG_DIRECTORY'])
+# Ensure log directory exists if configured. If empty or not set, fall back to a safe temp directory.
+if not app.config['LOG_DIRECTORY']:
+    # Choose a fallback logs directory inside the project tmp
+    app.config['LOG_DIRECTORY'] = os.path.join(os.path.dirname(__file__), 'logs')
 
-error_log_file_handler = RotatingFileHandler(filename=os.path.join(app.config['LOG_DIRECTORY'], 'thinglist_error.txt'), maxBytes=10240,
+try:
+    os.makedirs(app.config['LOG_DIRECTORY'], exist_ok=True)
+except Exception:
+    # If we cannot create the directory, log to current directory as a last resort
+    app.config['LOG_DIRECTORY'] = os.path.join(os.path.dirname(__file__), '.')
+
+error_log_file_handler = RotatingFileHandler(filename=os.path.join(app.config['LOG_DIRECTORY'], 'thinglist_error.txt'), maxBytes=1024*1024,
                                              backupCount=10)
 error_log_file_handler.setFormatter(logging.Formatter(
     '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'))
@@ -148,8 +183,12 @@ flask_bcrypt = Bcrypt(app)
 # Associate Flask-Login manager with current app
 login_manager = LoginManager()
 login_manager.init_app(app)
-
-mail = Mail(app)
+# Strengthen session protection
+try:
+    login_manager.session_protection = 'strong'
+except Exception:
+    # Older versions may not support this attribute; ignore if unavailable
+    pass
 
 # Initialize Flask-Limiter if available
 if Limiter is not None:
@@ -163,6 +202,28 @@ if Limiter is not None:
         limiter = Limiter(app, key_func=get_remote_address, default_limits=["200 per day", "50 per hour"])
 else:
     limiter = None
+
+# Environment validation for critical settings (fail-fast in production)
+def _validate_env():
+    # Ensure DB URL is configured
+    db_url = app.config.get('SQLALCHEMY_DATABASE_URI')
+    if not app.debug:
+        if not db_url:
+            raise RuntimeError("DATABASE_URL (SQLALCHEMY_DATABASE_URI) must be set in environment for non-debug mode. Example: DATABASE_URL='mysql://user:pass@host/dbname?charset=utf8mb4'")
+        # Basic sanity checks
+        if '//' not in db_url:
+            raise RuntimeError(f"DATABASE_URL looks invalid: {db_url}")
+
+    # Mail settings: warn if incomplete
+    mail_server = app.config.get('MAIL_SERVER')
+    if mail_server:
+        if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
+            app.logger.warning('MAIL_SERVER is set but MAIL_USERNAME or MAIL_PASSWORD is missing; email sending may fail.')
+    else:
+        app.logger.info('MAIL_SERVER is not set; transactional emails will be disabled.')
+
+
+_validate_env()
 
 
 @app.context_processor
@@ -203,3 +264,123 @@ def page_not_found(error):
 def internal_error(error):
     db.session.rollback()
     return render_template('500.html'), 500
+
+# Validate required production settings early (fail-fast if missing when not in debug)
+if not app.debug:
+    if not app.config.get('SECRET_KEY'):
+        raise RuntimeError("SECRET_KEY must be set in environment for non-debug mode")
+
+mail = Mail(app)
+
+# Optional server-side session support: Flask-Session with Redis
+_session_backend_available = False
+try:
+    from flask_session import Session as FlaskSession
+    _session_backend_available = True
+except Exception:
+    FlaskSession = None
+
+# Initialize server-side session if configured via env
+if _session_backend_available:
+    # Prefer explicit SESSION_TYPE or REDIS_URL
+    session_type = os.environ.get('SESSION_TYPE', '')
+    redis_url = os.environ.get('REDIS_URL', '')
+    if session_type.lower() == 'redis' or redis_url:
+        app.config.setdefault('SESSION_TYPE', 'redis')
+        if redis_url:
+            app.config.setdefault('SESSION_REDIS', redis_url)
+        try:
+            FlaskSession(app)
+            app.logger.info('Server-side sessions enabled via Flask-Session')
+        except Exception:
+            app.logger.exception('Failed to initialize Flask-Session; falling back to client-side sessions')
+
+
+# Helper to explicitly rotate/regenerate session data
+def regenerate_session():
+    """Regenerate the session to mitigate session fixation.
+
+    Approach: preserve non-sensitive session data if needed, clear the session, then set a nonce
+    to ensure the resulting session cookie differs from the prior one. This works with client-side
+    signed cookies and with server-side session backends (Flask-Session), forcing a new session
+    payload/cookie to be issued.
+    """
+    try:
+        from flask import session, request, current_app
+        import secrets as _secrets
+
+        sess_interface = current_app.session_interface
+
+        # Determine existing session id if available (many server-side backends expose it on session.sid)
+        old_sid = None
+        try:
+            old_sid = getattr(session, 'sid', None)
+        except Exception:
+            old_sid = None
+
+        if not old_sid:
+            # Fallback to cookie value
+            old_sid = request.cookies.get(current_app.session_cookie_name)
+
+        # Attempt to generate a new session id using the session interface if supported
+        new_sid = None
+        try:
+            if hasattr(sess_interface, 'generate_sid'):
+                new_sid = sess_interface.generate_sid()
+        except Exception:
+            new_sid = None
+
+        if not new_sid:
+            # Last-resort SID generator
+            new_sid = _secrets.token_urlsafe(24)
+
+        # If backend supports direct deletion (commonly Redis), attempt to remove old session data
+        try:
+            # Redis-backed interface often exposes a `redis` attribute and `key_prefix`
+            redis_client = getattr(sess_interface, 'redis', None)
+            key_prefix = getattr(sess_interface, 'key_prefix', '') or ''
+            if redis_client and old_sid:
+                try:
+                    redis_client.delete(key_prefix + old_sid)
+                except Exception:
+                    # ignore deletion errors
+                    pass
+            # Some interfaces use `cache` attribute (memcached etc.)
+            cache_client = getattr(sess_interface, 'cache', None)
+            if cache_client and old_sid:
+                try:
+                    cache_client.delete(key_prefix + old_sid)
+                except Exception:
+                    pass
+        except Exception:
+            # Not critical; continue
+            pass
+
+        # Clear current session contents and set new sid/nonce
+        try:
+            # preserve no keys; clear everything
+            for k in list(session.keys()):
+                try:
+                    session.pop(k)
+                except Exception:
+                    pass
+        except RuntimeError:
+            current_app.logger.warning('regenerate_session called outside request context; skipping clear')
+            return
+
+        # Set new identifiers which many server-side session backends will respect
+        try:
+            setattr(session, 'sid', new_sid)
+        except Exception:
+            # Some session objects are dict-like only; set a fallback key
+            session['_id'] = new_sid
+
+        # Add a nonce and mark modified so the session will be saved under the new id
+        session['session_nonce'] = _secrets.token_urlsafe(16)
+        session.modified = True
+
+    except RuntimeError:
+        # Not in a request context — cannot rotate session
+        app.logger.warning('regenerate_session called outside request context; skipping')
+    except Exception:
+        app.logger.exception('Error rotating session')

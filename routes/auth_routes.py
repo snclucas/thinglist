@@ -2,7 +2,8 @@ import datetime
 import re
 import secrets
 
-import bleach
+# bleach imported but not used here; leave available for views that sanitize HTML if needed
+#from flask import current_app, Blueprint, render_template, request, flash, redirect, url_for, session
 from flask import current_app, Blueprint, render_template, request, flash, redirect, url_for, session
 from app import login_manager, flask_bcrypt, app
 from flask_login import (login_required, login_user, logout_user, confirm_login, current_user)
@@ -56,7 +57,14 @@ def login():
 
             # Prevent session fixation: clear existing session data before login
             session.clear()
+            # Perform login; on success, regenerate the session using app helper
             if login_user(user, remember=remember):
+                try:
+                    # regenerate_session clears and sets a nonce so a new cookie will be issued
+                    from app import regenerate_session
+                    regenerate_session()
+                except Exception:
+                    current_app.logger.warning('Failed to regenerate session after login')
                 return redirect(url_for('main.profile', username=user.username).replace('%40', '@'))
             else:
                 flash("Unable to log you in")
@@ -373,13 +381,18 @@ def load_user(id):
     - This method is decorated with the `@login_manager.user_loader` decorator to register it as the user loader function for the current login manager. It is automatically called when loading
     * a user based on the ID.
     """
+    # The user loader must return a user object or None. Do not perform redirects here.
     if id is None:
-        redirect('/login')
+        return None
 
-    user = User.query.filter_by(id=id).first()
-    if user is not None:
-        if user.is_active:
-            return user
-        else:
-            return None
+    # The incoming id may be a string (from the session). Coerce to int when possible.
+    try:
+        uid = int(id)
+    except Exception:
+        # Invalid id format
+        return None
+
+    user = User.query.filter_by(id=uid).first()
+    if user and user.is_active:
+        return user
     return None

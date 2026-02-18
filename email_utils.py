@@ -3,7 +3,10 @@ import traceback
 
 from flask import render_template
 from flask_mail import Message
-from app import app, mail
+
+# Avoid importing `mail` at module import time so tests and environments without a configured Mail
+# instance don't fail. We'll import `mail` lazily inside send_email and no-op if not available.
+from app import app
 
 
 def threading(f):
@@ -48,6 +51,14 @@ def send_email(subject, sender=None, recipients=None, text_body=None, html_body=
             msg = Message(subject, sender=sender_addr, recipients=(recipients or []))
             msg.body = text_body
             msg.html = html_body
+            # Import mail lazily and handle when not configured
+            try:
+                from app import mail
+            except Exception:
+                mail = None
+            if mail is None:
+                app.logger.warning('Mail is not configured; skipping send_email')
+                return
             mail.send(msg)
         except Exception:
             # Ensure exceptions inside the thread get logged
