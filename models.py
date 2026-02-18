@@ -57,7 +57,8 @@ class User(UserMixin, db.Model):
     notifications = db.relationship('Notification', backref='users', cascade="all,delete", lazy='selectin', passive_deletes=True)
     activated = db.Column(db.Boolean(), nullable=True, unique=False, default=False)
     token = db.Column(db.String(255), nullable=True, unique=False)
-    token_expires = db.Column(db.DateTime(), default=func.now())
+    # Use timezone-aware DateTime for token expirations. Default to None (no token set).
+    token_expires = db.Column(db.DateTime(timezone=True), nullable=True, default=None)
     profile_text = db.Column(db.String(255), nullable=True, unique=False)
 
 

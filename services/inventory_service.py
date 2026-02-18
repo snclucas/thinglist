@@ -996,17 +996,73 @@ class InventoryService:
         """
         with app.app_context():
             out = []
+
+            # batch owner ids, template ids, and inventory ids
+            owner_ids = set()
+            template_ids = set()
+            inv_ids = []
             for inv in inventories:
-                # resolve owner username for export (avoid exporting numeric DB ids)
-                owner_username = None
+                inv_ids.append(inv.id)
+                if getattr(inv, 'owner_id', None) is not None:
+                    owner_ids.add(inv.owner_id)
+                if getattr(inv, 'field_template', None):
+                    template_ids.add(inv.field_template)
+
+            # batch fetch owner usernames
+            owner_map = {}
+            if owner_ids:
                 try:
-                    owner_row = db.session.query(User).filter(User.id == inv.owner_id).one_or_none()
-                    owner_username = owner_row.username if owner_row is not None else None
+                    owner_rows = db.session.query(User.id, User.username).filter(User.id.in_(list(owner_ids))).all()
+                    owner_map = {r[0]: r[1] for r in owner_rows}
                 except Exception:
-                    owner_username = None
+                    owner_map = {}
+
+            # batch fetch template field slugs/names
+            template_meta = {}
+            if template_ids:
+                try:
+                    # get template basic info
+                    ft_rows = db.session.query(FieldTemplate.id, FieldTemplate.ident, FieldTemplate.name).filter(FieldTemplate.id.in_(list(template_ids))).all()
+                    for tid, ident, name in ft_rows:
+                        template_meta[tid] = {"ident": ident, "name": name, "slugs": []}
+
+                    # fetch fields for these templates
+                    if template_meta:
+                        stmt_tf = select(TemplateField, Field).join(Field, TemplateField.field_id == Field.id).where(TemplateField.template_id.in_(list(template_meta.keys())))
+                        rows_tf = db.session.execute(stmt_tf).all()
+                        for tf, field in rows_tf:
+                            if tf.template_id in template_meta:
+                                template_meta[tf.template_id]["slugs"].append(field.slug)
+                        # ensure order is preserved by TemplateField.order
+                        # map of template_id -> list of (order, slug)
+                        if template_meta:
+                            ordered = {tid: [] for tid in template_meta.keys()}
+                            for tf, field in rows_tf:
+                                ordered[tf.template_id].append((getattr(tf, 'order', 9999), field.slug))
+                            for tid, lst in ordered.items():
+                                lst.sort()
+                                template_meta[tid]["slugs"] = [s for _, s in lst]
+                except Exception:
+                    template_meta = {}
+
+            # batch fetch user_inventory collaborators per inventory
+            inv_users_map = {}
+            if inv_ids:
+                try:
+                    ui_rows = db.session.query(UserInventory.inventory_id, User.username, UserInventory.access_level).join(User, User.id == UserInventory.user_id).filter(UserInventory.inventory_id.in_(inv_ids)).all()
+                    for inv_id, uname, alevel in ui_rows:
+                        inv_users_map.setdefault(inv_id, []).append((uname, alevel))
+                except Exception:
+                    inv_users_map = {}
+
+            # Now iterate inventories and build output using maps (avoids per-inv DB queries)
+            user_images_base = app.config.get('USER_IMAGES_BASE_PATH')
+            image_secret_key = app.config.get('IMAGE_SECRET_KEY')
+
+            for inv in inventories:
+                owner_username = owner_map.get(getattr(inv, 'owner_id', None))
 
                 inv_dict = {
-                    # use inventory.ident as the unique identifier (no DB id)
                     "ident": inv.ident,
                     "name": inv.name,
                     "description": inv.description,
@@ -1021,16 +1077,14 @@ class InventoryService:
                     "show_item_tags": 1 if getattr(inv, 'show_item_tags', False) else 0,
                     "show_item_url": 1 if getattr(inv, 'show_item_url', False) else 0,
                     "access_level": inv.access_level,
-                    # export owner as username (no numeric DB id)
                     "owner": owner_username,
                     "items": []
                 }
+
                 for item in getattr(inv, "items", []) or []:
                     item_dict = {
-                        #"id": item.id,
                         "ident": item.ident,
                         "item_token": getattr(item, 'item_token', None),
-                        #"item_token": item.item_token,
                         "name": item.name,
                         "description": item.description,
                         "quantity": item.quantity,
@@ -1051,9 +1105,8 @@ class InventoryService:
                         "tags": [t.tag for t in getattr(item, "tags", []) or []],
                         "images": []
                     }
+
                     # include image binary data and hash for each image so imports can recreate files
-                    user_images_base = app.config.get('USER_IMAGES_BASE_PATH')
-                    image_secret_key = app.config.get('IMAGE_SECRET_KEY')
                     for img in getattr(item, 'images', []) or []:
                         img_filename = getattr(img, 'image_filename', None)
                         is_main = 'true' if img_filename and getattr(item, 'main_image', None) == img_filename else 'false'
@@ -1065,17 +1118,14 @@ class InventoryService:
                                     data = f.read()
                                 b64 = base64.b64encode(data).decode('utf-8')
                                 image_entry['image_data'] = b64
-                                # compute hmac as in process_images
                                 raw = b64.encode('utf-8')
                                 hashed = hmac.new(image_secret_key.encode('utf-8') if isinstance(image_secret_key, str) else image_secret_key, raw, hashlib.sha1)
                                 img_hmac_hash = base64.encodebytes(hashed.digest()).decode('utf-8')
                                 image_entry['image_hash'] = img_hmac_hash
                             else:
-                                # don't include image binary data
                                 image_entry['image_data'] = None
                                 image_entry['image_hash'] = None
                         except Exception:
-                            # if reading/encoding fails, include filename only
                             image_entry['image_data'] = None
                             image_entry['image_hash'] = None
                         item_dict['images'].append(image_entry)
@@ -1083,7 +1133,6 @@ class InventoryService:
                     # include extra_fields if attached by get_user_inventories2
                     extras = getattr(item, 'extra_fields', None)
                     if extras is not None:
-                        # sanitize extras to avoid exporting numeric DB ids
                         cleaned_extras = []
                         custom_map = {}
                         for ef in extras:
@@ -1098,7 +1147,6 @@ class InventoryService:
                                 "show": bool(ef.get('show', False))
                             }
                             cleaned_extras.append(cleaned)
-                            # convenience map keyed by slug or ident
                             key = field_slug or ef.get('field_ident')
                             custom_map[key] = ef.get('value')
 
@@ -1107,23 +1155,16 @@ class InventoryService:
 
                     inv_dict["items"].append(item_dict)
 
-                # include inventory's field template as a field_set for re-import
-                if getattr(inv, 'field_template', None):
-                    try:
-                        ft = db.session.query(FieldTemplate).filter(FieldTemplate.id == inv.field_template).one_or_none()
-                        if ft is not None:
-                            inv_dict['field_set'] = {"ident": ft.ident, "name": ft.name, "slugs": [f.slug for f in ft.fields]}
-                    except Exception:
-                        pass
+                # include inventory's field template as a field_set for re-import (use pre-fetched meta)
+                if getattr(inv, 'field_template', None) and template_meta:
+                    meta = template_meta.get(inv.field_template)
+                    if meta:
+                        inv_dict['field_set'] = {"ident": meta.get('ident'), "name": meta.get('name'), "slugs": meta.get('slugs', [])}
 
                 # include user inventory (sharing) entries by username and access_level (no numeric ids)
                 try:
-                    ui_rows = db.session.query(User.username, UserInventory.access_level) \
-                        .join(User, User.id == UserInventory.user_id) \
-                        .filter(UserInventory.inventory_id == inv.id).all()
                     inv_dict['user_inventory'] = []
-                    for uname, alevel in ui_rows:
-                        # skip exporting owner as part of collaborators
+                    for uname, alevel in inv_users_map.get(inv.id, []):
                         if uname == owner_username:
                             continue
                         inv_dict['user_inventory'].append({"username": uname, "access_level": alevel})

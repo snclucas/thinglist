@@ -1,9 +1,9 @@
 import datetime
 import re
-import uuid
+import secrets
 
-from flask import current_app, Blueprint, render_template, request, flash, redirect, url_for
-
+import bleach
+from flask import current_app, Blueprint, render_template, request, flash, redirect, url_for, session
 from app import login_manager, flask_bcrypt, app
 from flask_login import (login_required, login_user, logout_user, confirm_login, current_user)
 
@@ -11,45 +11,17 @@ from email_utils import send_email
 from models import User
 from routes.index_routes import profile
 from services.user_service import UserService, post_user_add_hook
+from utils import sanitize, password_check
+try:
+    from app import limiter
+except Exception:
+    limiter = None
 
 auth_flask_login = Blueprint('auth_flask_login', __name__, template_folder='templates')
 
-@auth_flask_login.route('/reset_password>', methods=['GET', 'POST'])
-def reset_password():
-    pass
-
-#@auth_flask_login.route('/reset_password/<token>', methods=['GET', 'POST'])
-#def reset_password(token):
-    pass
-    # if current_user.is_authenticated:
-    #     return redirect(url_for('index'))
-    # user = User.verify_reset_password_token(token)
-    # if not user:
-    #     return redirect(url_for('index'))
-    # form = ResetPasswordForm()
-    # if form.validate_on_submit():
-    #     user.set_password(form.password.data)
-    #     db.session.commit()
-    #     flash('Your password has been reset.')
-    #     return redirect(url_for('login'))
-    # return render_template('reset_password_request.html', form=form)
-
-
-def sanitize(input_string):
-    """
-    Sanitizes the given input string by encoding and decoding it using unicode_escape.
-
-    Args:
-        input_string (str): The input string to be sanitized.
-
-    Returns:
-        str: The sanitized input string.
-    """
-    # Perform input sanitization
-    return input_string.encode('unicode_escape').decode()
-
 
 @auth_flask_login.route("/login", methods=["GET", "POST"])
+@limiter.limit("10 per minute") if limiter is not None else (lambda f: f)
 def login():
     """
     Method: login
@@ -82,6 +54,8 @@ def login():
                 flash("Thing Master not activated")
                 return render_template("auth/login.html")
 
+            # Prevent session fixation: clear existing session data before login
+            session.clear()
             if login_user(user, remember=remember):
                 return redirect(url_for('main.profile', username=user.username).replace('%40', '@'))
             else:
@@ -114,17 +88,34 @@ def activate_user(token):
 
     if user_ is not None and not user_.activated and user_.token == token:
         token_expiry = user_.token_expires
-        if datetime.datetime.now() > token_expiry:
+        # Normalize timezone: treat naive datetimes as UTC
+        if token_expiry is None:
+            flash("Expired registration request")
+            return render_template(template)
+        if token_expiry.tzinfo is None:
+            token_expiry = token_expiry.replace(tzinfo=datetime.timezone.utc)
+        if datetime.datetime.now(datetime.timezone.utc) > token_expiry:
             flash("Expired registration request")
             return render_template(template)
 
-        UserService.activate(user_id=user_.id)
+        # Activate and clear token
+        success = UserService.activate(user_id=user_.id)
+        try:
+            user_.token = None
+            user_.token_expires = None
+            from app import db
+            db.session.merge(user_)
+            db.session.commit()
+        except Exception:
+            current_app.logger.exception('Failed to clear activation token after activation')
+
         flash("You are now an activated Thing Master!")
 
     return render_template(template)
 
 
 @auth_flask_login.route("/reset-password/<token>", methods=["GET", "POST"])
+@limiter.limit("5 per minute") if limiter is not None else (lambda f: f)
 def reset_password_token(token):
     template = "auth/reset_password.html"
 
@@ -136,9 +127,14 @@ def reset_password_token(token):
     else:
         user_ = UserService.get_user_by_token(token=token)
 
-        token_expiry = user_.token_expires
-        if datetime.datetime.now() > token_expiry:
-            flash("Expired registration request")
+        token_expiry = user_.token_expires if user_ is not None else None
+        if token_expiry is None:
+            flash("Expired or invalid password reset request")
+            return reset_password_token(token)
+        if token_expiry.tzinfo is None:
+            token_expiry = token_expiry.replace(tzinfo=datetime.timezone.utc)
+        if datetime.datetime.now(datetime.timezone.utc) > token_expiry:
+            flash("Expired or invalid password reset request")
             return reset_password_token(token)
 
         if user_ is not None and user_.activated:
@@ -153,6 +149,15 @@ def reset_password_token(token):
 
                 password_hash = flask_bcrypt.generate_password_hash(password1)
                 UserService.update_user_password_by_token(token=token, password_hash=password_hash)
+                # Clear token on successful reset
+                try:
+                    user_.token = None
+                    user_.token_expires = None
+                    from app import db
+                    db.session.merge(user_)
+                    db.session.commit()
+                except Exception:
+                    current_app.logger.exception('Failed to clear reset token after password update')
                 return login()
             else:
                 flash("Both passwords must match")
@@ -164,6 +169,7 @@ def reset_password_token(token):
 
 
 @auth_flask_login.route(rule="/reset-password", methods=["GET", "POST"])
+@limiter.limit("5 per minute") if limiter is not None else (lambda f: f)
 def reset_password_request():
 
     token_epiration_minutes = int(app.config['TOKEN_EXPIRATION_MINUTES'])
@@ -175,13 +181,14 @@ def reset_password_request():
         user_ = UserService.get_user_by_email(email=email)
 
         if user_ is not None and user_.activated:
-            confirmation_token = uuid.uuid4().hex
-            token_expires = datetime.datetime.now() + datetime.timedelta(minutes=token_epiration_minutes)
+            # Use a secure token generator
+            confirmation_token = secrets.token_urlsafe(32)
+            token_expires = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=token_epiration_minutes)
             UserService.update_user_token_by_email(email=email, user_token=confirmation_token, token_expires=token_expires)
 
             text_body = render_template(template_name_or_list='email/reset_password.txt', user=user_, token=confirmation_token)
             html_body = render_template(template_name_or_list='email/reset_password.html', user=user_, token=confirmation_token)
-            send_email(subject="Password change", sender=app.config['ADMINS'][0], recipients=[user_.email],
+            send_email(subject="Password change", sender=None, recipients=[user_.email],
                        text_body=text_body, html_body=html_body)
 
         flash("Check your email")
@@ -228,46 +235,8 @@ def change_password():
 
 
 
-def password_check(password):
-    """
-    Check if a password meets the specified criteria.
-
-    Parameters:
-    password (str): The password to be checked.
-
-    Returns:
-    dict: A dictionary containing the result of the password check.
-        - 'password_ok' (bool): True if the password meets the criteria, False otherwise.
-        - 'length_error' (bool): True if the password length is less than 8 characters, False otherwise.
-        - 'digit_error' (bool): True if the password does not contain any digits, False otherwise.
-        - 'uppercase_error' (bool): True if the password does not contain any uppercase letters, False otherwise.
-        - 'lowercase_error' (bool): True if the password does not contain any lowercase letters, False otherwise.
-        - 'symbol_error' (bool): True if the password does not contain any symbols, False otherwise.
-    """
-    # calculating the length
-    length_error = len(password) < 8
-    # searching for digits
-    digit_error = re.search(r"\d", password) is None
-    # searching for uppercase
-    uppercase_error = re.search(r"[A-Z]", password) is None
-    # searching for lowercase
-    lowercase_error = re.search(r"[a-z]", password) is None
-    # searching for symbols
-    symbol_error = re.search(r"\W", password) is None
-    # overall result
-    password_ok = not (length_error or digit_error or uppercase_error or lowercase_error or symbol_error)
-
-    return {
-        'password_ok': password_ok,
-        'length_error': length_error,
-        'digit_error': digit_error,
-        'uppercase_error': uppercase_error,
-        'lowercase_error': lowercase_error,
-        'symbol_error': symbol_error,
-    }
-
-
 @auth_flask_login.route("/register", methods=["GET", "POST"])
+@limiter.limit("5 per minute") if limiter is not None else (lambda f: f)
 def register():
     """
     Registers a new user in the application.
@@ -328,14 +297,14 @@ def register():
 
         existing_user = UserService.get_user_by_username(username) or UserService.get_user_by_email(email)
         if existing_user:
-            flash("User with that email or username already exists")
+            # Avoid account enumeration: return a generic response to the client
+            flash("If registration was successful, you will receive an email with activation instructions.")
             return render_template(template_name_or_list="auth/register.html", allow_registrations=allow_registrations)
 
-        # generate password hash
         password_hash = flask_bcrypt.generate_password_hash(supplied_password)
 
-        confirmation_token = uuid.uuid4().hex
-        token_expires = datetime.datetime.now() + datetime.timedelta(minutes=token_epiration_minutes)
+        confirmation_token = secrets.token_urlsafe(32)
+        token_expires = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=token_epiration_minutes)
 
         # prepare User
         new_user = User(username=username, email=email,
@@ -349,9 +318,9 @@ def register():
                                             token=confirmation_token, token_expires=token_expires.isoformat())
                 html_body = render_template(template_name_or_list='email/user_registration.html', user=username,
                                             token=confirmation_token, token_expires=token_expires.isoformat())
-                send_email(subject="New user registration", sender=app.config['ADMINS'][0], recipients=[email],
+                send_email(subject="New user registration", sender=None, recipients=[email],
                            text_body=text_body, html_body=html_body)
-                flash("Check your email for an activation link!")
+                flash("If registration was successful, you will receive an email with activation instructions.")
                 return render_template("auth/login.html")
             else:
                 flash("Unable to register you at this time")

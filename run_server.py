@@ -23,18 +23,18 @@ from routes.user_admin_routes import user_admin_routes
 
 
 # Register Blueprints
-app.register_blueprint(auth_flask_login)
-app.register_blueprint(main)
-app.register_blueprint(inv)
-app.register_blueprint(location)
-app.register_blueprint(field_template)
-app.register_blueprint(types)
-app.register_blueprint(item_routes)
-app.register_blueprint(items_routes)
-app.register_blueprint(api_routes)
-app.register_blueprint(search_routes)
-app.register_blueprint(field_routes)
-app.register_blueprint(user_admin_routes)
+# app.register_blueprint(auth_flask_login)
+# app.register_blueprint(main)
+# app.register_blueprint(inv)
+# app.register_blueprint(location)
+# app.register_blueprint(field_template)
+# app.register_blueprint(types)
+# app.register_blueprint(item_routes)
+# app.register_blueprint(items_routes)
+# app.register_blueprint(api_routes)
+# app.register_blueprint(search_routes)
+# app.register_blueprint(field_routes)
+# app.register_blueprint(user_admin_routes)
 
 
 mimetypes.add_type('application/javascript', '.js')

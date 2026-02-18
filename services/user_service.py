@@ -65,7 +65,7 @@ class UserService:
                 user_ = UserService.get_user_by_token(token=token)
                 if user_ is not None and user_.activated:
                     user_.password = password_hash
-                    user_.token = ""
+                    user_.token = None
                     try:
                         db.session.merge(user_)
                         db.session.commit()
@@ -81,7 +81,7 @@ class UserService:
             user_ = UserService.get_user_by_id(user_id=user_id)
             if user_ is not None and user_.activated:
                 user_.password = password_hash
-                user_.token = ""
+                user_.token = None
                 try:
                     db.session.merge(user_)
                     db.session.commit()
@@ -143,8 +143,8 @@ class UserService:
         if not email or not isinstance(email, str):
             app.logger.error("add_user_by_details: invalid email")
             return None
-        if not password or not isinstance(password, str) or len(password) < 6:
-            app.logger.error("add_user_by_details: invalid password (min length 6)")
+        if not password or not isinstance(password, str) or len(password) < 8:
+            app.logger.error("add_user_by_details: invalid password (min length 8)")
             return None
 
         with app.app_context():
@@ -154,7 +154,8 @@ class UserService:
                 if hasattr(password_hash, "decode"):
                     password_hash = password_hash.decode("utf-8")
 
-                user = User(username=username, email=email, password=password_hash, activated=True)
+                # New user accounts created via registration should not be activated until email confirmation
+                user = User(username=username, email=email, password=password_hash, activated=False)
 
                 status, message, saved_user = UserService.save_new_user(user_=user, fail_on_duplicate=fail_on_duplicate)
 

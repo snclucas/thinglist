@@ -2,7 +2,7 @@
 
 
 {% block title %}
-    ThingList
+    ThingList Admin
 {% endblock %}
 
 {% block head %}
@@ -11,9 +11,216 @@
 
 
 {% block content %}
+<div class="content">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-8 offset-md-2">
+        <div class="card">
+          <div class="card-header">
+            <h5>Administration</h5>
+          </div>
+          <div class="card-body">
+            <h6>Wipe user data</h6>
+            <p class="text-muted">Select the data areas to wipe for your account. This is destructive and irreversible.</p>
 
+            <form id="wipe-form" method="POST" action="{{ url_for('user_admin.wipe') }}">
+              <!-- If your app uses CSRF tokens (Flask-WTF), include the token here -->
+              {% if csrf_token is defined %}
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              {% endif %}
+
+              <div class="mb-3 form-check">
+                <input class="form-check-input" type="checkbox" id="wipe_items" name="wipe_items">
+                <label class="form-check-label" for="wipe_items">Wipe all items</label>
+              </div>
+
+              <div class="mb-3 form-check">
+                <input class="form-check-input" type="checkbox" id="wipe_lists" name="wipe_lists">
+                <label class="form-check-label" for="wipe_lists">Wipe all lists (inventories)</label>
+              </div>
+
+              <div class="mb-3 form-check">
+                <input class="form-check-input" type="checkbox" id="wipe_locations" name="wipe_locations">
+                <label class="form-check-label" for="wipe_locations">Wipe all locations</label>
+              </div>
+
+              <div class="mb-3 form-check">
+                <input class="form-check-input" type="checkbox" id="wipe_templates" name="wipe_templates">
+                <label class="form-check-label" for="wipe_templates">Wipe all field templates</label>
+              </div>
+
+              <hr>
+
+              <div class="mb-3 form-check">
+                <input class="form-check-input" type="checkbox" id="wipe_confirm_checkbox" name="wipe_confirm_checkbox">
+                <label class="form-check-label" for="wipe_confirm_checkbox">I understand this will permanently delete selected data</label>
+              </div>
+
+              <div class="mb-3">
+                <label for="wipe_confirmation" class="form-label">Type your username to confirm (case-insensitive)</label>
+                <input type="text" class="form-control" id="wipe_confirmation" name="wipe_confirmation" placeholder="Your username">
+              </div>
+
+              <div class="d-flex justify-content-between align-items-center">
+                <button type="submit" class="btn btn-danger">Wipe selected data</button>
+                <small class="text-muted">Rate-limited; check server policy.</small>
+              </div>
+            </form>
+
+            <!-- Confirmation Modal -->
+            <div class="modal fade" id="confirmWipeModal" tabindex="-1" aria-labelledby="confirmWipeModalLabel" aria-hidden="true">
+              <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="confirmWipeModalLabel">Confirm destructive wipe</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    <p class="text-danger">This will permanently delete the selected data. There is no undo.</p>
+                    <p>You are about to wipe the following areas:</p>
+                    <ul id="confirm-wipe-actions"></ul>
+                    <div id="confirm-match-warning" class="alert alert-danger mt-2" style="display:none;"></div>
+                    <p class="small text-muted">You must check the confirmation checkbox and type your username (case-insensitive) to proceed.</p>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="confirm-wipe-btn" class="btn btn-danger" disabled>Confirm wipe</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block footer %}
     {{ super() }}
+    <script>
+    document.addEventListener('DOMContentLoaded', function(){
+      const form = document.getElementById('wipe-form');
+      if(!form) return;
+
+      const modalEl = document.getElementById('confirmWipeModal');
+      // bootstrap must be loaded in the page
+      let modal = null;
+      try{
+        modal = new bootstrap.Modal(modalEl);
+      }catch(e){
+        console.warn('Bootstrap modal not available; form will submit normally.');
+      }
+
+      const confirmBtn = document.getElementById('confirm-wipe-btn');
+      const actionsList = document.getElementById('confirm-wipe-actions');
+      const matchWarning = document.getElementById('confirm-match-warning');
+
+      // typed username and current user (server rendered safely)
+      const username = {{ current_user.username|tojson }}.toLowerCase();
+
+      // helper that updates the confirm button enabled state and a gentle hint
+      function updateConfirmState(){
+        const confirmCheckbox = document.getElementById('wipe_confirm_checkbox');
+        const typed = (document.getElementById('wipe_confirmation').value || '').trim().toLowerCase();
+        const okCheckbox = !!(confirmCheckbox && confirmCheckbox.checked);
+        const okName = typed === username && typed.length > 0;
+        if(okCheckbox && okName){
+          confirmBtn.disabled = false;
+          matchWarning.style.display = 'none';
+        }else{
+          confirmBtn.disabled = true;
+          // show an instructional hint (not an error) when user has started typing or toggled checkbox
+          if(typed.length > 0 || (confirmCheckbox && confirmCheckbox.checked)){
+            let msg = '';
+            if(!okCheckbox) msg += 'Please check the confirmation checkbox. ';
+            if(!okName) msg += 'Please type your username to match.';
+            matchWarning.textContent = msg.trim();
+            matchWarning.style.display = 'block';
+          } else {
+            matchWarning.style.display = 'none';
+          }
+        }
+      }
+
+      function selectedActions(){
+        const names = [];
+        ['wipe_items','wipe_lists','wipe_locations','wipe_templates'].forEach(function(id){
+          const el = document.getElementById(id);
+          if(el && el.checked){
+            const label = document.querySelector("label[for='"+id+"']");
+            names.push(label ? label.textContent.trim() : id);
+          }
+        });
+        return names;
+      }
+
+      form.addEventListener('submit', function(e){
+        // interrupt default submit to show client-side modal confirmation
+        e.preventDefault();
+        const sel = selectedActions();
+        if(!sel.length){
+          // no actions selected
+          alert('Please select at least one data area to wipe.');
+          return;
+        }
+        // populate modal list
+        actionsList.innerHTML = '';
+        sel.forEach(function(name){
+          const li = document.createElement('li');
+          li.textContent = name;
+          actionsList.appendChild(li);
+        });
+        matchWarning.style.display = 'none';
+        if(modal){
+          // when modal opens, initialize confirm button state and attach listeners
+          // ensure confirm button starts disabled
+          confirmBtn.disabled = true;
+          // update state in case user already typed
+          updateConfirmState();
+          // attach live listeners
+          const confirmCheckbox = document.getElementById('wipe_confirm_checkbox');
+          const typedInput = document.getElementById('wipe_confirmation');
+          if(confirmCheckbox) confirmCheckbox.addEventListener('change', updateConfirmState);
+          if(typedInput) typedInput.addEventListener('input', updateConfirmState);
+           modal.show();
+         }else{
+          // fallback (no bootstrap): do quick validation before submit
+          const confirmCheckbox = document.getElementById('wipe_confirm_checkbox');
+          const typed = (document.getElementById('wipe_confirmation').value || '').trim().toLowerCase();
+          if(!(confirmCheckbox && confirmCheckbox.checked)){
+            alert('Please check the confirmation checkbox before proceeding.');
+            return;
+          }
+          if(typed !== username){
+            alert('Typed username does not match your username.');
+            return;
+          }
+          form.submit();
+         }
+      });
+
+      confirmBtn.addEventListener('click', function(){
+        // final verification - confirm button should already be enabled only when valid
+        const confirmCheckbox = document.getElementById('wipe_confirm_checkbox');
+        const typed = (document.getElementById('wipe_confirmation').value || '').trim().toLowerCase();
+        if(!(confirmCheckbox && confirmCheckbox.checked)){
+          matchWarning.textContent = 'Please check the confirmation checkbox.';
+          matchWarning.style.display = 'block';
+          return;
+        }
+        if(typed !== username){
+          matchWarning.textContent = 'Typed username does not match your username.';
+          matchWarning.style.display = 'block';
+          return;
+        }
+        // passed checks -> submit
+        if(modal) modal.hide();
+        form.submit();
+      });
+
+    });
+    </script>
 {% endblock %}

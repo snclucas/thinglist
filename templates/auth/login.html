@@ -53,7 +53,7 @@
       </form>
 
       <div class="text-center text-small-muted mb-2">
-        <p class="mb-1"><a href="{{ url_for('auth_flask_login.reset_password') }}" rel="noopener noreferrer">Forgot your password?</a></p>
+        <p class="mb-1"><a href="{{ url_for('auth_flask_login.reset_password_request') }}" rel="noopener noreferrer">Forgot your password?</a></p>
 
         {% if allow_registrations %}
           <p class="mb-1"><a href="{{ url_for('auth_flask_login.register') }}" rel="noopener noreferrer">Don't have an account yet? Register</a></p>

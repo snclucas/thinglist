@@ -10,6 +10,12 @@ from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
 from flask_wtf.csrf import CSRFProtect
 from flask_mail import Mail
+try:
+    from flask_limiter import Limiter
+    from flask_limiter.util import get_remote_address
+except Exception:
+    Limiter = None
+    get_remote_address = None
 
 from site_globals import (__INVENTORY__, __LIST__, __URL_LIST__, __PUBLIC__, __PRIVATE__,
                           __VIEWER__, __LIST_ALL__, __COLLABORATOR__, __DEFAULT__, __OWNER__)
@@ -63,7 +69,12 @@ app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS') is not None
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 app.config['MAIL_DEBUG'] = os.environ.get('MAIL_DEBUG')
-app.config['ADMINS'] = os.environ.get('ADMINS')
+raw_admins = os.environ.get('ADMINS', '')
+if raw_admins:
+    # Support comma-separated list in the environment; normalize to a list
+    app.config['ADMINS'] = [a.strip() for a in raw_admins.split(',') if a.strip()]
+else:
+    app.config['ADMINS'] = []
 
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER')
 
@@ -139,6 +150,19 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 mail = Mail(app)
+
+# Initialize Flask-Limiter if available
+if Limiter is not None:
+    # Different flask-limiter versions accept app in different positions; to be compatible,
+    # construct without app and call init_app.
+    limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"])
+    try:
+        limiter.init_app(app)
+    except TypeError:
+        # Fallback: older versions accept app as first arg
+        limiter = Limiter(app, key_func=get_remote_address, default_limits=["200 per day", "50 per hour"])
+else:
+    limiter = None
 
 
 @app.context_processor
