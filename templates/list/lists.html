@@ -111,7 +111,6 @@
 
 {% block footer %}
     {{ super() }}
-    <script src="{{ url_for('static', filename='js/lists.js') }}"></script>
 
     <script>
         // safe export of server values into a JS object
@@ -121,5 +120,8 @@
             "delInventoryUrl": url_for('inv.delete_list_endpoint') | default(None)
           } | tojson }};
     </script>
+
+    <script src="{{ url_for('static', filename='js/lists.js') }}"></script>
+
 
 {% endblock %}

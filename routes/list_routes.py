@@ -51,7 +51,10 @@ def lists():
     user_invs, status, msg = InventoryService.get_user_inventories(current_user_id=current_user.id,
                                      requesting_user_id=current_user.id, access_level=-1)
 
-    number_inventories: int = len(user_invs) - 1  # -1 to count for the 'hidden' default inventory
+    number_inventories: int = len(user_invs)
+    if not current_user.preferences.show_default_list:
+        number_inventories: int = len(user_invs) - 1  # -1 to count for the 'hidden' default inventory
+
     unlisted_item_count: int = ItemService.get_user_unlisted_item_count(user_id=current_user.id)
 
     return render_template(template_name_or_list='list/lists.html',

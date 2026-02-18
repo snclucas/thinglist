@@ -148,7 +148,7 @@ def profile(username):
         user_notifications = current_user.notifications
         user_preferences = current_user.preferences
         number_user_inventories = InventoryService.get_number_user_inventories(user_id=current_user_id)
-        if current_user.preferences.show_default_list:
+        if not current_user.preferences.show_default_list:
                 number_user_inventories = max(0, number_user_inventories - 1)
 
         return render_template(template_name_or_list='profile.html', name=current_user.username, num_items=num_items,
@@ -167,3 +167,4 @@ def profile(username):
                 return render_template(template_name_or_list='users_public_profile.html')
             else:
                 return redirect(url_for(endpoint='main.index'))
+        return None
