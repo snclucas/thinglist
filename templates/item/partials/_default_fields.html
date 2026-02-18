@@ -1,5 +1,5 @@
 {% if item.description != "" %}
-    <div class="card">
+    <div class="card mb-3">
         <div class="card-body">
             <p class="card-text">{{ item.description | safe }}</p>
         </div>
@@ -8,105 +8,101 @@
 
 <div class="card">
     <div class="card-body">
-        <br>
+        <div class="row">
+            <div class="col-12">
+                {% if inventory.show_item_type == True %}
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="fw-500"><strong>Type:</strong></div>
+                        <div>{{ item_type.name }}</div>
+                    </div>
+                    <hr>
+                {% endif %}
 
-        <div class="col-md-12">
-            {% if inventory.show_item_type == True %}
-                <div class="d-flex align-items-center justify-content-between text-xs">
-                    <div class="fw-500"><strong>Type:</strong></div>
-                    <div>{{ item_type.name }}</div>
+                {% if item_access_level == 0 %}
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="fw-500"><strong>Location:</strong></div>
+                        <div>
+
+                            {% if __DEFAULT__ in item_location['name'] %}
+                                {% set location_name = "Default/None set" %}
+                            {% else %}
+                                {% set location_name = item_location['name'] %}
+                            {% endif %}
+
+                            <a href="{{ url_for('items.items_with_username_and_inventory', list_username=current_user.username, inventory_slug="all", location=item_location['name']) }}">{{ location_name }}</a>
+                            {% if item.specific_location is not none %}
+                                {% if item.specific_location != "" %}
+                                    <br>({{ item.specific_location }})
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <hr>
+                {% endif %}
+
+                {% if inventory.show_item_url == True %}
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <div class="fw-500"><strong>URL:</strong></div>
+                        <div class="text-break">{{ item.url }}</div>
+                    </div>
+                    <hr>
+
+                {% endif %}
+
+                <div class="d-flex align-items-start justify-content-between mb-2">
+                    <div class="fw-500">
+                        <strong>Related items:</strong>
+                        {% if item_access_level == 0 %}
+                            <span id="add-related-1"
+                                  data-bs-toggle="collapse"
+                                  href="#collapseAddRelated"
+                                  data-toggle="tooltip" data-placement="top"
+                                  title="Display help panel"
+                                  class="fas fa-plus "
+                                  style="color:black; display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+                        {% endif %}
+                        <div class="collapse" id="collapseAddRelated" aria-expanded="false">
+                            {% include 'item/partials/_related_item_form.html' %}
+                        </div>
+
+                    </div>
+                    <div class="ms-3">
+                        {% if item.related_items | length > 0 %}
+                            {% for rel_item in item.related_items %}
+                                <div><strong><a
+                                            href="{{ url_for('item.item_with_username_and_inventory', list_username=username, inventory_slug=inventory_slug, item_slug=rel_item.slug) | replace('%40', '@') }}">{{ rel_item.name }}</a></strong>
+
+                                    {% if user_is_authenticated %}
+                                        <button class="btn btn-sm btn-link text-danger p-0 ms-2 delete-related" data-item1-id="{{ item.id }}" data-item2-id="{{ rel_item.id }}" aria-label="Remove related item">&times;</button>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div>None</div>
+                        {% endif %}
+                    </div>
                 </div>
                 <hr>
-            {% endif %}
-            {% if item_access_level == 0 %}
-                <div class="d-flex align-items-center justify-content-between text-xs">
-                    <div class="fw-500"><strong>Location:</strong></div>
+
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="fw-500"><strong>Lists:</strong></div>
                     <div>
 
-                        {% if __DEFAULT__ in item_location['name'] %}
-                            {% set location_name = "Default/None set" %}
-                        {% else %}
-                            {% set location_name = item_location['name'] %}
-                        {% endif %}
-
-                        <a href="{{ url_for('items.items_with_username_and_inventory', list_username=current_user.username, inventory_slug="all", location=item_location['name']) }}">{{ location_name }}</a>
-                        {% if item.specific_location is not none %}
-                            {% if item.specific_location != "" %}
-                                <br>({{ item.specific_location }})
+                        {% for inventory in item.inventories %}
+                            {% if __DEFAULT__ in inventory.name %}
+                            {% set _inv_name = "Default" %}
+                            {% else %}
+                            {% set _inv_name = inventory.name %}
                             {% endif %}
-                        {% endif %}
-                    </div>
-                </div>
-                <hr>
-            {% endif %}
-            {% if inventory.show_item_url == True %}
-                <div class="d-flex align-items-center justify-content-between text-xs">
-                    <div class="fw-500"><strong>URL:</strong></div>
-                    <div>{{ item.url }}</div>
-                </div>
-                <hr>
-
-            {% endif %}
-
-            <div class="d-flex align-items-center justify-content-between text-xs">
-                <div class="fw-500">
-                    <strong>Related items:</strong>
-                    {% if item_access_level == 0 %}
-                        <span id="add-related-1"
-                              data-bs-toggle="collapse"
-                              href="#collapseAddRelated"
-                              data-toggle="tooltip" data-placement="top"
-                              title="Display help panel"
-                              class="fas fa-plus "
-                              style="color:black; display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-                    {% endif %}
-                    <div class="collapse" id="collapseAddRelated" aria-expanded="false">
-                        {% include 'item/partials/_related_item_form.html' %}
-                    </div>
-
-                </div>
-                <div>
-                    {% if item.related_items | length > 0 %}
-                        {% for rel_item in item.related_items %}
-                            <strong><a
-                                    href="{{ url_for('item.item_with_username_and_inventory', list_username=username, inventory_slug=inventory_slug, item_slug=rel_item.slug) | replace('%40', '@') }}">{{ rel_item.name }}</a></strong>
-
-                            {% if user_is_authenticated %}
-                                <span id="delete-related-{{ rel_item.id }}"
-                                      data-item1-id="{{ item.id }}"
-                                      data-item2-id="{{ rel_item.id }}"
-                                      class="fas fa-times "
-                                      style="color:red; cursor: pointer;"></span>
-                            {% endif %}
-
-                            <br>
+                            <div><strong><a
+                                    href="{{ url_for('items.items_with_username_and_inventory', list_username=username, inventory_slug=inventory.slug) | replace('%40', '@') }}">{{ _inv_name }}</a></strong></div>
                         {% endfor %}
-                    {% else %}
-                        None
-                    {% endif %}
+
+                    </div>
                 </div>
+
+                <br>
             </div>
-            <hr>
-
-            <div class="d-flex align-items-center justify-content-between text-xs">
-                <div class="fw-500"><strong>Lists:</strong></div>
-                <div>
-
-                    {% for inventory in item.inventories %}
-                        {% if __DEFAULT__ in inventory.name %}
-                        {% set _inv_name = "Default" %}
-                        {% else %}
-                        {% set _inv_name = inventory.name %}
-                        {% endif %}
-                        <strong><a
-                                href="{{ url_for('items.items_with_username_and_inventory', list_username=username, inventory_slug=inventory.slug) | replace('%40', '@') }}">{{ _inv_name }}</a></strong>
-                        <br>
-                    {% endfor %}
-
-                </div>
-            </div>
-
-            <br>
         </div>
 
 

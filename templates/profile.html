@@ -14,42 +14,54 @@
     <div class="content">
         <div class="container">
 
-            <div class="row">
+            <!-- Toast container (used by profile AJAX actions) -->
+            <div id="toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1080;"></div>
+            <!-- ARIA live region for screen readers -->
+            <div id="toast-live-region" class="visually-hidden" aria-live="polite" aria-atomic="true"></div>
+
+            <div id="profile-summary">
 
                 <div class="row">
-                    <div class="col-md-6">
-                        <div class="card">
-                            <a class="nav-link"
-                               href="{{ url_for('items.items_with_username', list_username=list_username) }}">
-                                <div class="content">
-                                    <div class="row">
-                                        <div class="dfd text-center">
-                                            <i class="grey large-icon mb-2 fas fa-plus-circle"></i>
-                                            <p class="text-muted">ADD A THING</p>
+                    {% if user_is_authenticated %}
+                        <div class="col-12 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                                        <div class="w-100 d-flex justify-content-center">
+                                            <div class="d-flex flex-wrap gap-2 align-items-center justify-content-center">
+                                                <button class="btn btn-primary btn-sm d-flex align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#collapseProfileAddItem" aria-expanded="false" aria-controls="collapseProfileAddItem">
+                                                    <i class="fas fa-plus fa-2x me-2" aria-hidden="true"></i>
+                                                    <span class="d-none d-sm-inline">Add Item</span>
+                                                </button>
+
+                                                <button class="btn btn-secondary btn-sm d-flex align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#collapseProfileAddList" aria-expanded="false" aria-controls="collapseProfileAddList">
+                                                    <i class="fas fa-plus-circle fa-2x me-2" aria-hidden="true"></i>
+                                                    <span class="d-none d-sm-inline">Add List</span>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
 
-                    <div class="col-md-6">
-                        <div class="card">
-                            <a class="nav-link"
-                               href="{{ url_for('items.items_with_username', list_username=list_username) }}">
-                                <div class="content">
-                                    <div class="row">
-                                        <div class="dfd text-center">
-                                            <i class="grey large-icon mb-2 fas fa-plus"></i>
-                                            <p class="text-muted">ADD A LIST</p>
+                                    <div class="collapse mt-3" id="collapseProfileAddItem">
+                                        <div class="card card-body">
+                                            {% include 'items/partials/_add_item_form.html' %}
                                         </div>
                                     </div>
-                                </div>
-                            </a>
-                        </div>
-                    </div>
 
+                                    <div class="collapse mt-3" id="collapseProfileAddList">
+                                        <div class="card card-body">
+                                            {% include 'list/partials/_add_list_form.html' %}
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
                 </div>
+
+             <div class="row">
+
 
 
                 <div class="row">
@@ -228,6 +240,10 @@
                     </div>
                 </div>
             </div>
+
+
+
+            </div> {# end #profile-summary #}
 
         </div>
 

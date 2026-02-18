@@ -45,41 +45,38 @@
                     </div>
 
                     <div class="row">
-                        <div class="col-md-8 order-sm-first order-last">
+                        <div class="col-12 col-md-4 order-1 order-md-2 mb-3">
 
                             <div class="row">
-                                <div class="col-md-12">
+                                <div class="col-12">
+                                    {% include 'item/partials/_master_image.html' %}
+                                </div>
+                            </div>
+                            {% if inventory.type == __INVENTORY__ %}
+                                <div class="row">
+                                    <div class="col-12">
+                                        {% include 'item/partials/_custom_fields.html' %}
+                                    </div>
+                                </div>
+                            {% endif %}
+
+                            <div class="row mt-2">
+                                <div class="col-12">
+                                    {% include 'item/partials/_item_tags.html' %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-8 order-2 order-md-1">
+
+                            <div class="row">
+                                <div class="col-12">
                                     {% include 'item/partials/_default_fields.html' %}
                                     <br>
                                 </div>
                             </div>
 
                         </div>
-                        <div class="col-md-4">
-
-                            <div class="row">
-                                <div class="col-md-12">
-                                    {% include 'item/partials/_master_image.html' %}
-                                </div>
-                            </div>
-                            {% if inventory.type == __INVENTORY__ %}
-                                <div class="row">
-                                    <div class="col-md-12">
-                                        {% include 'item/partials/_custom_fields.html' %}
-                                    </div>
-                                </div>
-                            {% endif %}
-
-                            <div class="row">
-                                <div class="col-md-12">
-
-                                    {% include 'item/partials/_item_tags.html' %}
-
-                                    <br>
-                                </div>
-                            </div>
-                        </div>
-
                     </div>
 
                     <div class="row">
@@ -440,6 +437,30 @@ const autoCompleteJS44 = new autoComplete({
     }
 });
 
+    </script>
+
+    <script>
+        // Initialize tooltips (support both legacy data-toggle and BS5 data-bs-toggle)
+        (function () {
+            try {
+                // jQuery UI/bootstrap 3/4 style
+                if (typeof $ !== 'undefined' && $.fn && $.fn.tooltip) {
+                    $('[data-toggle="tooltip"]').tooltip();
+                }
+            } catch (e) {
+                console.warn('jQuery tooltip init failed', e);
+            }
+
+            try {
+                // Bootstrap 5 tooltips
+                if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+                    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                    tooltipTriggerList.forEach(function (el) { new bootstrap.Tooltip(el); });
+                }
+            } catch (e) {
+                console.warn('Bootstrap 5 tooltip init failed', e);
+            }
+        })();
     </script>
 
 {% endblock %}

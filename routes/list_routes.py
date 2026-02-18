@@ -578,3 +578,5 @@ def add_to_list_endpoint():
     else:
         return redirect(url_for(endpoint='items.items_with_username_and_inventory',
                                 list_username=username, inventory_slug=inventory_slug))
+
+

@@ -1,17 +1,17 @@
-
 {% if number_inventories > 0 %}
-    <table class="table collapse show display responsive nowrap compact" id="inventories-table">
+    <div class="table-responsive">
+    <table class="table table-sm collapse show display responsive compact" id="inventories-table">
         <thead class="success">
         <tr>
-            <th class="min-phone-l" data-priority="1"></th>
-            <th></th>
-            <th></th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Items / Owner</th>
             {% if user_is_authenticated %}
-                    <th></th>
-                    <th></th>
-                {% else %}
-                    <th></th>
-                    <th></th>
+                <th style="width:120px;">Actions</th>
+                <th style="width:60px;">Select</th>
+            {% else %}
+                <th></th>
+                <th></th>
             {% endif %}
         </tr>
         </thead>
@@ -23,12 +23,14 @@
 
             {# if __DEFAULT__ not in inventory_data['inventory_name'] #}
                 <tr>
-                    <td>
-                        <a href="{{ url_for('items.items_with_username_and_inventory', list_username=inventory_data['inventory_owner'], inventory_slug=inventory_slug) | replace('%40', '@') }}">
+                    <td class="align-middle">
+                        <a href="{{ url_for('items.items_with_username_and_inventory', list_username=inventory_data['inventory_owner'], inventory_slug=inventory_slug) | replace('%40', '@') }}" class="fw-bold text-decoration-none">
                             {{ list_name }}</a>
                     </td>
-                    <td>{{ inventory_data['inventory_description'] }}</td>
-                    <td>
+                    <td class="align-middle">
+                        <div class="text-truncate" style="max-width:360px;">{{ inventory_data['inventory_description'] }}</div>
+                    </td>
+                    <td class="align-middle small text-muted">
                         {{ inventory_data['inventory_item_count'] }} item(s) | @{{ inventory_data['inventory_owner'] }}
 
                         {% if user_is_authenticated %}
@@ -47,50 +49,64 @@
                         {% endif %}
                     </td>
                     {% if (__DEFAULT__ not in inventory_data['inventory_name'] and user_is_authenticated) %}
-                            <td>
-                                {% if inventory_data['userinventory_access_level'] == __PRIVATE__ %}
-                                    <span class="fas fa-edit" data-bs-toggle="collapse"
-                                          id="inventoryEdit-{{ inventory_data['inventory_id'] }}"
-                                          href="#collapseInventoryEdit"
-                                          data-inventory-id="{{ inventory_data['inventory_id'] }}"
-                                          data-inventory-name="{{ list_name }}"
-                                          data-inventory-description="{{ inventory_data['inventory_description'] }}"
-                                          data-inventory-slug="{{ inventory_slug }}"
-                                          data-inventory-public="{{ inventory_data['inventory_access_level'] }}"
-                                          data-inventory-type="{{ inventory_data['inventory_type'] }}"
-                                          data-inventory-show-default-fields="{{ inventory_data['inventory_show_default_fields'] }}"
-                                          data-inventory-show-item-images="{{ inventory_data['inventory_show_item_images'] }}"
-                                          data-inventory-show-item-type="{{ inventory_data['inventory_show_item_type'] }}"
-                                          data-inventory-show-item-location="{{ inventory_data['inventory_show_item_location'] }}"
-                                          data-inventory-show-item-tags="{{ inventory_data['inventory_show_item_tags'] }}"
-                                          data-bs-toggle="tooltip" data-placement="top" title="Edit list"
-                                          style="display: inline-block; margin-right: 20px;"></span>
-                                {% endif %}
-                            </td>
-
-                            <td>
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" value=""
-                                           data-inventory-id="{{ inventory_data['inventory_id'] }}"
-                                           id="selected-item-{{ inventory_data['inventory_id'] }}">
+                        <td class="align-middle">
+                            {% if inventory_data['userinventory_access_level'] == __PRIVATE__ %}
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="inventoryActionsDropdown-{{ inventory_data['inventory_id'] }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-ellipsis-v" aria-hidden="true"></i>
+                                        <span class="visually-hidden">Actions</span>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="inventoryActionsDropdown-{{ inventory_data['inventory_id'] }}">
+                                        <li>
+                                            <a class="dropdown-item inventory-edit" id="inventoryEdit-{{ inventory_data['inventory_id'] }}" href="#collapseInventoryEdit" data-bs-toggle="collapse"
+                                               data-inventory-id="{{ inventory_data['inventory_id'] }}"
+                                               data-inventory-name="{{ list_name }}"
+                                               data-inventory-description="{{ inventory_data['inventory_description'] }}"
+                                               data-inventory-slug="{{ inventory_slug }}"
+                                               data-inventory-public="{{ inventory_data['inventory_access_level'] }}"
+                                               data-inventory-type="{{ inventory_data['inventory_type'] }}"
+                                               data-inventory-show-default-fields="{{ inventory_data['inventory_show_default_fields'] }}"
+                                               data-inventory-show-item-images="{{ inventory_data['inventory_show_item_images'] }}"
+                                               data-inventory-show-item-type="{{ inventory_data['inventory_show_item_type'] }}"
+                                               data-inventory-show-item-location="{{ inventory_data['inventory_show_item_location'] }}"
+                                               data-inventory-show-item-tags="{{ inventory_data['inventory_show_item_tags'] }}">
+                                                <i class="fas fa-edit me-2" aria-hidden="true"></i> Edit
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item inventory-delete" href="#collapseDeleteInventories" data-bs-toggle="collapse" data-inventory-id="{{ inventory_data['inventory_id'] }}">
+                                                <i class="fas fa-trash-alt me-2" aria-hidden="true"></i> Delete
+                                            </a>
+                                        </li>
+                                    </ul>
                                 </div>
-                            </td>
+                            {% endif %}
+                        </td>
 
-                        {% else %}
-                            <td></td>
-                            <td></td>
-                    {% endif %}
-                </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-{% else %}
-    <div class="row">
-        <div class="col-md-12">
-            <div class="text-center">
-                <h5>Oh no, no lists :(</h5>
-                <p>You can add a new list by clicking the <i class="fas fa-plus"></i> icon at the top.</p>
-            </div>
-        </div>
-    </div>
-{% endif %}
+                         <td class="align-middle">
+                             <div class="form-check">
+                                 <input class="form-check-input" type="checkbox" value=""
+                                        data-inventory-id="{{ inventory_data['inventory_id'] }}"
+                                        id="selected-item-{{ inventory_data['inventory_id'] }}">
+                             </div>
+                         </td>
+
+                      {% else %}
+                          <td></td>
+                          <td></td>
+                  {% endif %}
+                  </tr>
+          {% endfor %}
+          </tbody>
+      </table>
+     </div>
+  {% else %}
+      <div class="row">
+          <div class="col-md-12">
+              <div class="text-center">
+                  <h5>Oh no, no lists :(</h5>
+                  <p>You can add a new list by clicking the <i class="fas fa-plus"></i> icon at the top.</p>
+              </div>
+          </div>
+      </div>
+  {% endif %}

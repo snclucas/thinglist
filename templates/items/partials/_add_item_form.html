@@ -22,7 +22,7 @@
         <div class="col-6">
             <label class="form-label" for="types_autocomplete_add_form">Type:</label>
             <input id="types_autocomplete_add_form" name="type" type="text" class="form-control"
-                   value="{{ item_type }}">
+                   value="{{ item_type if item_type is defined else '' }}">
         </div>
         <div class="col-6">
             <label class="form-label" for="quantity">Quantity:</label>
@@ -36,14 +36,18 @@
 
             <label class="form-label" for="item_location">Location:</label>
             <select class="form-select" id="item_location" name="location_id">
-                {% for user_location_option in user_locations %}
-                    {% if __DEFAULT__ in user_location_option.name %}
-                        {% set location_name = "Default/None set" %}
-                    {% else %}
-                        {% set location_name = user_location_option['name'] %}
-                    {% endif %}
-                    <option value="{{ user_location_option.id }}">{{ location_name}}</option>
-                {% endfor %}
+                {% if user_locations is defined and user_locations %}
+                    {% for user_location_option in user_locations %}
+                        {% if __DEFAULT__ in user_location_option.name %}
+                            {% set location_name = "Default/None set" %}
+                        {% else %}
+                            {% set location_name = user_location_option['name'] %}
+                        {% endif %}
+                        <option value="{{ user_location_option.id }}">{{ location_name}}</option>
+                    {% endfor %}
+                {% else %}
+                    <option value="">Any</option>
+                {% endif %}
             </select>
 
         </div>
@@ -68,38 +72,38 @@
         </div>
     </div>
 
-    {% for field in inventory_field_template.fields %}
+    {% if inventory_field_template is defined and inventory_field_template.fields %}
+        {% for field in inventory_field_template.fields %}
+            <div class="row">
+                <div class="col-12">
 
-        <div class="row">
-            <div class="col-12">
+                    <label for="form_item_{{ field.field }}" class="form-label">{{ field.field }}</label>
 
-                <label for="form_item_{{ field.field }}" class="form-label">{{ field.field }}</label>
+                    {% if field.type == "input" %}
+                        <input type="text" class="form-control" name="{{ field.field }}" id="form_item_{{ field.field }}"
+                               placeholder=""
+                               value="{{ field.value }}">
+                    {% elif field.type == "textarea" %}
+                        <textarea class="form-control" name="{{ field.field }}" id="form_item_{{ field.field }}" rows="4"
+                                  cols="50">{{ field.value }}</textarea>
+                    {% elif field.type == "bool" %}
+                        <select class="form-select" name="{{ field.field }}" id="form_item_{{ field.field }}">
+                            <option value=1 selected>True</option>
+                            <option value=0>False</option>
+                        </select>
+                    {% endif %}
 
-                {% if field.type == "input" %}
-                    <input type="text" class="form-control" name="{{ field.field }}" id="form_item_{{ field.field }}"
-                           placeholder=""
-                           value="{{ field.value }}">
-                {% elif field.type == "textarea" %}
-                    <textarea class="form-control" name="{{ field.field }}" id="form_item_{{ field.field }}" rows="4"
-                              cols="50">{{ field.value }}</textarea>
-                {% elif field.type == "bool" %}
-                    <select class="form-select" name="{{ field.field }}" id="form_item_{{ field.field }}">
-                        <option value=1 selected>True</option>
-                        <option value=0>False</option>
-                    </select>
-                {% endif %}
-
+                </div>
             </div>
-        </div>
+        {% endfor %}
+    {% endif %}
 
-    {% endfor %}
 
-
-    <input type="hidden" class="form-control" name="username" id="form_username" value="{{ list_username }}">
+    <input type="hidden" class="form-control" name="username" id="form_username" value="{{ list_username if list_username is defined else '' }}">
     <input type="hidden" class="form-control" name="id" id="form_item_id" value="-1">
-    <input type="hidden" class="form-control" name="inventory_id" id="form_inventory_id" value="{{ inventory.id }}">
+    <input type="hidden" class="form-control" name="inventory_id" id="form_inventory_id" value="{{ inventory.id if inventory is defined else '' }}">
     <input type="hidden" class="form-control" name="inventory_slug" id="form_inventory_slug"
-           value="{{ inventory.slug }}">
+           value="{{ inventory.slug if inventory is defined else '' }}">
 
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="col-12">
@@ -107,3 +111,4 @@
         <button class="btn btn-primary" id="add_item_cancel_btn">Cancel</button>
     </div>
 </form>
+

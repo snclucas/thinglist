@@ -53,4 +53,92 @@ $(document).ready(function () {
 
 
 
+    // Autofocus the first field inside the edit collapse when Edit is triggered
+    $(document).on('click', '[data-bs-toggle="collapse"][href="#collapseExample"], [data-bs-toggle="collapse"][data-bs-target="#collapseExample"]', function (e) {
+        try {
+            const $collapse = $('#collapseExample');
+            if ($collapse.length) {
+                $collapse.one('shown.bs.collapse', function () {
+                    try {
+                        const $form = $collapse.find('form').first();
+                        if ($form.length) {
+                            const $focusEl = $form.find('input:not([type=hidden]):not(:disabled), select:not(:disabled), textarea:not(:disabled), button:not(:disabled)').filter(':visible').first();
+                            if ($focusEl && $focusEl.length) {
+                                setTimeout(function () { $focusEl.focus(); }, 10);
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('focus after show failed', err);
+                    }
+                });
+
+                try {
+                    $collapse.collapse('show');
+                } catch (err) {
+                    $collapse.addClass('show').attr('aria-expanded', 'true');
+                }
+            }
+        } catch (e) {
+            console.warn('Could not auto-open/focus item edit collapse', e);
+        }
+    });
+
+    // Validate URL input only when non-empty before submitting the edit form
+    $(document).on('submit', 'form[action*="edit_item"]', function (e) {
+        try {
+            const $form = $(this);
+            const $url = $form.find('.validationUrl');
+            if (!$url.length) return true; // no URL field
+
+            const val = $url.val() ? String($url.val()).trim() : '';
+            // clear previous validation state
+            $url.removeClass('is-invalid');
+
+            if (val === '') {
+                // empty is allowed
+                return true;
+            }
+
+            // Normalize and validate using URL constructor when possible
+            let valid = false;
+            try {
+                // If user omitted scheme, try adding http:// to validate host-only input
+                let testVal = val;
+                if (!/^\w+:\/\//.test(testVal)) {
+                    // allow relative URLs starting with '/'
+                    if (testVal.startsWith('/')) {
+                        // treat as valid relative path
+                        valid = true;
+                    } else {
+                        testVal = 'http://' + testVal;
+                    }
+                }
+
+                if (!valid) {
+                    const u = new URL(testVal);
+                    // ensure there's a hostname for absolute URLs
+                    valid = !!u.hostname;
+                }
+            } catch (err) {
+                valid = false;
+            }
+
+            if (!valid) {
+                e.preventDefault();
+                e.stopPropagation();
+                $url.addClass('is-invalid');
+                // focus the input so the user can correct
+                $url.focus();
+                return false;
+            }
+
+            // otherwise allow submit
+            return true;
+        } catch (err) {
+            console.error('URL validation error', err);
+            return true; // fail open
+        }
+    });
+
+
 });

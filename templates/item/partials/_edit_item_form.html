@@ -40,13 +40,10 @@
             <hr>
 
             <div class="row">
-
                 <div class="col-6">
-
                     <label class="form-label" for="plassering">Location:</label>
                     <select class="form-select" id="item_location" name="item_location">
                         {% for user_location in all_user_locations %}
-
                             {% if __DEFAULT__ in user_location.name %}
                             {% set _location_name = "Default/Not set" %}
                             {% else %}
@@ -58,10 +55,8 @@
                             {% else %}
                                 <option value="{{ user_location.id }}">{{ _location_name }}</option>
                             {% endif %}
-
                         {% endfor %}
                     </select>
-
                 </div>
                 <div class="col-6">
                     <label for="form_item_specific_location" class="form-label">Specific location:</label>
@@ -76,12 +71,10 @@
         </div>
 
         <div class="col-6">
-
             {% for field, item_field in item_fields.items() %}
                 <div class="row">
                     <div class="col-12">
                         <label for="form_item_{{ field.field }}" class="form-label">{{ field.field }}</label>
-
 
                         {% if field.type == "input" %}
                             <input type="text" class="form-control" name="{{ field.id }}" id="form_item_{{ field.id }}"
@@ -97,11 +90,9 @@
                             </select>
                         {% endif %}
 
-
                     </div>
                 </div>
             {% endfor %}
-
         </div>
     </div>
 
@@ -119,7 +110,8 @@
         <div class="col-12">
             <label class="form-label" for="item_url">URL:</label>
             <input type="url" class="form-control validationUrl" name="item_url" id="form_item_url"
-                   value="{{ item.url }}">
+                   value="{{ item.url or '' }}">
+            <div class="invalid-feedback">Please enter a valid URL (e.g. https://example.com) or leave blank.</div>
         </div>
     </div>
 

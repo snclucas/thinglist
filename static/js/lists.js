@@ -52,6 +52,44 @@
 
         // keep initial checkbox state consistent
         safe(check_checkboxes);
+
+        // NEW: delegated handler for per-row delete action in dropdown
+        $(document).on('click', '.inventory-delete', function (e) {
+            try {
+                e.preventDefault();
+                const $el = $(this);
+                const id = $el.attr('data-inventory-id') || $el.data('inventory-id');
+                if (!id) {
+                    // fallback: try to read from closest row
+                    const row = $el.closest('tr');
+                    const cb = row.find('input:checkbox[id^="selected-item-"]');
+                    if (cb.length) {
+                        cb.prop('checked', true);
+                        safe(check_checkboxes);
+                        $('#collapseDeleteInventories').collapse('show');
+                    }
+                    return;
+                }
+
+                // deselect other checkboxes, and select this one
+                $('input:checkbox[id^="selected-item-"]').prop('checked', false);
+                const $cb = $('#selected-item-' + id);
+                if ($cb.length) {
+                    $cb.prop('checked', true);
+                } else {
+                    // if no checkbox exists, create a hidden input to carry the id (fallback)
+                    const hiddenIdInput = $('<input>').attr({type: 'hidden', id: 'selected-item-hidden', name: 'selected-item-hidden'}).val(id);
+                    $('body').append(hiddenIdInput);
+                }
+
+                // update UI state and show confirmation
+                safe(check_checkboxes);
+                $('#collapseDeleteInventories').collapse('show');
+            } catch (err) {
+                console.error('inventory-delete handler error', err);
+            }
+        });
+
     });
 
     // Cancel delete
@@ -123,6 +161,33 @@
             $('#edit_form_show_item_type').prop('checked', toBool(inventory_show_item_type));
             $('#edit_form_show_item_location').prop('checked', toBool(inventory_show_item_location));
             $('#edit_form_show_item_tags').prop('checked', toBool(inventory_show_item_tags));
+
+            // Ensure collapse opens and focus the first visible form control inside it
+            try {
+                const $collapse = $('#collapseInventoryEdit');
+                if ($collapse.length) {
+                    // one-time handler to focus after opening animation completes
+                    $collapse.one('shown.bs.collapse', function () {
+                        try {
+                            const $form = $collapse.find('form').first();
+                            if ($form.length) {
+                                const $focusEl = $form.find('input:not([type=hidden]):not(:disabled), select:not(:disabled), textarea:not(:disabled), button:not(:disabled)').filter(':visible').first();
+                                if ($focusEl && $focusEl.length) {
+                                    // small timeout to be safe across browsers
+                                    setTimeout(() => { $focusEl.focus(); }, 10);
+                                }
+                            }
+                        } catch (e) { console.warn('focus after show failed', e); }
+                    });
+
+                    // show the collapse (safe if already shown)
+                    try { $collapse.collapse('show'); } catch (e) { $collapse.addClass('show').attr('aria-expanded', 'true'); }
+                }
+            } catch (e) {
+                console.warn('Could not auto-open/focus edit collapse', e);
+            }
+
+
         } catch (e) {
             console.error('inventoryEdit handler error', e);
         }

@@ -1,45 +1,64 @@
 <div class="row">
     <div class="col-md-12">
         <div class="text-lg-end text-center">
-            {% if user_is_authenticated and (is_inventory_owner or inventory_access_level == __COLLABORATOR__) %}
-                <a data-bs-toggle="collapse" href="#collapseAddItem"
-                   role="button" aria-expanded="false"
-                   data-toggle="tooltip" data-placement="top"
-                   title="Add new item to current inventory"
-                   aria-controls="collapseExample">
-                                                <span class="fas fa-plus fa-2x"
-                                                      style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-                </a>
-                <a id="delete-items-btn-collapse" data-bs-toggle="collapse"
-                   href="#collapseDeleteItems"
-                   role="button" aria-expanded="false"
-                   data-toggle="tooltip" data-placement="top" title="Delete item"
-                   aria-controls="confirmItemDelete">
-                                                <span id="delete-items-span" class="fas fa-minus fa-2x"
-                                                      style="color:lightgray; display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-                </a>
-            {% endif %}
-            <a data-bs-toggle="collapse" href="#collapseFilter"
-               role="button" aria-expanded="false"
-               data-toggle="tooltip" data-placement="top"
-               title="Display item filter form"
-               aria-controls="collapseFilter">
-                                                <span id="filter-items-span" class="fas fa-filter fa-2x"
-                                                      style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-            </a>
+            <!-- Desktop toolbar: shown on sm and up -->
+            <div class="btn-toolbar justify-content-end d-none d-sm-flex" role="toolbar" aria-label="Item actions toolbar">
+                <div class="btn-group btn-group-sm me-2" role="group" aria-label="Primary actions">
+                    {% if user_is_authenticated and (is_inventory_owner or inventory_access_level == __COLLABORATOR__) %}
+                        <a class="btn btn-link px-2" data-bs-toggle="collapse" href="#collapseAddItem" role="button" aria-expanded="false" aria-controls="collapseAddItem" data-toggle="tooltip" data-placement="top" title="Add new item to current inventory">
+                            <i class="fas fa-plus" aria-hidden="true"></i>
+                            <span class="visually-hidden">Add item</span>
+                        </a>
 
-            {% if user_is_authenticated and (is_inventory_owner or inventory_access_level == __COLLABORATOR__) %}
-                <span class="fas fa-ellipsis-v fa-2x" data-bs-toggle="collapse"
-                      href="#collapseButtonBar"
-                      data-toggle="tooltip" data-placement="top"
-                      title="Display additional button bar"
-                      style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-                <span class="fas fa-info fa-2x" data-bs-toggle="collapse"
-                      href="#collapseItemsHelp"
-                      data-toggle="tooltip" data-placement="top"
-                      title="Display help panel"
-                      style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
-            {% endif %}
+                        <a id="delete-items-btn-collapse" class="btn btn-link px-2" data-bs-toggle="collapse" href="#collapseDeleteItems" role="button" aria-expanded="false" aria-controls="confirmItemDelete" data-toggle="tooltip" data-placement="top" title="Delete item">
+                            <i id="delete-items-span" class="fas fa-minus text-muted" aria-hidden="true"></i>
+                            <span class="visually-hidden">Delete items</span>
+                        </a>
+                    {% endif %}
+
+                    <a class="btn btn-link px-2" data-bs-toggle="collapse" href="#collapseFilter" role="button" aria-expanded="false" aria-controls="collapseFilter" data-toggle="tooltip" data-placement="top" title="Display item filter form">
+                        <i id="filter-items-span" class="fas fa-filter" aria-hidden="true"></i>
+                        <span class="visually-hidden">Filter items</span>
+                    </a>
+                </div>
+
+                <div class="btn-group btn-group-sm" role="group" aria-label="More actions">
+                    {% if user_is_authenticated and (is_inventory_owner or inventory_access_level == __COLLABORATOR__) %}
+                        <a class="btn btn-link px-2" data-bs-toggle="collapse" href="#collapseButtonBar" data-toggle="tooltip" data-placement="top" title="Display additional button bar">
+                            <i class="fas fa-ellipsis-v" aria-hidden="true"></i>
+                            <span class="visually-hidden">More actions</span>
+                        </a>
+
+                        <a class="btn btn-link px-2" data-bs-toggle="collapse" href="#collapseItemsHelp" data-toggle="tooltip" data-placement="top" title="Display help panel">
+                            <i class="fas fa-info" aria-hidden="true"></i>
+                            <span class="visually-hidden">Help</span>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Mobile: compact dropdown / toggle for xs screens -->
+            <div class="d-sm-none">
+                <div class="btn-group" role="group">
+                    <button id="mobile-actions-btn" class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Open actions">
+                        <i class="fas fa-ellipsis-v" aria-hidden="true"></i>
+                        <span class="visually-hidden">Open actions</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="mobile-actions-btn">
+                        {% if user_is_authenticated and (is_inventory_owner or inventory_access_level == __COLLABORATOR__) %}
+                            <li><a class="dropdown-item" data-bs-toggle="collapse" href="#collapseAddItem">Add item</a></li>
+                            <li><a class="dropdown-item" id="delete-items-btn-mobile" data-bs-toggle="collapse" href="#collapseDeleteItems">Delete items</a></li>
+                        {% endif %}
+                        <li><a class="dropdown-item" data-bs-toggle="collapse" href="#collapseFilter">Filter</a></li>
+                        {% if user_is_authenticated and (is_inventory_owner or inventory_access_level == __COLLABORATOR__) %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" data-bs-toggle="collapse" href="#collapseButtonBar">More actions</a></li>
+                            <li><a class="dropdown-item" data-bs-toggle="collapse" href="#collapseItemsHelp">Help</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+
             <hr class="show-small">
         </div>
     </div>

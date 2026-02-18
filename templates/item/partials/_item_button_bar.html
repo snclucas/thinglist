@@ -1,15 +1,37 @@
- <div class="text-center">
+<div class="text-center">
 
-    <span class="fas fa-edit fa-2x" data-bs-toggle="collapse"
-          href="#collapseExample"
-          style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+    <!-- Desktop toolbar -->
+    <div class="btn-toolbar justify-content-center d-none d-sm-flex" role="toolbar" aria-label="Item actions">
+        <div class="btn-group btn-group-sm" role="group" aria-label="Edit and images">
+            <a class="btn btn-outline-secondary" data-bs-toggle="collapse" href="#collapseExample" role="button" aria-expanded="false" aria-controls="collapseExample">
+                <i class="fas fa-edit" aria-hidden="true"></i>
+                <span class="visually-hidden">Edit</span>
+            </a>
 
-    <span class="fas fa-images fa-2x" data-bs-toggle="collapse"
-          href="#collapseImagesEdit"
-          style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+            <a class="btn btn-outline-secondary" data-bs-toggle="collapse" href="#collapseImagesEdit" role="button" aria-expanded="false" aria-controls="collapseImagesEdit">
+                <i class="fas fa-images" aria-hidden="true"></i>
+                <span class="visually-hidden">Edit images</span>
+            </a>
 
-    <span class="fas fa-file-pdf fa-2x" data-bs-toggle="collapse"
-      href="#collapseImagesEdit"
-      style="display: inline-block; margin-right: 20px;cursor: pointer;"></span>
+            <a class="btn btn-outline-secondary" data-bs-toggle="collapse" href="#collapseImagesEdit" role="button" aria-expanded="false" aria-controls="collapseImagesEdit">
+                <i class="fas fa-file-pdf" aria-hidden="true"></i>
+                <span class="visually-hidden">Export PDF</span>
+            </a>
+        </div>
+    </div>
 
- </div>
+    <!-- Mobile dropdown -->
+    <div class="d-sm-none">
+        <div class="btn-group">
+            <button id="mobile-item-actions" class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                Actions
+            </button>
+            <ul class="dropdown-menu dropdown-menu-center">
+                <li><a class="dropdown-item" data-bs-toggle="collapse" href="#collapseExample">Edit</a></li>
+                <li><a class="dropdown-item" data-bs-toggle="collapse" href="#collapseImagesEdit">Edit images</a></li>
+                <li><a class="dropdown-item" data-bs-toggle="collapse" href="#collapseImagesEdit">Export PDF</a></li>
+            </ul>
+        </div>
+    </div>
+
+</div>
