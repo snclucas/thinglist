@@ -96,10 +96,15 @@
 /* Small meta text aligned to the right */
 .ac-meta,
 .autoComplete_item_meta {
-  margin-left: auto;
+  margin-left: auto;           /* push meta to the right */
   color: var(--ac-muted);
-  font-size: 0.82rem;
+  font-size: 0.78rem;         /* slightly smaller */
   white-space: nowrap;
+  padding-left: 0.5rem;      /* gap from main label */
+  opacity: 0.85;             /* subtle visual weight */
+  font-style: italic;        /* gentle emphasis */
+  display: inline-block;     /* keep layout predictable */
+  vertical-align: middle;
 }
 
 /* No results message */

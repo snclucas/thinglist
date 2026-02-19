@@ -30,8 +30,24 @@ def my_utility_processor():
 @api_routes.route('/api/item-types', methods=['GET'])
 @login_required
 def user_item_types():
-    user_itemtypes_ = ItemTypeService.get_all_user_item_types(user_id=current_user.id)
-    return user_itemtypes_
+    # Return user-defined types first, then system types (deduplicated)
+    try:
+        user_types = ItemTypeService.get_all_user_item_types(user_id=current_user.id, string_list=True) or []
+        # fetch all user+system types and append any that aren't already in user_types
+        all_types = ItemTypeService.get_all_user_and_system_item_types(user_id=current_user.id, string_list=True) or []
+        user_set = set(user_types)
+        remaining_system = [t for t in all_types if t not in user_set]
+        # build objects marking source
+        combined_objs = []
+        for t in user_types:
+            combined_objs.append({"value": t, "source": "user"})
+        for t in remaining_system:
+            combined_objs.append({"value": t, "source": "system"})
+        return jsonify(combined_objs)
+    except Exception:
+        # fallback to previous behavior in case of error
+        user_itemtypes_ = ItemTypeService.get_all_user_item_types(user_id=current_user.id)
+        return user_itemtypes_
 
 
 @api_routes.route('/api/user-items', methods=['GET', 'POST'])

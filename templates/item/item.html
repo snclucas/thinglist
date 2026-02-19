@@ -328,15 +328,21 @@
         });
 
 
+        // local storage for fetched raw types so we can render '(you)'
+        let _lastFetchedTypes = [];
         const autoCompleteJS = new autoComplete({
     selector: "#autoComplete",
     placeHolder: "Search for Food...",
     data: {
+        // search inside object.value when objects are returned by the API
+        keys: ['value'],
         src: async (query) => {
             try {
-                const source = await fetch(`{{ url_for('api.user_item_types')}}?query=${query}`);
+                const source = await fetch(`{{ url_for('api.user_item_types')}}?query=${encodeURIComponent(query)}`);
                 const data = await source.json();
-                return data;
+                _lastFetchedTypes = Array.isArray(data) ? data : [];
+                // normalize to array of objects {value, source?} so the library receives objects
+                return _lastFetchedTypes.map(item => (typeof item === 'object' ? item : { value: item }));
             } catch (error) {
                 return error;
             }
@@ -363,24 +369,27 @@
         element: (item, data) => {
             // Add our result class so CSS applies consistently
             item.classList.add('ac-result', 'autoComplete_result');
-            // if the suggestion includes meta data, append a small meta span
-            if (data && data.value && typeof data.value === 'object') {
-                const metaText = data.value.type || data.value.category || '';
-                if (metaText) {
+            if (data && data.value) {
+                const val = (typeof data.value === 'object') ? (data.value.value || '') : String(data.value || '');
+                item.textContent = val;
+                const found = (_lastFetchedTypes || []).find(o => ((typeof o === 'object') ? o.value : o) === val);
+                const source = found && typeof found === 'object' ? found.source : null;
+                if (source === 'user') {
                     const meta = document.createElement('span');
                     meta.className = 'ac-meta';
-                    meta.textContent = metaText;
+                    meta.textContent = ' (you)';
                     item.appendChild(meta);
                 }
             }
         }
     },
-    resultItem: { highlight: true },
     events: {
         input: {
             selection: (event) => {
                 const selection = event.detail.selection.value;
-                autoCompleteJS.input.value = selection;
+                const valueStr = (typeof selection === 'object') ? (selection.value || '') : selection;
+                const el = document.querySelector('#autoComplete');
+                if (el) el.value = valueStr;
             }
         }
     }

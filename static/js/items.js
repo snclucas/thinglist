@@ -306,42 +306,74 @@
 
     // AutoComplete instances use server endpoint from V
     if (typeof autoComplete !== 'undefined' && V.api_user_item_types_url) {
-      const buildAuto = (selector, instanceVar) => new autoComplete({
-        selector: selector,
-        placeHolder: 'Search for types ... ',
-        data: {
-          src: async (query) => {
-            try {
+      const buildAuto = (selector, instanceVar) => {
+        // keep a place to store the last fetched raw items (objects or strings)
+        instanceVar._lastFetchedTypes = [];
+        return new autoComplete({
+         selector: selector,
+         placeHolder: 'Search for types ... ',
+         data: {
+           // ensure the library searches the `value` property on returned objects
+           keys: ['value'],
+           src: async (query) => {
+             try {
               const source = await fetch(`${V.api_user_item_types_url}?query=${encodeURIComponent(query)}`);
-              return await source.json();
-            } catch (error) {
-              return error;
+              const data = await source.json();
+              // store raw objects for later rendering (so we can show '(you)')
+              instanceVar._lastFetchedTypes = Array.isArray(data) ? data : [];
+              // normalize to array of objects {value, source?} so the library receives objects
+              return instanceVar._lastFetchedTypes.map(item => (typeof item === 'object' ? item : { value: item }));
+             } catch (error) {
+               return error;
+             }
+           }
+         },
+         threshold: 0,
+         autoFill: true,
+         resultsList: {
+           element: (list, data) => {
+             if (!data.results.length) {
+               const message = document.createElement('div');
+               message.setAttribute('class', 'no_result');
+               message.innerHTML = `<span>Save to add new type "${data.query}"</span>`;
+               list.prepend(message);
+             }
+           },
+           noResults: true,
+           maxResults: undefined
+         },
+        resultItem: {
+          highlight: true,
+          element: (item, data) => {
+            item.classList.add('ac-result', 'autoComplete_result');
+            if (data && data.value) {
+              // support both object and string values
+              const val = (typeof data.value === 'object') ? (data.value.value || '') : String(data.value || '');
+              item.textContent = val;
+              // lookup the original object to detect if it's a user type
+              const found = (instanceVar._lastFetchedTypes || []).find(o => ((typeof o === 'object') ? o.value : o) === val);
+              const source = found && typeof found === 'object' ? found.source : null;
+              if (source === 'user') {
+                const meta = document.createElement('span');
+                meta.className = 'ac-meta';
+                meta.textContent = ' (user)';
+                item.appendChild(meta);
+              }
             }
           }
-        },
-        threshold: 0,
-        autoFill: true,
-        resultsList: {
-          element: (list, data) => {
-            if (!data.results.length) {
-              const message = document.createElement('div');
-              message.setAttribute('class', 'no_result');
-              message.innerHTML = `<span>Save to add new type "${data.query}"</span>`;
-              list.prepend(message);
-            }
-          },
-          noResults: true,
-          maxResults: undefined
-        },
-        resultItem: { highlight: true },
-        events: {
+         },
+         events: {
           input: { selection: (event) => {
               const sel = event.detail.selection.value;
-              instanceVar.input.value = sel;
+              const valueStr = (typeof sel === 'object') ? (sel.value || '') : sel;
+              // set the input element's value directly (use selector to find it)
+              const el = document.querySelector(selector);
+              if (el) el.value = valueStr;
           }
           }
-        }
-      });
+         }
+       });
+     };
 
       window.autoCompleteJS = buildAuto('#types_autocomplete', window.autoCompleteJS || {});
       window.autoCompleteJS2 = buildAuto('#types_autocomplete_add_form', window.autoCompleteJS2 || {});

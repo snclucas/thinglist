@@ -15,3 +15,7 @@ MySQLClient
 python-dotenv
 Pillow~=10.0.0
 Flask-Limiter
+# Selenium test dependencies
+selenium>=4.10.0
+webdriver-manager>=4.0.0
+pytest>=7.4
