@@ -45,7 +45,12 @@ def login():
         password = sanitize(request.form.get("password", None))
         if username is None or password is None:
             flash("Username or password cannot be empty")
-            return render_template("auth/login.html")
+            try:
+                from site_globals import build_meta
+                meta = build_meta(title='Login')
+            except Exception:
+                meta = None
+            return render_template("auth/login.html", meta=meta)
 
         user = UserService.get_user_by_username(username=username)
         if user and flask_bcrypt.check_password_hash(user.password, password) and user.is_active:
@@ -73,12 +78,22 @@ def login():
         else:
             flash("Unable to log you in")
             allow_registrations = (int(app.config['ALLOW_REGISTRATIONS']) == 1)
-            return render_template(template_name_or_list="auth/login.html", allow_registrations=allow_registrations)
+            try:
+                from site_globals import build_meta
+                meta = build_meta(title='Login')
+            except Exception:
+                meta = None
+            return render_template(template_name_or_list="auth/login.html", allow_registrations=allow_registrations, meta=meta)
 
     else:
 
         allow_registrations = (int(app.config['ALLOW_REGISTRATIONS']) == 1)
-        return render_template(template_name_or_list="auth/login.html", allow_registrations=allow_registrations)
+        try:
+            from site_globals import build_meta
+            meta = build_meta(title='Login')
+        except Exception:
+            meta = None
+        return render_template(template_name_or_list="auth/login.html", allow_registrations=allow_registrations, meta=meta)
 
 
 @auth_flask_login.route(rule="/activate-user/<token>", methods=["GET"])

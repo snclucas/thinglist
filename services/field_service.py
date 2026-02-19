@@ -32,12 +32,6 @@ class FieldService:
             return db.session.execute(query).all()
 
     @staticmethod
-    def get_all_system_fields():
-        with app.app_context():
-            query = Field.query.filter(Field.user_id.is_(None))
-            return db.session.execute(query).all()
-
-    @staticmethod
     def get_all_user_fields(user_id: int):
         with app.app_context():
             query = Field.query.filter(Field.user_id == user_id)

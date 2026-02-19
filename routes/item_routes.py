@@ -134,6 +134,24 @@ def item_with_username_and_inventory(list_username: str, inventory_slug: str, it
 
     all_item_types_ = ItemTypeService.get_all_user_and_system_item_types(user_id=current_user.id if user_is_authenticated else None)
 
+    # Build SEO meta data for this item
+    try:
+        from site_globals import build_meta
+        # Use item's name and first portion of description for description
+        item_description = (item_.description[:160] + '...') if item_.description and len(item_.description) > 160 else (item_.description or '')
+        og_image = None
+        # If the item has an image via ImageService or item data, prefer that for OG image
+        try:
+            og_image = ImageService.get_primary_image_url_for_item(item_id=item_.id)
+        except Exception:
+            og_image = None
+
+        meta = build_meta(title=f"{item_.name} — ThingList",
+                          description=item_description,
+                          og={'image': og_image} if og_image else None)
+    except Exception:
+        meta = None
+
     return render_template('item/item.html',
                            name=list_username,
                            inventory_owner_id=inventory_owner_id,
@@ -149,7 +167,8 @@ def item_with_username_and_inventory(list_username: str, inventory_slug: str, it
                            all_item_types=all_item_types_,
                            all_user_locations=all_user_locations_,
                            item_location=item_location,
-                           item_access_level=item_access_level)
+                           item_access_level=item_access_level,
+                           meta=meta)
 
 def item_with_username_and_inventory2(list_username: str, inventory_slug: str, item_slug: str):
     inventory_owner_username = bleach.clean(list_username)

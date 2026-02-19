@@ -17,8 +17,13 @@ def fields():
 @login_required
 def fields_with_username(list_username):
     user_fields = FieldService.get_all_user_fields(user_id=current_user.id)
+    try:
+        from site_globals import build_meta
+        meta = build_meta(title=f"{current_user.username} — Fields", description="Your custom fields")
+    except Exception:
+        meta = None
     return render_template(template_name_or_list='fields/fields.html',
-                           name=current_user.username, fields=user_fields)
+                           name=current_user.username, fields=user_fields, meta=meta)
 
 @field_routes.route('/fields/delete', methods=['POST'])
 @login_required

@@ -22,8 +22,13 @@ def locations():
     with the user's username and locations displayed.
     """
     _user_locations = LocationService.get_user_locations_by_id(user_id=current_user.id)
+    try:
+        from site_globals import build_meta
+        meta = build_meta(title=f"{current_user.username} — Locations", description="Your saved locations")
+    except Exception:
+        meta = None
     return render_template(template_name_or_list='location/locations.html',
-                           username=current_user.username, locations=_user_locations)
+                           username=current_user.username, locations=_user_locations, meta=meta)
 
 
 @location.route(rule='/location/delete', methods=['POST'])
@@ -98,6 +103,7 @@ def add_location():
                                 location_description=_location_description,
                                 to_user_id=current_user.id)
     else:
-        LocationService.update_location_by_id(location_data=new_location_data, user=current_user)
+        LocationService.update_location_by_id(location_id=potential_location.id,
+                                              location_data=new_location_data, user=current_user)
 
     return redirect(url_for('location.locations'))

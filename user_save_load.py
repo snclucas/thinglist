@@ -183,12 +183,12 @@ def items_load(json_data, current_user, overwrite_or_not, inventory_slug_from_fo
         items_list = inventory_data.get("items", []) or []
         if items_list:
             for item in items_list:
-                item_token = bleach.clean(str(item.get("item_token") or ""))
+                item_ident = bleach.clean(str(item.get("ident") or ""))
                 # normalize empty tokens to None so we don't try to insert empty string into DB unique column
-                if not item_token:
-                    item_token = None
+                if not item_ident:
+                    item_ident = None
                 if not overwrite_or_not:
-                    item_token = None
+                    item_ident = None
                 item_name = bleach.clean(str(item.get("name") or ""))
                 item_description = bleach.clean(str(item.get("description") or ""))
                 item_type_slug = item.get("type_slug", "none")
@@ -237,7 +237,7 @@ def items_load(json_data, current_user, overwrite_or_not, inventory_slug_from_fo
                 custom_fields = item.get("custom_fields", {})
 
                 if overwrite_or_not:
-                    potential_item = ItemService.get_item_by_token(item_token=item_token, user_id=current_user.id)
+                    potential_item = ItemService.get_item_by_ident(item_ident=item_ident, user_id=current_user.id)
                     if potential_item is None:
                         new_item_ = InventoryService.add_item_to_inventory(item_name=item_name,
                                                                           item_desc=item_description,
@@ -248,10 +248,10 @@ def items_load(json_data, current_user, overwrite_or_not, inventory_slug_from_fo
                                                                           item_location_id=location_id,
                                                                           item_specific_location=item_specific_location,
                                                                           user_id=current_user.id,
-                                                                          custom_fields=custom_fields, item_token=item_token)
+                                                                          custom_fields=custom_fields, item_ident=item_ident)
                         item_count += 1
                         try:
-                            report["items_created"].append({"name": item_name, "item_token": item_token})
+                            report["items_created"].append({"name": item_name, "item_ident": item_ident})
                         except Exception:
                             pass
                     else:
@@ -261,15 +261,15 @@ def items_load(json_data, current_user, overwrite_or_not, inventory_slug_from_fo
                             "description": item_description,
                             "item_type": added_item_type["id"] if added_item_type else None,
                             "item_quantity": item_quantity,
-                            "item_location": item_location,
+                            "item_location": location_id,
                             "item_specific_location": item_specific_location,
                             "item_tags": item_tags
                         }
-                        new_item_ = ItemService.update_item_by_token(item_data=new_item_data, item_token=potential_item.item_token,
+                        new_item_ = ItemService.update_item_by_ident(item_data=new_item_data, item_ident=potential_item.ident,
                                                                      user=current_user)
                         load_log += f"&nbsp;&nbsp;&nbsp;&nbsp;... item {item_name} found and updated if different.<br>"
                         try:
-                            report["items_updated"].append({"name": item_name, "item_token": item_token})
+                            report["items_updated"].append({"name": item_name, "item_ident": item_ident})
                         except Exception:
                             pass
                 else:
@@ -283,7 +283,7 @@ def items_load(json_data, current_user, overwrite_or_not, inventory_slug_from_fo
                                                                        custom_fields=custom_fields)
                     item_count += 1
                     try:
-                        report["items_created"].append({"name": item_name, "item_token": item_token})
+                        report["items_created"].append({"name": item_name, "item_ident": item_ident})
                     except Exception:
                         pass
 
@@ -317,7 +317,7 @@ def items_load(json_data, current_user, overwrite_or_not, inventory_slug_from_fo
                         err_msg = new_item_.get('msg') if isinstance(new_item_, dict) else str(new_item_)
                     except Exception:
                         err_msg = "unknown error"
-                    report["items_failed"].append({"name": item_name, "item_token": item_token, "msg": err_msg})
+                    report["items_failed"].append({"name": item_name, "item_ident": item_ident, "msg": err_msg})
                     try:
                         current_app.logger.error(f"Import item failed for user {current_user.username}: {err_msg} | item: {item}")
                     except Exception:

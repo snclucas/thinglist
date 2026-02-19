@@ -16,8 +16,13 @@ types = Blueprint('types', __name__)
 @login_required
 def item_types():
     user_itemtypes = ItemTypeService.get_all_user_item_types(user_id=current_user.id, string_list=False)
+    try:
+        from site_globals import build_meta
+        meta = build_meta(title=f"{current_user.username} — Item Types", description="Your item types")
+    except Exception:
+        meta = None
     return render_template(template_name_or_list='types/item_types.html',
-                           username=current_user.username, user_item_types=user_itemtypes)
+                           username=current_user.username, user_item_types=user_itemtypes, meta=meta)
 
 
 @types.route('/item-type/delete', methods=['POST'])

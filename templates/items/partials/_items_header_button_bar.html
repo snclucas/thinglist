@@ -5,32 +5,32 @@
             <div class="btn-toolbar justify-content-end d-none d-sm-flex" role="toolbar" aria-label="Item actions toolbar">
                 <div class="btn-group btn-group-sm me-2" role="group" aria-label="Primary actions">
                     {% if user_is_authenticated and (is_inventory_owner or inventory_access_level == __COLLABORATOR__) %}
-                        <a class="btn btn-link px-2" data-bs-toggle="collapse" href="#collapseAddItem" role="button" aria-expanded="false" aria-controls="collapseAddItem" data-toggle="tooltip" data-placement="top" title="Add new item to current inventory">
-                            <i class="fas fa-plus" aria-hidden="true"></i>
+                        <a class="btn btn-outline-secondary" data-bs-toggle="collapse" href="#collapseAddItem" role="button" aria-expanded="false" aria-controls="collapseAddItem" data-toggle="tooltip" data-placement="top" title="Add new item to current inventory">
+                            <i class="fas fa-2x fa-plus" aria-hidden="true"></i>
                             <span class="visually-hidden">Add item</span>
                         </a>
 
-                        <a id="delete-items-btn-collapse" class="btn btn-link px-2" data-bs-toggle="collapse" href="#collapseDeleteItems" role="button" aria-expanded="false" aria-controls="confirmItemDelete" data-toggle="tooltip" data-placement="top" title="Delete item">
-                            <i id="delete-items-span" class="fas fa-minus text-muted" aria-hidden="true"></i>
+                        <a id="delete-items-btn-collapse" class="btn btn-outline-secondary" data-bs-toggle="collapse" href="#collapseDeleteItems" role="button" aria-expanded="false" aria-controls="confirmItemDelete" data-toggle="tooltip" data-placement="top" title="Delete item">
+                            <i id="delete-items-span" class="fas fa-2x fa-minus text-muted" aria-hidden="true"></i>
                             <span class="visually-hidden">Delete items</span>
                         </a>
                     {% endif %}
 
-                    <a class="btn btn-link px-2" data-bs-toggle="collapse" href="#collapseFilter" role="button" aria-expanded="false" aria-controls="collapseFilter" data-toggle="tooltip" data-placement="top" title="Display item filter form">
-                        <i id="filter-items-span" class="fas fa-filter" aria-hidden="true"></i>
+                    <a class="btn btn-outline-secondary" data-bs-toggle="collapse" href="#collapseFilter" role="button" aria-expanded="false" aria-controls="collapseFilter" data-toggle="tooltip" data-placement="top" title="Display item filter form">
+                        <i id="filter-items-span" class="fas fa-2x fa-filter" aria-hidden="true"></i>
                         <span class="visually-hidden">Filter items</span>
                     </a>
                 </div>
 
                 <div class="btn-group btn-group-sm" role="group" aria-label="More actions">
                     {% if user_is_authenticated and (is_inventory_owner or inventory_access_level == __COLLABORATOR__) %}
-                        <a class="btn btn-link px-2" data-bs-toggle="collapse" href="#collapseButtonBar" data-toggle="tooltip" data-placement="top" title="Display additional button bar">
-                            <i class="fas fa-ellipsis-v" aria-hidden="true"></i>
+                        <a class="btn btn-outline-secondary" data-bs-toggle="collapse" href="#collapseButtonBar" data-toggle="tooltip" data-placement="top" title="Display additional button bar">
+                            <i class="fas fa-2x fa-ellipsis-v" aria-hidden="true"></i>
                             <span class="visually-hidden">More actions</span>
                         </a>
 
-                        <a class="btn btn-link px-2" data-bs-toggle="collapse" href="#collapseItemsHelp" data-toggle="tooltip" data-placement="top" title="Display help panel">
-                            <i class="fas fa-info" aria-hidden="true"></i>
+                        <a class="btn btn-outline-secondary" data-bs-toggle="collapse" href="#collapseItemsHelp" data-toggle="tooltip" data-placement="top" title="Display help panel">
+                            <i class="fas fa-2x fa-info" aria-hidden="true"></i>
                             <span class="visually-hidden">Help</span>
                         </a>
                     {% endif %}

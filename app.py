@@ -117,6 +117,12 @@ app.config['PROCESS_IMAGE_WIDTH'] = os.environ.get('PROCESS_IMAGE_WIDTH', 600)
 app.config['PROCESS_IMAGE_HEIGHT'] = os.environ.get('PROCESS_IMAGE_HEIGHT', 800)
 app.config['PROCESS_IMAGE_FORMAT'] = os.environ.get('PROCESS_IMAGE_FORMAT', "JPEG")
 
+# SEO / Site defaults (can be overridden via environment)
+app.config['SITE_NAME'] = os.environ.get('SITE_NAME', 'ThingList')
+app.config['SITE_URL'] = os.environ.get('SITE_URL', '')
+app.config['SITE_DESCRIPTION'] = os.environ.get('SITE_DESCRIPTION', 'A list of all your things')
+# DEFAULT_OG_IMAGE should be an absolute URL in production; fall back to static asset when unset
+app.config['DEFAULT_OG_IMAGE'] = os.environ.get('DEFAULT_OG_IMAGE', '')
 
 # Configure Flask logging
 # Ensure log directory exists if configured. If empty or not set, fall back to a safe temp directory.
@@ -253,6 +259,29 @@ def inject_template_scope():
     injections.update(cookies_check=cookies_check)
 
     return injections
+
+
+@app.context_processor
+def inject_seo_meta():
+    """Inject a `meta` object into templates if the route didn't provide one,
+    and expose a `build_meta` helper so routes can construct metadata easily.
+    """
+    try:
+        from site_globals import build_meta
+    except Exception:
+        build_meta = None
+
+    # If build_meta is available, call it to produce a full defaults dict
+    meta = None
+    if build_meta is not None:
+        try:
+            meta = build_meta()
+        except Exception:
+            meta = {'site_name': app.config.get('SITE_NAME', 'ThingList')}
+    else:
+        meta = {'site_name': app.config.get('SITE_NAME', 'ThingList')}
+
+    return dict(meta=meta, build_meta=build_meta)
 
 
 @app.errorhandler(404)

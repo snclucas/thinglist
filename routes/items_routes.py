@@ -313,7 +313,7 @@ def items_with_username_and_inventory(list_username: str = None, inventory_slug:
         requested_user = current_user
 
     request_params = _process_url_query(req_=request, inventory_user=requested_user)
-    view = request_params.get("view", "list")  # 0 - list, 1 - grid
+    view = request_params.get("view", "list") # 0 - list, 1 - grid
 
     if user_is_authenticated:
         all_user_inventories_meta = InventoryService.find_all_user_inventory_meta(user_id=current_user.id)
@@ -441,6 +441,12 @@ def items_with_username_and_inventory(list_username: str = None, inventory_slug:
         user_locations_ = LocationService.get_all_user_locations(user_id=logged_in_user.id)
         inventory_templates = FieldTemplateService.get_user_templates(user_id=current_user.id)
 
+    try:
+        from site_globals import build_meta
+        meta = build_meta(title=f"{list_username} — Inventory", description=(inventory_.description if inventory_ is not None else "List of items"))
+    except Exception:
+        meta = None
+
     return render_template(template_name_or_list='items/items.html',
                            inventory_id=inventory_id,
                            current_username=current_username,
@@ -459,7 +465,7 @@ def items_with_username_and_inventory(list_username: str = None, inventory_slug:
                            selected_item_type=request_params["requested_item_type_string"],
                            selected_item_location_id=request_params["requested_item_location_id"],
                            all_user_inventories=all_user_inventories_meta, users_in_this_inventory=users_in_this_inventory,
-                           user_is_authenticated=user_is_authenticated, inventory_slug=inventory_slug)
+                           user_is_authenticated=user_is_authenticated, inventory_slug=inventory_slug, meta=meta)
 
 
 @items_routes.route('/items/<inventory_slug>')

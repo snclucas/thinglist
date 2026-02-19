@@ -19,9 +19,15 @@ def templates():
     all_fields = FieldService.get_all_fields()
     user_template_fields = FieldTemplateService.get_user_templates_with_fields(user_id=current_user.id)
 
+    try:
+        from site_globals import build_meta
+        meta = build_meta(title=f"{current_user.username} — Field Templates", description="Manage your field templates")
+    except Exception:
+        meta = None
+
     return render_template(template_name_or_list='field_template/field_templates.html',
                            name=current_user.username, all_fields=all_fields,
-                           user_template_fields=user_template_fields)
+                           user_template_fields=user_template_fields, meta=meta)
 
 
 @field_template.route(rule='/field-templates/<int:template_id>/sort', methods=['GET', 'POST'])
@@ -73,15 +79,33 @@ def template(template_id):
     user_template_ = FieldTemplateService.get_user_template_by_id(template_id=template_id, user_id=current_user.id)
 
     if user_template_ is None:
+        try:
+            from site_globals import build_meta
+            meta = build_meta(title="Template not found")
+        except Exception:
+            meta = None
         return render_template(template_name_or_list='404.html',
-                               message="No such template or you do not have access to this item"), __NOT_FOUND__
+                               message="No such template or you do not have access to this item", meta=meta), __NOT_FOUND__
 
     selected_field_ids = [field_.id for field_ in user_template_[0].fields]
+
+    # Build a safe `fields` mapping for the template (fallback to all_fields)
+    try:
+        # Convert user_template_ fields into a simple mapping if details are available
+        all_fields = list(FieldService.get_all_user_and_system_fields(user_id=current_user.id))
+    except Exception:
+        all_fields = []
+
+    try:
+        from site_globals import build_meta
+        meta = build_meta(title=user_template_[0].name)
+    except Exception:
+        meta = None
 
     return render_template(template_name_or_list='field_template/field_template.html',
                            field_template_name=user_template_[0].name,
                            username=current_user.username, all_fields=all_fields, user_template=user_template_,
-                           selected_field_ids=selected_field_ids, template_id=template_id)
+                           selected_field_ids=selected_field_ids, template_id=template_id, fields=all_fields, meta=meta)
 
 
 @field_template.route('/set-template-fields', methods=['POST'])

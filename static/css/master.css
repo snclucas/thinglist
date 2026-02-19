@@ -460,3 +460,26 @@ table.dataTable>tbody>tr.child ul.dtr-details {
         max-height: 240px;
     }
 }
+
+/* Make outline-secondary icon buttons equal width/height for consistent toolbar layout */
+/* Adjust the values below (min-width/min-height) to taste. Uses rem/px so it's responsive to root font size. */
+.btn.btn-outline-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 42px; /* overall button width */
+    min-height: 42px; /* overall button height */
+    padding: 0.375rem; /* keep some breathing room around icons */
+    box-sizing: border-box;
+    text-align: center;
+}
+
+/* Smaller variant when btn-sm is present (mobile/compact) */
+.btn.btn-outline-secondary.btn-sm,
+.btn-sm.btn-outline-secondary {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0.25rem;
+}
+
+/* If you prefer a strict square width (no shrinking/growing), replace min-width with width on the rules above. */

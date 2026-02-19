@@ -39,13 +39,6 @@ def my_utility_processor():
 def lists():
     """
     Route to retrieve the inventories.
-
-    Returns:
-        The rendered HTML template with the following variables:
-            - username (str): The current user's username.
-            - inventories (list): The inventories for the current user.
-            - user_is_authenticated (bool): Indicates if the user is authenticated.
-            - number_inventories (int): The number of inventories minus one (excluding the 'hidden' default inventory).
     """
     user_is_authenticated: bool = current_user.is_authenticated
     user_invs, status, msg = InventoryService.get_user_inventories(current_user_id=current_user.id,
@@ -57,12 +50,18 @@ def lists():
 
     unlisted_item_count: int = ItemService.get_user_unlisted_item_count(user_id=current_user.id)
 
+    try:
+        from site_globals import build_meta
+        meta = build_meta(title=f"{current_user.username} — Lists", description="Your inventories and lists")
+    except Exception:
+        meta = None
+
     return render_template(template_name_or_list='list/lists.html',
                            list_username=current_user.username,
                            inventories=user_invs,
                            unlisted_item_count=unlisted_item_count,
                            user_is_authenticated=user_is_authenticated,
-                           number_inventories=number_inventories)
+                           number_inventories=number_inventories, meta=meta)
 
 
 @inv.route('/@<string:list_username>/lists')
@@ -138,13 +137,19 @@ def inventories_for_username(list_username: str):
         app.logger.exception("inventories_for_username: failed to get unlisted item count for %s: %s", requesting_user_id, exc)
         unlisted_item_count = 0
 
+    try:
+        from site_globals import build_meta
+        meta = build_meta(title=f"{safe_username} — Lists", description=f"Lists for {safe_username}")
+    except Exception:
+        meta = None
+
     return render_template(
         template_name_or_list='list/lists.html',
         unlisted_item_count=unlisted_item_count,
         inventories=lists_,
         list_username=safe_username,
         user_is_authenticated=user_is_authenticated,
-        number_inventories=number_inventories
+        number_inventories=number_inventories, meta=meta
     )
 
 
@@ -161,7 +166,12 @@ def list_by_id(inventory_id: int):
             return redirect(url_for(endpoint='items.items_with_username_and_inventory',
                                     list_username=current_user.username, inventory_slug=inventory_.slug))
 
-    return render_template(template_name_or_list='404.html', message="No such inventory"), __NOT_FOUND__
+    try:
+        from site_globals import build_meta
+        meta = build_meta(title="Inventory not found")
+    except Exception:
+        meta = None
+    return render_template(template_name_or_list='404.html', message="No such inventory", meta=meta), __NOT_FOUND__
 
 
 @inv.route(rule='/list/add', methods=['POST'])
@@ -578,5 +588,3 @@ def add_to_list_endpoint():
     else:
         return redirect(url_for(endpoint='items.items_with_username_and_inventory',
                                 list_username=username, inventory_slug=inventory_slug))
-
-

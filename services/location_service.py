@@ -191,7 +191,7 @@ class LocationService:
                 return []
 
     @staticmethod
-    def get_location_by_id(location_id: int) -> Union[dict, None]:
+    def get_location_by_id(location_id: int) -> Optional[Location]:
         """
         Find location by id.
 
@@ -207,11 +207,11 @@ class LocationService:
         except (NoResultFound, InvalidRequestError, SQLAlchemyError):
             return None
         if location_ is not None:
-            return location_.__dict__
+            return location_
         return None
 
     @staticmethod
-    def get_location_by_name(location_name: str) -> Union[dict, None]:
+    def get_location_by_name(location_name: str) -> Optional[Location]:
         """
         Find location by name.
 
@@ -227,11 +227,11 @@ class LocationService:
         except (NoResultFound, InvalidRequestError, SQLAlchemyError):
             return None
         if location_ is not None:
-            return location_.__dict__
+            return location_
         return None
 
     @staticmethod
-    def update_location_by_id(location_data: dict, user: User) -> Tuple[bool, str]:
+    def update_location_by_id(location_id: int, location_data: dict, user: User) -> Tuple[bool, str]:
         """
         Update the location information by ID for a given user.
 
@@ -241,7 +241,6 @@ class LocationService:
         :return: A tuple containing a boolean value indicating the success of the update operation, and a string message indicating the result or any error.
 
         The location_data parameter must be a dictionary containing the following keys:
-            - 'id': The ID of the location to be updated.
             - 'name': The updated name for the location.
             - 'description': The updated description for the location.
 
@@ -256,6 +255,9 @@ class LocationService:
         If there is an error during the update operation, the method returns (False, "Could not update location with ID <location_id> for user <user.username>").
 
         Note: This method requires the application context to be active.
+
+        Args:
+            location_id:
         """
         if user is None or not isinstance(user, User):
             msg = "Invalid user"
@@ -268,8 +270,6 @@ class LocationService:
             return False, msg
 
         with app.app_context():
-            location_id = location_data['id']
-
             location_ = Location.query.filter_by(id=location_id).filter_by(user_id=user.id).one()
             if location_ is None:
                 msg = f"No location with id {location_id} found for user {user.username}"

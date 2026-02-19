@@ -160,7 +160,11 @@
 
     // Ensure initial state and simple table
     run_over_checkboxes();
-    $('#invtable').DataTable({ searching: true, paging: false, ordering: true, info: true });
+    $('#invtable').DataTable(
+        {
+            searching: true, paging: false, ordering: true, info: true
+        }
+    );
 
     // Checkbox handlers
     $(document).on('click', 'input:checkbox[id^="selected-item-"]', function () { run_over_checkboxes(); });

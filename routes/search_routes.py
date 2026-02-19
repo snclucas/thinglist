@@ -50,4 +50,10 @@ def search():
         context['page'] = result.get('page', page)
         context['per_page'] = result.get('per_page', per_page)
 
-    return render_template('search/search.html', **context)
+    try:
+        from site_globals import build_meta
+        meta = build_meta(title=f"Search — {query_string or ''}", description=f"Search results for {query_string or ''}")
+    except Exception:
+        meta = None
+
+    return render_template('search/search.html', **context, meta=meta)

@@ -1,7 +1,7 @@
 from urllib.parse import quote
 
 import bleach
-from flask import Blueprint, render_template, request, redirect, url_for, abort
+from flask import Blueprint, render_template, request, redirect, url_for, abort, Response
 from flask_login import login_required, current_user
 
 from app import app
@@ -42,7 +42,12 @@ def index():
     if current_user and current_user.is_authenticated:
         return redirect(url_for(endpoint='main.profile', username=current_user.username))
     else:
-        return render_template('index.html')
+        try:
+            from site_globals import build_meta
+            meta = build_meta(title='ThingList — Home', description='ThingList - catalog and track your items')
+        except Exception:
+            meta = None
+        return render_template('index.html', meta=meta)
 
 
 @app.context_processor
@@ -90,11 +95,21 @@ def images(user_id: int, image_id: str):
 
 @main.route('/about')
 def about():
-    return render_template('about.html')
+    try:
+        from site_globals import build_meta
+        meta = build_meta(title='About ThingList', description='About ThingList - what we do')
+    except Exception:
+        meta = None
+    return render_template('about.html', meta=meta)
 
 @main.route('/privacy-policy')
 def privacy():
-    return render_template('privacy_policy.html')
+    try:
+        from site_globals import build_meta
+        meta = build_meta(title='Privacy Policy - ThingList', description='Privacy policy for ThingList')
+    except Exception:
+        meta = None
+    return render_template('privacy_policy.html', meta=meta)
 
 
 @main.route(rule='/delete-notification', methods=['POST'])
@@ -151,12 +166,18 @@ def profile(username):
         if not current_user.preferences.show_default_list:
                 number_user_inventories = max(0, number_user_inventories - 1)
 
+        try:
+            from site_globals import build_meta
+            meta = build_meta(title=f"{current_user.username} — Profile", description=f"Public profile for {current_user.username}")
+        except Exception:
+            meta = None
+
         return render_template(template_name_or_list='profile.html', name=current_user.username, num_items=num_items,
                                num_item_types=num_item_types, list_username=username, #user_inventories=user_inventories,
                                user_preferences=user_preferences,
                                num_field_templates=num_field_templates, num_user_locations=num_user_locations,
                                user_notifications=user_notifications, user_is_authenticated=user_is_authenticated,
-                               num_inventories=number_user_inventories, num_user_fields=num_user_fields)
+                               num_inventories=number_user_inventories, num_user_fields=num_user_fields, meta=meta)
 
     else:
         user_ = UserService.get_user_by_username(username=username)
@@ -164,7 +185,93 @@ def profile(username):
             _user_preferences = user_.preferences
             if _user_preferences.public_profile:
                 _users_public_lists = InventoryService.get_user_public_lists(for_user_id=user_.id)
-                return render_template(template_name_or_list='users_public_profile.html')
+                try:
+                    from site_globals import build_meta
+                    meta = build_meta(title=f"{user_.username} — Public Profile", description=f"Public profile for {user_.username}")
+                except Exception:
+                    meta = None
+                return render_template(template_name_or_list='users_public_profile.html', meta=meta)
             else:
                 return redirect(url_for(endpoint='main.index'))
         return None
+
+
+@main.route('/sitemap.xml', methods=['GET'])
+def sitemap_xml():
+    """Generate a simple sitemap.xml.
+
+    Includes site root, about, privacy, public inventories and public user profiles (if any).
+    """
+    from app import db
+    from models import Inventory, User, Preferences
+    from site_globals import __PUBLIC__
+    try:
+        site_url = app.config.get('SITE_URL') or request.url_root.rstrip('/')
+    except Exception:
+        site_url = request.url_root.rstrip('/')
+
+    urls = set()
+    # static pages
+    urls.add(f"{site_url}/")
+    urls.add(f"{site_url}/about")
+    urls.add(f"{site_url}/privacy-policy")
+
+    # public inventories
+    try:
+        with app.app_context():
+            rows = db.session.query(Inventory.slug, User.username).join(User, Inventory.owner_id == User.id).filter(Inventory.access_level == __PUBLIC__).all()
+            for slug, username in rows:
+                if not slug or not username:
+                    continue
+                urls.add(f"{site_url}/@{username}/{slug}")
+    except Exception:
+        # If DB isn't available, silently skip dynamic entries
+        app.logger.exception('sitemap: failed to query public inventories')
+
+    # public profiles
+    try:
+        with app.app_context():
+            rows = db.session.query(User.username).join(Preferences, Preferences.user_id == User.id).filter(Preferences.public_profile == True).all()
+            for (username,) in rows:
+                if not username:
+                    continue
+                urls.add(f"{site_url}/@{username}")
+    except Exception:
+        app.logger.exception('sitemap: failed to query public profiles')
+
+    # build XML
+    urlset_items = []
+    urlset_items.append('<?xml version="1.0" encoding="UTF-8"?>')
+    urlset_items.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
+    for u in sorted(urls):
+        urlset_items.append('  <url>')
+        urlset_items.append(f'    <loc>{u}</loc>')
+        urlset_items.append('  </url>')
+    urlset_items.append('</urlset>')
+
+    xml = "\n".join(urlset_items)
+    return Response(xml, mimetype='application/xml')
+
+
+@main.route('/robots.txt', methods=['GET'])
+def robots_txt():
+    """Return a robots.txt that points to the sitemap and disallows common admin paths."""
+    try:
+        sitemap_url = app.config.get('SITE_URL')
+        if sitemap_url:
+            sitemap_url = sitemap_url.rstrip('/') + '/sitemap.xml'
+        else:
+            sitemap_url = request.url_root.rstrip('/') + '/sitemap.xml'
+    except Exception:
+        sitemap_url = request.url_root.rstrip('/') + '/sitemap.xml'
+
+    lines = [
+        'User-agent: *',
+        'Disallow: /admin/',
+        'Disallow: /user-admin',
+        'Disallow: /login',
+        'Disallow: /reset-password',
+        '',
+        f'Sitemap: {sitemap_url}'
+    ]
+    return Response('\n'.join(lines), mimetype='text/plain')

@@ -19,7 +19,12 @@ user_admin_routes = Blueprint('user_admin', __name__)
 def admin():
     # Support GET so users may navigate to the admin page and see the wipe form.
     # Also accept POST for backward compatibility if needed (renders the same page).
-    return render_template(template_name_or_list='admin/admin.html')
+    try:
+        from site_globals import build_meta
+        meta = build_meta(title=f"{current_user.username} — Admin", description="User admin tools")
+    except Exception:
+        meta = None
+    return render_template(template_name_or_list='admin/admin.html', meta=meta)
 
 
 @user_admin_routes.route('/user-admin/wipe', methods=['POST'])

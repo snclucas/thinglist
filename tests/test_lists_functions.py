@@ -2,13 +2,10 @@ import unittest
 
 from slugify import slugify
 
-from database_utils import get_number_user_lists, \
-    delete_lists_by_id, edit_inventory_data, get_users_for_inventory, add_user_to_inventory, \
-    delete_user_to_inventory
-
+from services.inventory_service import InventoryService
+from services.user_service import UserService
 from site_globals import __LIST__, __COLLABORATOR__, __PUBLIC__
 from tests.test_parent import TestAppParent
-from services.thinglist_services import InventoryService
 
 
 class TestApp(TestAppParent):
@@ -19,14 +16,14 @@ class TestApp(TestAppParent):
         list_data = self.new_inventory_data[self.users['simon']]
         new_inventory_data, status, msg = self.add_list_for_user(list_data)
 
-        _users_in_inventory = get_users_for_inventory(inventory_id=new_inventory_data["id"])
+        _users_in_inventory = InventoryService.get_users_for_inventory(inventory_id=new_inventory_data["id"])
         self.assertEqual(1, len(_users_in_inventory))
 
         _user_to_add = self.users['neil']
-        add_user_to_inventory(inventory_id=new_inventory_data["id"], current_user_id=self.users['simon'].id,
+        InventoryService.add_user_to_inventory(inventory_id=new_inventory_data["id"], current_user_id=self.users['simon'].id,
                               user_to_add_username=_user_to_add.username, added_user_access_level=__COLLABORATOR__)
 
-        _users_in_inventory = get_users_for_inventory(inventory_id=new_inventory_data["id"])
+        _users_in_inventory = InventoryService.get_users_for_inventory(inventory_id=new_inventory_data["id"])
         for _user, _access_level in _users_in_inventory.items():
             if _user.username == _user_to_add.username:
                 self.assertEqual(__COLLABORATOR__, _access_level)
@@ -34,15 +31,15 @@ class TestApp(TestAppParent):
         self.assertEqual(2, len(_users_in_inventory))
 
         # Try to delete the inventory owner - should not delete and return False
-        _ret, msg = delete_user_to_inventory(inventory_id=new_inventory_data["id"], user_to_delete_id=self.users['simon'].id)
+        _ret, msg = InventoryService.delete_user_to_inventory(inventory_id=new_inventory_data["id"], user_to_delete_id=self.users['simon'].id)
         self.assertEqual(False, _ret)
-        _users_in_inventory = get_users_for_inventory(inventory_id=new_inventory_data["id"])
+        _users_in_inventory = InventoryService.get_users_for_inventory(inventory_id=new_inventory_data["id"])
         self.assertEqual(2, len(_users_in_inventory))
 
         # Try to delete the newly added user - should delete and return True
-        _ret, msg = delete_user_to_inventory(inventory_id=new_inventory_data["id"], user_to_delete_id=_user_to_add.id)
+        _ret, msg = InventoryService.delete_user_to_inventory(inventory_id=new_inventory_data["id"], user_to_delete_id=_user_to_add.id)
         self.assertEqual(True, _ret)
-        _users_in_inventory = get_users_for_inventory(inventory_id=new_inventory_data["id"])
+        _users_in_inventory = InventoryService.get_users_for_inventory(inventory_id=new_inventory_data["id"])
         self.assertEqual(1, len(_users_in_inventory))
 
     def test_find_list_by_slug(self):
@@ -141,7 +138,7 @@ class TestApp(TestAppParent):
         _num_lists = get_number_user_lists(user_id=self.users['simon'].id)
         self.assertEqual(2, _num_lists)
 
-        status, msg = edit_inventory_data(inventory_id=new_inventory_data["id"], inventory_type=__LIST__,
+        status, msg = InventoryService.edit_inventory_data(inventory_id=new_inventory_data["id"], inventory_type=__LIST__,
                                           user_id=list_data['to_user_id'], name="test_list_edited",
                                           description="test_list_edited",
                                           show_default_fields=0, show_item_images=0, show_item_type=0,
@@ -183,7 +180,7 @@ class TestApp(TestAppParent):
 
 
 
-        status, msg = delete_lists_by_id(inventory_ids=new_inventory_data["id"],
+        status, msg = InventoryService.delete_lists_by_id(inventory_ids=new_inventory_data["id"],
                                          user_id=list_data['to_user_id'])
         self.assertEqual(True, status)
 

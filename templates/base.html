@@ -8,17 +8,56 @@
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <title>
             {% block title %}
-                ThingList
+                {{ meta.title if meta.title is defined else 'ThingList' }}
             {% endblock %}
         </title>
 
         {% block metadata %}
-            <meta property="og:title" content="ThingList | A list of all your things"/>
-            <meta property="og:type" content="website"/>
-            <meta property="og:image" content="{{ url_for('static', filename='img/thinglist-logo-50pc.png') }}"/>
-            <meta property="og:url"
-                  content="https://thinglist.org"/>
-            <base href="/">
+            {% if meta is defined and meta %}
+                {# Basic meta description #}
+                {% if meta.description is defined and meta.description %}
+                    <meta name="description" content="{{ meta.description }}" />
+                {% endif %}
+
+                {# Canonical #}
+                {% if meta.canonical is defined and meta.canonical %}
+                    <link rel="canonical" href="{{ meta.canonical }}" />
+                {% else %}
+                    <link rel="canonical" href="{{ request.url }}" />
+                {% endif %}
+
+                {# Robots #}
+                <meta name="robots" content="{{ meta.robots if meta.robots is defined else 'index,follow' }}" />
+
+                {# Open Graph / Facebook #}
+                {% if meta.og is defined %}
+                    {% if meta.og.title %}<meta property="og:title" content="{{ meta.og.title }}"/>{% endif %}
+                    {% if meta.og.description %}<meta property="og:description" content="{{ meta.og.description }}"/>{% endif %}
+                    <meta property="og:type" content="{{ meta.og.type if meta.og.type is defined else 'website' }}"/>
+                    <meta property="og:url" content="{{ meta.og.url if meta.og.url is defined else (meta.canonical if meta.canonical is defined else request.url) }}"/>
+                    {% if meta.og.image %}<meta property="og:image" content="{{ meta.og.image }}"/>{% endif %}
+                {% endif %}
+
+                {# Twitter Cards #}
+                {% if meta.twitter is defined %}
+                    <meta name="twitter:card" content="{{ meta.twitter.card if meta.twitter.card is defined else 'summary_large_image' }}" />
+                    {% if meta.twitter.title %}<meta name="twitter:title" content="{{ meta.twitter.title }}" />{% endif %}
+                    {% if meta.twitter.description %}<meta name="twitter:description" content="{{ meta.twitter.description }}" />{% endif %}
+                    {% if meta.twitter.image %}<meta name="twitter:image" content="{{ meta.twitter.image }}" />{% endif %}
+                {% endif %}
+
+                {# Structured data (JSON-LD) if provided #}
+                {% if meta.structured_data is defined and meta.structured_data %}
+                    <script type="application/ld+json">{{ meta.structured_data | tojson | safe }}</script>
+                {% endif %}
+            {% else %}
+                {# Fallback: keep existing static OG metadata for backward compatibility #}
+                <meta property="og:title" content="ThingList | A list of all your things"/>
+                <meta property="og:type" content="website"/>
+                <meta property="og:image" content="{{ url_for('static', filename='img/thinglist-logo-50pc.png') }}"/>
+                <meta property="og:url" content="https://thinglist.org"/>
+                <base href="/">
+            {% endif %}
         {% endblock %}
 
         <link rel="icon" type="image/png" href="/img/favicons/favicon-16x16.png" sizes="16x16">

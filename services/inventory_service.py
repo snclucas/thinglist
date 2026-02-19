@@ -1396,7 +1396,7 @@ class InventoryService:
     def add_item_to_inventory(item_id=None, item_name=None, item_desc=None, item_type_name_or_id=None, item_tags=None,
                               inventory_id=None, user_id=None, item_quantity=1, item_url=None,
                               item_location_id=None, item_specific_location="", custom_fields=None,
-                              item_token=None) -> dict:
+                              item_ident=None) -> dict:
         from services.item_service import ItemService
         app.logger.debug(f"add_item_to_inventory called with item_type_name_or_id={item_type_name_or_id!r} (type={type(item_type_name_or_id)}), user_id={user_id}")
         # Coerce numeric-looking item_type parameters to int if possible (handles strings like '196')
@@ -1511,9 +1511,9 @@ class InventoryService:
                         # We already found an existing item_type_; use its id
                         _item_type_int = getattr(item_type_, 'id', None)
 
-                # If caller provided an item_token, try to resolve existing item first
-                if item_token is not None:
-                    new_item = ItemService.get_item_by_token(user_id=user_id, item_token=item_token)
+                # If caller provided an item_ident, try to resolve existing item first
+                if item_ident is not None:
+                    new_item = ItemService.get_item_by_ident(user_id=user_id, item_ident=item_ident)
 
                 # Debug: log resolved item type id before creating the item
                 try:
@@ -1543,16 +1543,16 @@ class InventoryService:
                         _item_type_int = item_type_.id
                         app.logger.debug("Resolved fallback _item_type_int=%s for user_id=%s", _item_type_int, user_id)
 
-                if item_token is None or new_item is None:
+                if item_ident is None or new_item is None:
                     # create the new item
                     new_item = Item(name=item_name, description=item_desc, user_id=user_id, quantity=item_quantity,
                                     url=item_url, item_type=_item_type_int,
                                     location_id=item_location_id, specific_location=item_specific_location)
                     db.session.add(new_item)
-                    if item_token is not None:
-                        new_item.item_token = item_token
+                    if item_ident is not None:
+                        new_item.ident = item_ident
                     else:
-                        new_item.token = token_urlsafe()
+                        new_item.token = str(uuid.uuid4())
                     # get new item ID and set the item slug
                     db.session.flush()
                     item_slug = f"{str(new_item.id)}-{slugify(item_name)}"

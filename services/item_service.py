@@ -675,9 +675,9 @@ class ItemService:
         return data_dict, item_id_list
 
     @staticmethod
-    def update_item_by_token(item_data: dict, item_token: str, user: User) -> Dict[
+    def update_item_by_ident(item_data: dict, item_ident: str, user: User) -> Dict[
         str, Union[str, Dict[str, Union[int, str]]]]:
-        if item_token is None:
+        if item_ident is None:
             return {
                 "status": "error",
                 "message": "Item ID cannot be None",
@@ -694,7 +694,7 @@ class ItemService:
         with app.app_context():
             db.session.expire_on_commit = False
 
-            select_statement = select(Item).where(Item.item_token == item_token)  # .where(Item.user_id == user.id)
+            select_statement = select(Item).where(Item.ident == item_ident)  # .where(Item.user_id == user.id)
 
             item_result = db.session.execute(select_statement).one_or_none()
 
@@ -773,7 +773,7 @@ class ItemService:
             except SQLAlchemyError as ex:
                 db.session.rollback()
                 app.logger.error(
-                    f"Could not update item with item_token {item_token} for user {user.username} : {str(ex)}")
+                    f"Could not update item with item_ident {item_ident} for user {user.username} : {str(ex)}")
                 return_data = {
                     "status": "error",
                     "message": "",
@@ -1567,16 +1567,16 @@ class ItemService:
             return None, None, None
 
     @staticmethod
-    def get_item_by_token(item_token: str, user_id: Optional[int] = None) -> Optional[Item]:
-        if not item_token:
+    def get_item_by_ident(item_ident: str, user_id: Optional[int] = None) -> Optional[Item]:
+        if not item_ident:
             return None
         try:
-            q = db.session.query(Item).filter_by(item_token=item_token)
+            q = db.session.query(Item).filter_by(ident=item_ident)
             if user_id is not None:
                 q = q.filter_by(user_id=user_id)
             return q.one_or_none()
         except SQLAlchemyError as ex:
-            app.logger.error(f"Error fetching item by item_token {item_token}: {ex}")
+            app.logger.error(f"Error fetching item by item_ident {item_ident}: {ex}")
             db.session.rollback()
             return None
 
