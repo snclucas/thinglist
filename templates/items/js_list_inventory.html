@@ -14,10 +14,10 @@
 
   // Build URL (Jinja `tojson` produces a quoted string)
   const urlParamsString = typeof urlParams !== 'undefined' ? urlParams.toString() : '';
-  const userItemsUrl = {{ url_for('api.items', username=list_username, inventory_slug=inventory_slug) | tojson | safe }} + (urlParamsString ? '?' + urlParamsString : '');
+  const userItemsUrl = {{ url_for('api.items', username=list_username, inventory_slug=(inventory.slug if inventory is not none else inventory_slug)) | tojson | safe }} + (urlParamsString ? '?' + urlParamsString : '');
 
   // Template for item URL, replace ITEMSSLUG safely
-  const itemUrlTemplate = {{ url_for('item.item_with_username_and_inventory', list_username=list_username, inventory_slug=inventory_slug, item_slug='ITEMSSLUG') | tojson }};
+  const itemUrlTemplate = {{ url_for('item.item_with_username_and_inventory', list_username=list_username, inventory_slug=(inventory.slug if inventory is not none else inventory_slug), item_slug='ITEMSSLUG') | tojson }};
 
   // Construct columnDefs and columns with Jinja sections preserved but valid JS
   const columnDefs = [

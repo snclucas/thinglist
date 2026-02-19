@@ -2,7 +2,8 @@
     $(document).ready(function () {
         const truncate = (input) => input.length > 5 ? `${input.substring(0, 5)}...` : input;
 
-        const user_items_url = {{ url_for('api.items', username=list_username, inventory_slug=inventory_slug)  |  tojson|safe}} + "?" + urlParams.toString()
+        // Use inventory.slug when available
+        const user_items_url = {{ url_for('api.items', username=list_username, inventory_slug=(inventory.slug if inventory is not none else inventory_slug))  |  tojson|safe}} + "?" + urlParams.toString()
 
 
         const table = new DataTable('#items-table', {

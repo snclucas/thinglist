@@ -12,15 +12,9 @@
     {% else %}
     {% endif %}
 
+    {% set inv_name = inventory.name %}
+    {% set inv_desc = inventory.description %}
 
-
-    {% if __DEFAULT__ in inventory.name %}
-        {% set inv_name = "Default/None" %}
-        {% set inv_desc = "Default/None" %}
-    {% else %}
-        {% set inv_name = inventory.name %}
-        {% set inv_desc = inventory.description %}
-    {% endif %}
 {% else %}
     {% set inv_table_type = __LIST_ALL__ %}
     {% set inv_name = "All" %}
@@ -90,27 +84,36 @@
                             <div class="row">
                                 <div class="col-md-6 show-big">
                                     {% include 'items/partials/_items_view_buttons.html' %}
-                                    <button id="export-csv-btn" type="button" class="btn btn-outline-primary ml-2" title="Export visible table to CSV">
+                                    <button id="export-csv-btn" type="button" class="btn btn-outline-primary ml-2"
+                                            title="Export visible table to CSV">
                                         Export CSV
                                     </button>
                                 </div>
                                 <!-- Mobile: dropdown with view toggles and export action -->
                                 <div class="col-12 d-sm-none mt-2">
                                     <div class="btn-group" role="group">
-                                        <button id="mobile-list-actions" class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <button id="mobile-list-actions"
+                                                class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
+                                                data-bs-toggle="dropdown" aria-expanded="false">
                                             Actions
                                         </button>
                                         <ul class="dropdown-menu">
                                             <li class="px-2">{% include 'items/partials/_items_view_buttons.html' %}</li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li><button id="export-csv-btn-mobile" class="dropdown-item" type="button">Export CSV</button></li>
+                                            <li>
+                                                <hr class="dropdown-divider">
+                                            </li>
+                                            <li>
+                                                <button id="export-csv-btn-mobile" class="dropdown-item" type="button">
+                                                    Export CSV
+                                                </button>
+                                            </li>
                                         </ul>
                                     </div>
                                 </div>
-                                 <div class="col-md-6">
-                                     {% include 'items/partials/_list_filter_form.html' %}
-                                 </div>
-                             </div>
+                                <div class="col-md-6">
+                                    {% include 'items/partials/_list_filter_form.html' %}
+                                </div>
+                            </div>
 
                             <div class="row">
                                 <div class="col-md-12">
